@@ -9,11 +9,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.system.StructPollfd;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.androidex.plugins.kkaexparams;
+import com.androidex.aexapplibs.appLibsService;
 import com.tencent.av.VideoService;
 import com.tencent.device.barrage.BarrageContext;
 import com.tencent.device.barrage.BarrageMsg;
@@ -140,7 +139,7 @@ public class TXDeviceService extends Service {
             mToastMessageHandler = new Handler();
         }
 
-        initDevice();
+        initDevice(this);
     }
 
     @Override
@@ -157,16 +156,16 @@ public class TXDeviceService extends Service {
      *
      * @return 字符串表示的Serial
      */
-    static public String get_serial() {
-        kkaexparams aexparams = new kkaexparams();
+    static public String get_serial(Context context) {
+        appLibsService aexparams = new appLibsService(context);
 
         return aexparams.get_serial();
     }
 
 
-    public void initDevice() {
-        kkaexparams aexparams = new kkaexparams();
-        JSONObject authinfo = get_authinfo();
+    public void initDevice(Context context) {
+        appLibsService aexparams = new appLibsService(context);
+        JSONObject authinfo = get_authinfo(context);
         String strGUID;
         String strLicense;
         String srvPubKey;
@@ -181,7 +180,7 @@ public class TXDeviceService extends Service {
         }
         if (authinfo.optString("sn", "").isEmpty()) {
             try {
-                authinfo.put("sn", get_serial());
+                authinfo.put("sn", get_serial(context));
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -203,7 +202,7 @@ public class TXDeviceService extends Service {
         try {
             String userinfo = authinfo.toString(1);
             Log.d(TAG, String.format("authInfo=[%d]%s \n", userinfo.length(), userinfo));
-            aexparams.set_userinfo(userinfo);
+            aexparams.setUserInfo(userinfo);
         } catch (JSONException e) {
             e.printStackTrace();
         }

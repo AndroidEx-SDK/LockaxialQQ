@@ -1,6 +1,8 @@
 package com.androidex;
 
-import com.androidex.plugins.kkaexparams;
+import android.content.Context;
+
+import com.androidex.aexapplibs.appLibsService;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -11,14 +13,14 @@ import org.json.JSONObject;
  */
 
 public class GetUserInfo {
-    public static JSONObject get_authinfo()
+    public static JSONObject get_authinfo(Context context)
     {
-        kkaexparams aexparams = new kkaexparams();
+        appLibsService aexparams = new appLibsService(context);
         JSONObject userinfo = new JSONObject();
         try {
             int flag0 = aexparams.get_flag0();
             if(flag0 != 0 && flag0 != 0xFF) {
-                String ui = aexparams.get_userinfo();
+                String ui = aexparams.getUserInfo();
                 if (ui != null)
                     userinfo = new JSONObject(ui);
             }
@@ -31,26 +33,26 @@ public class GetUserInfo {
     /**
      * 得到pid
      */
-    public static String getPid(){
-     return get_authinfo().optString("pid");
+    public static String getPid(Context context){
+     return get_authinfo(context).optString("pid");
     }
 
     /**
      * 得到 sn
      */
-    public static String getSn(){
-        return get_authinfo().optString("sn");
+    public static String getSn(Context context){
+        return get_authinfo(context).optString("sn");
     }
     /**
      * 得到liense
      */
-    public static String getLicense(){
-        return get_authinfo().optString("license");
+    public static String getLicense(Context context){
+        return get_authinfo(context).optString("license");
     }
     /**
      * 得到pubkey
      */
-    public static String getPubkey(){
-        return  get_authinfo().optString("pubkey");
+    public static String getPubkey(Context context){
+        return  get_authinfo(context).optString("pubkey");
     }
 }

@@ -474,8 +474,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      */
     private void getQR() {
         //生成一个可以绑定设备的二维码
-        Log.d("mainactivity", GetUserInfo.getSn());
-        Bitmap bitmap = Zxing.createQRImage("http://iot.qq.com/add?pid=1700003316&sn=" + GetUserInfo.getSn(), 200, 200, null);
+        Log.d("mainactivity", GetUserInfo.getSn(this));
+        Bitmap bitmap = Zxing.createQRImage("http://iot.qq.com/add?pid=1700003316&sn=" + GetUserInfo.getSn(this), 200, 200, null);
         if (bitmap == null) {
             options = new DisplayImageOptions.Builder()
                     .showImageOnFail(R.mipmap.fail)

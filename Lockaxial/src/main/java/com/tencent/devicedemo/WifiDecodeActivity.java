@@ -42,9 +42,7 @@ public class WifiDecodeActivity extends Activity{
 	private static final int samplerate = 44100;
 	private static final int channel = AudioFormat.CHANNEL_IN_MONO;
 	private static final int format = AudioFormat.ENCODING_PCM_16BIT;
-	
-	
-	
+
 	private TextView mwifiinfo;
 	private NotifyReceiver mNotifyReceiver;   
 
@@ -83,8 +81,8 @@ public class WifiDecodeActivity extends Activity{
 		view1 = inflater.inflate(R.layout.erweima, null);
 		ImageView imewm=(ImageView)view1.findViewById(R.id.iv_ewm);
 		//扫码绑定
-		if (GetUserInfo.getSn()!=null){
-			bitmap = Zxing.createQRImage("http://iot.qq.com/add?pid=1700003316&sn=" + GetUserInfo.getSn(), 200, 200, null);
+		if (GetUserInfo.getSn(this)!=null){
+			bitmap = Zxing.createQRImage("http://iot.qq.com/add?pid=1700003316&sn=" + GetUserInfo.getSn(this), 200, 200, null);
 			imewm.setBackgroundColor(Color.WHITE);
 			imewm.setImageBitmap(bitmap);
 		}else{
