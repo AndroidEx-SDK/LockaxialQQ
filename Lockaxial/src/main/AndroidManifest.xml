@@ -5,11 +5,7 @@
           android:versionCode="2"
           android:versionName="1.0.1">
     <!-- android:sharedUserId="android.uid.system" -->
-    <uses-sdk
-        android:minSdkVersion="11"
-        android:targetSdkVersion="17"/>
 
-    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission
         android:name="android.permission.REBOOT"
         android:protectionLevel="signatureOrSystem"/>
@@ -39,19 +35,9 @@
     <!-- 接收消息 -->
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>
     <!-- 读写⽂文件 -->
-    <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
     <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"/>
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
-    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.NFC"/>
     <uses-permission android:name="android.permission.INSTALL_PACKAGES"/>
@@ -68,30 +54,14 @@
     <uses-permission android:name="com.tencent.devicedemo.permission.RECEIVE_MSG"/>
     <!-- // 如果没有VOIP功能可以忽略-->
     <uses-permission android:name="com.tencent.devicedemo.permission.INCOMING_CALL"/>
-    <!--// 以上为v5.1.9r 版本增加-->
-
-    <!--// 允许程序打开网络sockets-->
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <!--// 允许程序访问有关的网络信息-->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <!-- // 允许程序访问Wi-Fi网络状态信息-->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <!--// 允许应用写（非读）用户的外部存储器-->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <!--// 允许读取电话的状态-->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <!--// 允许一个程序获取信息有关当前或最近运行的任务，一个缩略的任务状态，是否活动等等-->
     <uses-permission android:name="android.permission.GET_TASKS"/>
-    <!--// 允许程序录制音频-->
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!--// 允许应用程序修改全局声音设置的权限&lt;!&ndash;&ndash;&gt;-->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     <!--// 允许使用PowerManager的WakeLocks保持进程在休眠时从屏幕消失&lt;!&ndash;-->-->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <!--// 允许请求访问使用照相设备(如果使用视频通话则必选配置)-->
     <uses-permission android:name="android.permission.CAMERA"/>
-
-
     <!--连接网络权限，用于执行云端语音能力 -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!--获取手机录音机使用权限，听写、识别、语义理解需要用到此权限 -->
@@ -114,6 +84,13 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
     <!--手机定位信息，用来为语义等功能提供定位，提供更精准的服务--> <!--定位信息是敏感信息，可通过Setting.setLocationEnable(false)关闭定位请求 -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <!-- 蓝牙 -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <!--蓝牙静默开启，已适配Android6.0-->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+
     <application
         android:name=".BaseApplication"
         android:allowBackup="true"
@@ -127,14 +104,13 @@
         <meta-data
             android:name="SUPERID_SECRET"
             android:value="a58e9555bd2fef42ecce9aa3"/>
-<!--不想再最近任务列表中显示，可以在AndroidManifest.xml的activity下面加上android:excludeFromRecents="true"-->
+        <!--不想再最近任务列表中显示，可以在AndroidManifest.xml的activity下面加上android:excludeFromRecents="true"-->
         <activity
             android:name="com.tencent.devicedemo.MainActivity"
             android:label="@string/app_name"
             android:screenOrientation="landscape"
             android:theme="@style/Apptheme"
             android:windowSoftInputMode="stateHidden">
-
 
             <!-- NFC-related intent filter. Allows application to handle messages from any
                  NFC-A devices discovered. Other Android devices are required to support NFC-A.
@@ -158,8 +134,6 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
-
-
         </activity>
 
         <!--监听开机自启动-->
@@ -313,8 +287,9 @@
 
         <service
             android:name="com.tencent.devicedemo.VideoMonitorService"
-            android:process=":video"/><!-- ATTENTION: This was auto-generated to add Google Play services to your project for
-     App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->
+            android:process=":video"/>
+        <!-- ATTENTION: This was auto-generated to add Google Play services to your project for
+               App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->
         <meta-data android:name="com.google.android.gms.version"
                    android:value="@integer/google_play_services_version"/>
 

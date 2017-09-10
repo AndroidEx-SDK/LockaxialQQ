@@ -155,75 +155,78 @@ import static com.util.Constant.PASSWORD_MODE;
 
 public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener {
     private static final String TAG = "MainActivity";
-
     public static final int INPUT_CARDINFO_RESULTCODE = 0X01;
     public static final int INPUT_CARDINFO_REQUESTCODE = 0X02;
     public static final int INPUT_SYSTEMSET_REQUESTCODE = 0X03;
+    public static int currentStatus = CALL_MODE;
+    public static int READER_FLAGS = NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK;
+    private View container;
+    private LinearLayout videoLayout;
+    private RelativeLayout rl_nfc, rl;
     private GridView mGridView;
+    private ImageView iv_setting, iv_bind, imageView, wifi_image;
+    private TextView headPaneTextView, tv_message, tv_input_text;
+    private EditText tv_input, et_blackno, et_unitno;
     private BinderListAdapter mAdapter;
     private NotifyReceiverQQ mNotifyReceiver;
-    public boolean nfcFlag = false;
-    public RelativeLayout rl_nfc;
-    public TextView tv_message;
-    public String nfcMessage = "请将卡片放到感应区域，按确认键\n确定录入卡片，按删除键取消录入卡片";
-    // Recommend NfcAdapter flags for reading from other Android devices. Indicates that this
-    // activity is interested in NFC-A devices (including other Android devices), and that the
-    // system should not check for the presence of NDEF-formatted data (e.g. Android Beam).
-    public static int READER_FLAGS = NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK;
     private NfcReader nfcReader;
-    private EditText tv_input;
     private AutoScrollViewPager viewPager;
     private Banner banner;
     private Bg_Adapter bgAdapter;
-    private ImageView imageView;
     private DisplayImageOptions options;
     private WifiInfo wifiInfo = null;        //获得的Wifi信息
     private WifiManager wifiManager = null;    //Wifi管理器
     private Handler handler;
-    private ImageView wifi_image;            //信号图片显示
     private int level;                        //信号强度值
-    private ImageView iv_setting;
-    private RelativeLayout rl;
-    private ImageView iv_bind;
-    TextView headPaneTextView = null;
-    LinearLayout videoLayout;
-    protected Messenger serviceMessenger;
-    protected Messenger dialMessenger;
-    AdvertiseHandler advertiseHandler = null;
-    SurfaceView localView = null;
-    SurfaceView remoteView = null;
+    private int blockId = 0;
+    private int keyVoiceIndex = 0;
+    private int dialogtime = 0;
+    private boolean nfcFlag = false;
+    private boolean isFlag = true;
+    private boolean flag = false;//控制开始接通时，相机为空则再接通
+    private Messenger serviceMessenger;
+    private Messenger dialMessenger;
+    private AdvertiseHandler advertiseHandler = null;
     private HashMap<String, String> uuidMaps = new HashMap<String, String>();
     private String lastImageUuid = "";
     private String blockNo = "";
-    private int blockId = 0;
-    SurfaceHolder autoCameraHolder = null;
     private String guestPassword = "";
-    Thread passwordTimeoutThread = null;
-    SoundPool soundPool = null;
-    int keyVoiceIndex = 0;
-    SurfaceView videoView = null;
-    SurfaceView autoCameraSurfaceView = null;
-    Thread clockRefreshThread = null;
-    public static int currentStatus = CALL_MODE;
-    public EditText et_blackno;
-    public EditText et_unitno;
-    public boolean isFlag = true;
-    Parcelable[] listTemp1;
-    AlertDialog dialog;
-    Camera camera = null;
-    boolean flag = false;//控制开始接通时，相机为空则再接通
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
+    private String cardId;
+    private String nfcMessage = "请将卡片放到感应区域，按确认键\n确定录入卡片，按删除键取消录入卡片";
+    private SurfaceView localView = null;
+    private SurfaceView remoteView = null;
+    private SurfaceHolder autoCameraHolder = null;
+    private Thread passwordTimeoutThread = null;
+    private Thread clockRefreshThread = null;
+    private SoundPool soundPool = null;
+    private SurfaceView videoView = null;
+    private SurfaceView autoCameraSurfaceView = null;
+    private Parcelable[] listTemp1;
+    private AlertDialog dialog;
+    private Camera camera = null;
     private GoogleApiClient client;
-    private TextView tv_input_text;
     private AdverErrorCallBack adverErrorCallBack;
     private JSONArray rows;
-    private View container;
+    private Receive receive;
+    private Handler handle = new Handler();
+    private Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            handle.postDelayed(runnable, 1000);
+            if (dialog != null && dialog.isShowing()) {
+                dialogtime++;
+                if (dialogtime >= 30) {
+                    handle.removeCallbacks(runnable);
+                    dialog.setMessage("呼叫失败");
+                    dialog.dismiss();
+                    dialogtime = 0;
+                }
+            }
+        }
+    };
+
 
     protected void onCreate(Bundle savedInstanceState) {
-        // TODO Auto-generated constructor stub
         super.onCreate(savedInstanceState);
         //全屏设置，隐藏窗口所有装饰
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);//清除FLAG
@@ -267,8 +270,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
             am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 10000, pendingIntent);
         }
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
@@ -297,7 +298,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         setFullScreenView(container);
         setFullScreen(true);//禁止頂部下拉
         Typeface typeFace = Typeface.createFromAsset(getAssets(), "fonts/GBK.TTF");
-        //TextView com_log=(TextView)findViewById(R.id.tv_log);
         tv_input = (EditText) findViewById(R.id.tv_input);
         tv_input.setTypeface(typeFace);// com_log.setTypeface(typeFace);
         et_blackno.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -322,97 +322,104 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 startActivityForResult(intent, INPUT_SYSTEMSET_REQUESTCODE);
                 break;
             case R.id.iv_setting:
-                PopupMenu popup = new PopupMenu(MainActivity.this, iv_setting);
-                popup.getMenuInflater()
-                        .inflate(R.menu.poupup_menu_home, popup.getMenu());
-                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    @Override
-                    public boolean onMenuItemClick(MenuItem item) {
-                        switch (item.getItemId()) {
-                            case R.id.action_settings1:
-                                Intent intent = new Intent(Settings.ACTION_SETTINGS);//跳轉到系統設置
-                                intent.putExtra("back", true);
-                                startActivityForResult(intent, INPUT_SYSTEMSET_REQUESTCODE);
-                                break;
-
-                            case R.id.action_catIP:
-                                Toast.makeText(MainActivity.this, "本机的IP：" + Intenet.getHostIP(), Toast.LENGTH_LONG).show();
-                                break;
-
-                            case R.id.action_catVersion:
-                                Toast.makeText(MainActivity.this, "本机的固件版本：" + hwservice.getSdkVersion(), Toast.LENGTH_LONG).show();
-                                break;
-                            case R.id.action_updateVersion:
-                                Message message = Message.obtain();
-                                message.what = MSG_UPDATE_VERSION;
-                                try {
-                                    serviceMessenger.send(message);
-                                } catch (RemoteException e) {
-                                    e.printStackTrace();
-                                }
-                                break;
-
-                            case R.id.action_settings2:
-                                Toast.makeText(MainActivity.this, "该功能暂未开放", Toast.LENGTH_LONG).show();
-                                break;
-
-                            case R.id.action_settings3:
-                                TXDeviceService.getInstance().uploadSDKLog();
-                                break;
-
-                            case R.id.action_settings4:
-                                int status = 2;
-                                Intent ds_intent = new Intent();
-                                ds_intent.setAction(DoorLock.DoorLockOpenDoor);
-                                ds_intent.putExtra("index", 0);
-                                ds_intent.putExtra("status", status);
-                                sendBroadcast(ds_intent);
-                                break;
-
-                            case R.id.action_settings5:
-                                int status1 = 2;
-                                Intent ds_intent1 = new Intent();
-                                ds_intent1.setAction(DoorLock.DoorLockOpenDoor);
-                                ds_intent1.putExtra("index", 1);
-                                ds_intent1.putExtra("status", status1);
-                                sendBroadcast(ds_intent1);
-                                break;
-                            case R.id.action_ble_open:
-                                Toast.makeText(MainActivity.this, "开启并连接蓝牙", Toast.LENGTH_LONG).show();
-                                break;
-                            case R.id.action_ble_close:
-                                Toast.makeText(MainActivity.this, "关闭蓝牙", Toast.LENGTH_LONG).show();
-                                break;
-                            case R.id.action_settings6:
-                                long wakeupTime = SystemClock.elapsedRealtime() + 240000;       //唤醒时间,如果是关机唤醒时间不能低于3分钟,否则无法实现关机定时重启
-                                DoorLock.getInstance().runSetAlarm(wakeupTime);
-                                break;
-
-                            case R.id.action_settings7:
-                                DoorLock.getInstance().runReboot();
-                                break;
-
-                            case R.id.action_settings8:
-                                DoorLock.getInstance().runShutdown();
-                                break;
-                            case R.id.action_settings9:
-                                DoorLock.getInstance().setPlugedShutdown();
-                                break;
-                            case R.id.action_settings10:
-                                setResult(RESULT_OK);
-                                finish();
-                                sendBroadcast(new Intent("com.android.action.display_navigationbar"));
-                                break;
-                            case R.id.action_settings11:
-                                //initSpeech(MainActivity.this);
-                                break;
-                        }
-                        return true;
-                    }
-                });
-                popup.show();
+                initMenu();//初始化左上角弹出框
                 break;
         }
+    }
+
+    /**
+     * 初始化左上角弹出框
+     */
+    private void initMenu() {
+        PopupMenu popup = new PopupMenu(MainActivity.this, iv_setting);
+        popup.getMenuInflater()
+                .inflate(R.menu.poupup_menu_home, popup.getMenu());
+        popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.action_settings1:
+                        Intent intent = new Intent(Settings.ACTION_SETTINGS);//跳轉到系統設置
+                        intent.putExtra("back", true);
+                        startActivityForResult(intent, INPUT_SYSTEMSET_REQUESTCODE);
+                        break;
+
+                    case R.id.action_catIP:
+                        Toast.makeText(MainActivity.this, "本机的IP：" + Intenet.getHostIP(), Toast.LENGTH_LONG).show();
+                        break;
+
+                    case R.id.action_catVersion:
+                        Toast.makeText(MainActivity.this, "本机的固件版本：" + hwservice.getSdkVersion(), Toast.LENGTH_LONG).show();
+                        break;
+                    case R.id.action_updateVersion:
+                        Message message = Message.obtain();
+                        message.what = MSG_UPDATE_VERSION;
+                        try {
+                            serviceMessenger.send(message);
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+
+                    case R.id.action_settings2:
+                        Toast.makeText(MainActivity.this, "该功能暂未开放", Toast.LENGTH_LONG).show();
+                        break;
+
+                    case R.id.action_settings3:
+                        TXDeviceService.getInstance().uploadSDKLog();
+                        break;
+
+                    case R.id.action_settings4:
+                        int status = 2;
+                        Intent ds_intent = new Intent();
+                        ds_intent.setAction(DoorLock.DoorLockOpenDoor);
+                        ds_intent.putExtra("index", 0);
+                        ds_intent.putExtra("status", status);
+                        sendBroadcast(ds_intent);
+                        break;
+
+                    case R.id.action_settings5:
+                        int status1 = 2;
+                        Intent ds_intent1 = new Intent();
+                        ds_intent1.setAction(DoorLock.DoorLockOpenDoor);
+                        ds_intent1.putExtra("index", 1);
+                        ds_intent1.putExtra("status", status1);
+                        sendBroadcast(ds_intent1);
+                        break;
+                    case R.id.action_ble_open:
+                        Toast.makeText(MainActivity.this, "开启并连接蓝牙", Toast.LENGTH_LONG).show();
+                        break;
+                    case R.id.action_ble_close:
+                        Toast.makeText(MainActivity.this, "关闭蓝牙", Toast.LENGTH_LONG).show();
+                        break;
+                    case R.id.action_settings6:
+                        long wakeupTime = SystemClock.elapsedRealtime() + 240000;       //唤醒时间,如果是关机唤醒时间不能低于3分钟,否则无法实现关机定时重启
+                        DoorLock.getInstance().runSetAlarm(wakeupTime);
+                        break;
+
+                    case R.id.action_settings7:
+                        DoorLock.getInstance().runReboot();
+                        break;
+
+                    case R.id.action_settings8:
+                        DoorLock.getInstance().runShutdown();
+                        break;
+                    case R.id.action_settings9:
+                        DoorLock.getInstance().setPlugedShutdown();
+                        break;
+                    case R.id.action_settings10:
+                        setResult(RESULT_OK);
+                        finish();
+                        sendBroadcast(new Intent("com.android.action.display_navigationbar"));
+                        break;
+                    case R.id.action_settings11:
+                        //initSpeech(MainActivity.this);
+                        break;
+                }
+                return true;
+            }
+        });
+        popup.show();
     }
 
     private void setNetWork() {
@@ -614,6 +621,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     }
 
+    /**
+     * 检测锁状态
+     */
     private void startClockRefresh() {
         clockRefreshThread = new Thread() {
             public void run() {
@@ -1203,9 +1213,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         });
     }
 
-    public String cardId;
-
-
     private void onKeyDown(int keyCode) {
         if (nfcFlag) {
             inputCardInfo(keyCode);//录入卡片信息
@@ -1444,7 +1451,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         uuidMaps.remove(uuid);
     }
 
-    void setCommunityName(String value) {
+    private void setCommunityName(String value) {
         final String thisValue = value;
         handler.post(new Runnable() {
             @Override
@@ -1454,7 +1461,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         });
     }
 
-    void setLockName(String value) {
+    private void setLockName(String value) {
         final String thisValue = value;
         handler.post(new Runnable() {
             @Override
@@ -1464,7 +1471,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         });
     }
 
-    void initVideoViews() {
+    private void initVideoViews() {
         if (localView != null) return;
         if (MainService.callConnection != null)
             localView = (SurfaceView) MainService.callConnection.createVideoView(true, this, true);
@@ -1510,7 +1517,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         setDialValue(blockNo);
     }
 
-    void setDialStatus(String value) {
+    private void setDialStatus(String value) {
         final String thisValue = value;
         handler.post(new Runnable() {
             @Override
@@ -1520,7 +1527,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         });
     }
 
-    void setDialValue(String value) {
+    private void setDialValue(String value) {
         final String thisValue = value;
         handler.post(new Runnable() {
             @Override
@@ -1530,7 +1537,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         });
     }
 
-    void toast(final String message) {
+    private void toast(final String message) {
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -1539,7 +1546,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         });
     }
 
-    void setTempkeyValue(String value) {
+    private void setTempkeyValue(String value) {
         final String thisValue = value;
         handler.post(new Runnable() {
             @Override
@@ -1549,7 +1556,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         });
     }
 
-    void setTextView(int id, String txt) {
+    private void setTextView(int id, String txt) {
         ((TextView) findViewById(id)).setText(txt);
     }
 
@@ -1575,7 +1582,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     };
 
-    //开始启动拍照
+    /**
+     * 开始启动拍照
+     */
     protected void takePicture(final String thisValue, final boolean isCall, final TakePictureCallback callback) {
         if (currentStatus == CALLING_MODE || currentStatus == PASSWORD_CHECKING_MODE) {
             final String uuid = getUUID();
@@ -1788,25 +1797,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         //registering popup with OnMenuItemClickListener
     }
 
-    private Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            handle.postDelayed(runnable, 1000);
-            if (dialog != null && dialog.isShowing()) {
-                dialogtime++;
-
-                if (dialogtime >= 30) {
-                    handle.removeCallbacks(runnable);
-                    dialog.setMessage("呼叫失败");
-                    dialog.dismiss();
-                    dialogtime = 0;
-                }
-            }
-        }
-    };
-
-    private int dialogtime = 0;
-    private Handler handle = new Handler();
 
     protected void onPause() {
         super.onPause();
@@ -1824,8 +1814,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         sendBroadcast(new Intent("com.android.action.display_navigationbar"));
         super.onDestroy();
     }
-
-    private Receive receive;
 
     private void initAexNfcReader() {
         if (DeviceConfig.IS_NFC_AVAILABLE) {
@@ -1908,17 +1896,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         client.disconnect();
     }
 
-    class Receive extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String actionName = intent.getAction();
-            if (NfcReader.ACTION_NFC_CARDINFO.equals(actionName)) {
-                String cardInfo = intent.getStringExtra("cardinfo");
-                Log.d("0000000", "onReceive: cardinfo=" + cardInfo);
-            }
-        }
-    }
-
     @Override
     public void onAccountReceived(String account) {
         cardId = account;
@@ -1948,7 +1925,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         dialogError.show();
     }
 
-    //开始呼叫
+    /**
+     * 开始呼叫
+     */
     protected void startDialorPasswordDirectly(final String thisValue, final String fileUrl, final boolean isCall, String uuid) {
         if (currentStatus == CALLING_MODE || currentStatus == PASSWORD_CHECKING_MODE) {
             Message message = Message.obtain();
@@ -2009,8 +1988,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         startSendPictureDirectly(thisValue, fileUrl, isCall, uuid);
     }
 
-    // 使用Handler实现UI线程与Timer线程之间的信息传递,每5秒告诉UI线程获得wifiInto
-    // 使用Handler实现UI线程与Timer线程之间的信息传递,每5秒告诉UI线程获得wifiInto
+    /**
+     * 使用Handler实现UI线程与Timer线程之间的信息传递,每5秒告诉UI线程获得wifiInto
+     */
     private Handler mHandler = new Handler() {
 
         @Override
@@ -2080,6 +2060,18 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
 
     };
+
+    protected class Receive extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String actionName = intent.getAction();
+            if (NfcReader.ACTION_NFC_CARDINFO.equals(actionName)) {
+                String cardInfo = intent.getStringExtra("cardinfo");
+                Log.d(TAG, "onReceive: cardinfo=" + cardInfo);
+            }
+        }
+    }
+
 }
 
 
