@@ -116,12 +116,6 @@ public class InitActivity extends AndroidExActivityBase {
                             case R.id.action_settings3:
                                 TXDeviceService.getInstance().uploadSDKLog();
                                 break;
-                            case R.id.action_ble_open:
-                                Toast.makeText(InitActivity.this, "开启并连接蓝牙", Toast.LENGTH_LONG).show();
-                                break;
-                            case R.id.action_ble_close:
-                                Toast.makeText(InitActivity.this, "关闭蓝牙", Toast.LENGTH_LONG).show();
-                                break;
                             case R.id.action_settings4:
                                 int status = 2;
                                 Intent ds_intent = new Intent();

@@ -241,6 +241,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initScreen();
         initHandler();
         initServer();//初始化服务类
+        initReceiver();//初始化广播
+
+
         initVoiceHandler();
         initVoiceVolume();
         initAdvertiseHandler();//初始化广告
@@ -253,20 +256,13 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (!initStatus) {
             onConnectionError();
         }
-        initReceiver();//初始化广播
-        rl = (RelativeLayout) findViewById(R.id.net_view_rl);
-        rl.setOnClickListener(this);
-        wifi_image = (ImageView) findViewById(R.id.wifi_image); //wifi图标控件初始化
-        wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);//获得WifiManager
         getRssi();//使用定时器,每隔5秒获得一次信号强度值
         setNetWork();
         setAutioVolume();//获取系统相关音量
-
         if (false) {
             AlarmManager am = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
             Intent intent;
             PendingIntent pendingIntent;
-
             intent = new Intent(getApplicationContext(), AlarmReciver.class);
             pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
             am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 10000, pendingIntent);
@@ -289,9 +285,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         viewPager = (AutoScrollViewPager) findViewById(R.id.vp_main);
         imageView = (ImageView) findViewById(R.id.iv_erweima);
         tv_input_text = (TextView) findViewById(R.id.tv_input_text);
-        //getBgBanners();//网络获得轮播背景图片数据
-
-        mGridView = (GridView) findViewById(R.id.gridView_binderlist);
+        wifi_image = (ImageView) findViewById(R.id.wifi_image); //wifi图标控件初始化
+        mGridView = (GridView) findViewById(R.id.gridView_binderlist);//getBgBanners();//网络获得轮播背景图片数据
+        iv_setting = (ImageView) findViewById(R.id.iv_setting);
+        rl = (RelativeLayout) findViewById(R.id.net_view_rl);
+        rl.setOnClickListener(this);
+        iv_setting.setOnClickListener(this);
         mAdapter = new BinderListAdapter(this);
         mGridView.setAdapter(mAdapter);
         sendBroadcast(new Intent("com.android.action.hide_navigationbar"));//隱藏底部導航
@@ -318,9 +317,100 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public void onClick(View v) {
         switch (v.getId()) {//跳转网络或网络设置
             case R.id.net_view_rl:
-                Intent intent =  new Intent(Settings.ACTION_SETTINGS);
+                Intent intent = new Intent(Settings.ACTION_SETTINGS);
                 intent.putExtra("back", true);
-                startActivityForResult(intent,INPUT_SYSTEMSET_REQUESTCODE);
+                startActivityForResult(intent, INPUT_SYSTEMSET_REQUESTCODE);
+                break;
+            case R.id.iv_setting:
+                PopupMenu popup = new PopupMenu(MainActivity.this, iv_setting);
+                popup.getMenuInflater()
+                        .inflate(R.menu.poupup_menu_home, popup.getMenu());
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        switch (item.getItemId()) {
+                            case R.id.action_settings1:
+                                Intent intent = new Intent(Settings.ACTION_SETTINGS);//跳轉到系統設置
+                                intent.putExtra("back", true);
+                                startActivityForResult(intent, INPUT_SYSTEMSET_REQUESTCODE);
+                                break;
+
+                            case R.id.action_catIP:
+                                Toast.makeText(MainActivity.this, "本机的IP：" + Intenet.getHostIP(), Toast.LENGTH_LONG).show();
+                                break;
+
+                            case R.id.action_catVersion:
+                                Toast.makeText(MainActivity.this, "本机的固件版本：" + hwservice.getSdkVersion(), Toast.LENGTH_LONG).show();
+                                break;
+                            case R.id.action_updateVersion:
+                                Message message = Message.obtain();
+                                message.what = MSG_UPDATE_VERSION;
+                                try {
+                                    serviceMessenger.send(message);
+                                } catch (RemoteException e) {
+                                    e.printStackTrace();
+                                }
+                                break;
+
+                            case R.id.action_settings2:
+                                Toast.makeText(MainActivity.this, "该功能暂未开放", Toast.LENGTH_LONG).show();
+                                break;
+
+                            case R.id.action_settings3:
+                                TXDeviceService.getInstance().uploadSDKLog();
+                                break;
+
+                            case R.id.action_settings4:
+                                int status = 2;
+                                Intent ds_intent = new Intent();
+                                ds_intent.setAction(DoorLock.DoorLockOpenDoor);
+                                ds_intent.putExtra("index", 0);
+                                ds_intent.putExtra("status", status);
+                                sendBroadcast(ds_intent);
+                                break;
+
+                            case R.id.action_settings5:
+                                int status1 = 2;
+                                Intent ds_intent1 = new Intent();
+                                ds_intent1.setAction(DoorLock.DoorLockOpenDoor);
+                                ds_intent1.putExtra("index", 1);
+                                ds_intent1.putExtra("status", status1);
+                                sendBroadcast(ds_intent1);
+                                break;
+                            case R.id.action_ble_open:
+                                Toast.makeText(MainActivity.this, "开启并连接蓝牙", Toast.LENGTH_LONG).show();
+                                break;
+                            case R.id.action_ble_close:
+                                Toast.makeText(MainActivity.this, "关闭蓝牙", Toast.LENGTH_LONG).show();
+                                break;
+                            case R.id.action_settings6:
+                                long wakeupTime = SystemClock.elapsedRealtime() + 240000;       //唤醒时间,如果是关机唤醒时间不能低于3分钟,否则无法实现关机定时重启
+                                DoorLock.getInstance().runSetAlarm(wakeupTime);
+                                break;
+
+                            case R.id.action_settings7:
+                                DoorLock.getInstance().runReboot();
+                                break;
+
+                            case R.id.action_settings8:
+                                DoorLock.getInstance().runShutdown();
+                                break;
+                            case R.id.action_settings9:
+                                DoorLock.getInstance().setPlugedShutdown();
+                                break;
+                            case R.id.action_settings10:
+                                setResult(RESULT_OK);
+                                finish();
+                                sendBroadcast(new Intent("com.android.action.display_navigationbar"));
+                                break;
+                            case R.id.action_settings11:
+                                //initSpeech(MainActivity.this);
+                                break;
+                        }
+                        return true;
+                    }
+                });
+                popup.show();
                 break;
         }
     }
@@ -362,6 +452,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      * 使用定时器,每隔5秒获得一次信号强度值
      */
     private void getRssi() {
+        wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);//获得WifiManager
         Timer timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -900,10 +991,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     }
 
-    //开始呼叫
+    /**
+     * 开始呼叫
+     */
     private void startDialing(String num) {
         setCurrentStatus(CALLING_MODE);
-        if (DeviceConfig.DEVICE_TYPE == "C") {
+        if (DeviceConfig.DEVICE_TYPE.equals("C")) {
             blockId = 0;
             setDialStatus("请输入楼栋编号");
         }
@@ -1204,6 +1297,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 break;
         }
     }
+
     /**
      * 录入卡片信息
      *
@@ -1673,7 +1767,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (dialog != null && dialog.isShowing()) {/*去掉呼叫中弹出框*/
             dialog.dismiss();
         }
-        iv_setting = (ImageView) findViewById(R.id.iv_setting);/*绑定状态显示*/
+
         TXBinderInfo[] arrayBinder = TXDeviceService.getBinderList();
         if (arrayBinder != null) {
             List<TXBinderInfo> binderList = new ArrayList<TXBinderInfo>();
@@ -1690,95 +1784,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             }
         }
         initAexNfcReader();
-        iv_setting.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                PopupMenu popup = new PopupMenu(MainActivity.this, iv_setting);
-                popup.getMenuInflater()
-                        .inflate(R.menu.poupup_menu_home, popup.getMenu());
-                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    @Override
-                    public boolean onMenuItemClick(MenuItem item) {
-                        switch (item.getItemId()) {
-                            case R.id.action_settings1:
-                                Intent intent =  new Intent(Settings.ACTION_SETTINGS);//跳轉到系統設置
-                                intent.putExtra("back", true);
-                                startActivityForResult(intent,INPUT_SYSTEMSET_REQUESTCODE);
-                                break;
 
-                            case R.id.action_catIP:
-                                Toast.makeText(MainActivity.this, "本机的IP：" + Intenet.getHostIP(), Toast.LENGTH_LONG).show();
-                                break;
-
-                            case R.id.action_catVersion:
-                                Toast.makeText(MainActivity.this, "本机的固件版本：" + hwservice.getSdkVersion(), Toast.LENGTH_LONG).show();
-                                break;
-                            case R.id.action_updateVersion:
-                                Message message = Message.obtain();
-                                message.what = MSG_UPDATE_VERSION;
-                                try {
-                                    serviceMessenger.send(message);
-                                } catch (RemoteException e) {
-                                    e.printStackTrace();
-                                }
-                                break;
-
-                            case R.id.action_settings2:
-                                Toast.makeText(MainActivity.this, "该功能暂未开放", Toast.LENGTH_LONG).show();
-                                break;
-
-                            case R.id.action_settings3:
-                                TXDeviceService.getInstance().uploadSDKLog();
-                                break;
-
-                            case R.id.action_settings4:
-                                int status = 2;
-                                Intent ds_intent = new Intent();
-                                ds_intent.setAction(DoorLock.DoorLockOpenDoor);
-                                ds_intent.putExtra("index", 0);
-                                ds_intent.putExtra("status", status);
-                                sendBroadcast(ds_intent);
-                                break;
-
-                            case R.id.action_settings5:
-                                int status1 = 2;
-                                Intent ds_intent1 = new Intent();
-                                ds_intent1.setAction(DoorLock.DoorLockOpenDoor);
-                                ds_intent1.putExtra("index", 1);
-                                ds_intent1.putExtra("status", status1);
-                                sendBroadcast(ds_intent1);
-                                break;
-
-                            case R.id.action_settings6:
-                                long wakeupTime = SystemClock.elapsedRealtime() + 240000;       //唤醒时间,如果是关机唤醒时间不能低于3分钟,否则无法实现关机定时重启
-                                DoorLock.getInstance().runSetAlarm(wakeupTime);
-                                break;
-
-                            case R.id.action_settings7:
-                                DoorLock.getInstance().runReboot();
-                                break;
-
-                            case R.id.action_settings8:
-                                DoorLock.getInstance().runShutdown();
-                                break;
-                            case R.id.action_settings9:
-                                DoorLock.getInstance().setPlugedShutdown();
-                                break;
-                            case R.id.action_settings10:
-                                setResult(RESULT_OK);
-                                finish();
-                                sendBroadcast(new Intent("com.android.action.display_navigationbar"));
-                                break;
-                            case R.id.action_settings11:
-                                //initSpeech(MainActivity.this);
-                                break;
-                        }
-                        return true;
-                    }
-                });
-                popup.show();
-            }
-        });
         //registering popup with OnMenuItemClickListener
     }
 
