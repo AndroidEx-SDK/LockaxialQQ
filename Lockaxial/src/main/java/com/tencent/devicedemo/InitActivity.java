@@ -25,7 +25,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.androidex.DoorLock;
-import com.androidex.aexlibs.hwService;
 import com.androidex.common.AndroidExActivityBase;
 import com.androidex.config.DeviceConfig;
 import com.androidex.service.MainService;
@@ -116,6 +115,12 @@ public class InitActivity extends AndroidExActivityBase {
                                 break;
                             case R.id.action_settings3:
                                 TXDeviceService.getInstance().uploadSDKLog();
+                                break;
+                            case R.id.action_ble_open:
+                                Toast.makeText(InitActivity.this, "开启并连接蓝牙", Toast.LENGTH_LONG).show();
+                                break;
+                            case R.id.action_ble_close:
+                                Toast.makeText(InitActivity.this, "关闭蓝牙", Toast.LENGTH_LONG).show();
                                 break;
                             case R.id.action_settings4:
                                 int status = 2;

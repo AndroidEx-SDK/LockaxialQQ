@@ -35,15 +35,27 @@
         android:showAsAction="never"
         android:title="上传日志"/>
     <item
+        android:visible="false"
         android:id="@+id/action_settings4"
         android:orderInCategory="100"
         android:showAsAction="never"
         android:title="打开主门"/>
     <item
+        android:visible="false"
         android:id="@+id/action_settings5"
         android:orderInCategory="100"
         android:showAsAction="never"
         android:title="打开副门"/>
+    <item
+        android:id="@+id/action_ble_open"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="打开蓝牙"/>
+    <item
+        android:id="@+id/action_ble_close"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="关闭蓝牙"/>
     <item
         android:id="@+id/action_settings6"
         android:orderInCategory="100"
