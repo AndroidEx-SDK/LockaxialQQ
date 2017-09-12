@@ -198,6 +198,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private boolean isFlag = true;
     private boolean flag = false;//控制开始接通时，相机为空则再接通
     private boolean mScanning = false;//控制蓝牙扫描
+    private boolean isConnectBLE = false;//蓝牙是否连接
     private Messenger serviceMessenger;
     private Messenger dialMessenger;
     private AdvertiseHandler advertiseHandler = null;
@@ -227,7 +228,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private BluetoothDevice bluetooth_dev;
     private Handler handle = new Handler();
     private Handler bleHandler = new Handler();
-    private Runnable bleRunnable;
+    private TimerTask task;// 扫描蓝牙时的定时任务
+    private Timer timer = new Timer();// 扫描蓝牙时定时器
+    private Runnable bleRunnable;//蓝牙
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
@@ -375,7 +378,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (device != null) {
             if (!device.isRegisterReceiver) {
                 device.disconnectedDevice2();//注销服务
-                Log.d(TAG,"设备已注册，取消服务重新注册");
+                Log.d(TAG, "设备已注册，取消服务重新注册");
                 try {
                     device.setBLEBroadcastDelegate(this);//设置连接，绑定服务
                     Thread.sleep(500);
@@ -384,7 +387,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 }
             }
         } else {
-            Log.d(TAG,"开始注册设备");
+            Log.d(TAG, "开始注册设备");
             device = new BTTempDevice(this, bluetooth_dev);
             device.setBLEBroadcastDelegate(MainActivity.this);
         }
@@ -2192,7 +2195,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     if (bluetooth_dev != null) {
                         device = new BTTempDevice(MainActivity.this, bluetooth_dev);
                     }
-                    Log.e(TAG,"开始绑定设备");
+                    Log.e(TAG, "开始绑定设备");
                     bindDevice();//绑定设备
                     break;
                 case SCAN_DEVICE_FAIL://搜索失败
@@ -2206,8 +2209,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             }
         }
     };
-    private TimerTask task;// 定时任务
-    private Timer timer = new Timer();// 设计定时器
 
     /**
      * 扫描蓝牙
@@ -2216,7 +2217,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      */
     public void scanLeDevice(boolean enable) {
         if (enable) {//开始扫描
-            Log.e(TAG, "开始扫描");
             bleRunnable = new Runnable() {
                 @Override
                 public void run() {
@@ -2250,15 +2250,18 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (address != null && !address.equals(macData)) return;
         switch (intent.getAction()) {
             case ACTION_GATT_CONNECTED:
+                isConnectBLE = true;
                 bluetooth_image.setImageResource(R.mipmap.ble_pressed);
                 toast("蓝牙连接");
                 Log.e(TAG, "蓝牙连接");
                 break;
             case ACTION_GATT_DISCONNECTED://断开连接
+                isConnectBLE = false;
                 bluetooth_image.setImageResource(R.mipmap.ble_button);
                 toast("蓝牙断开");
                 Log.e(TAG, "蓝牙断开");
                 break;
+
         }
     }
 
