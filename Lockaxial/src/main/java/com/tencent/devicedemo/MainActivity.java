@@ -6,6 +6,8 @@ import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -67,6 +69,8 @@ import com.androidex.utils.Ajax;
 import com.androidex.utils.HttpUtils;
 import com.androidex.utils.NfcReader;
 import com.androidex.utils.UploadUtil;
+import com.ble.BTTempDevice;
+import com.ble.Bledevice;
 import com.brocast.NotifyReceiverQQ;
 import com.entity.Banner;
 import com.google.android.gms.appindexing.Action;
@@ -108,6 +112,11 @@ import static com.androidex.NetWork.isNetworkAvailable;
 import static com.androidex.service.MainService.MSG_UPDATE_VERSION;
 import static com.androidex.service.MainService.communityId;
 import static com.androidex.service.MainService.httpServerToken;
+import static com.androidex.utils.NfcReader.ACTION_NFC_CARDINFO;
+import static com.ble.BTTempBLEService.ACTION_DATA_ITEMFRAGMENT;
+import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTED;
+import static com.ble.BTTempBLEService.ACTION_GATT_DISCONNECTED;
+import static com.ble.BTTempBLEService.ACTION_SCAN_DEVICE;
 import static com.util.Constant.CALLING_MODE;
 import static com.util.Constant.CALL_CANCEL_MODE;
 import static com.util.Constant.CALL_MODE;
@@ -153,18 +162,22 @@ import static com.util.Constant.ON_YUNTONGXUN_LOGIN_SUCCESS;
 import static com.util.Constant.PASSWORD_CHECKING_MODE;
 import static com.util.Constant.PASSWORD_MODE;
 
-public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener {
+public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener, Bledevice.RFStarBLEBroadcastReceiver {
     private static final String TAG = "MainActivity";
     public static final int INPUT_CARDINFO_RESULTCODE = 0X01;
     public static final int INPUT_CARDINFO_REQUESTCODE = 0X02;
     public static final int INPUT_SYSTEMSET_REQUESTCODE = 0X03;
+    public static final String address = "67:C2:B2:2F:72:FC";//寄出去的mac=== 1F:1C:32:AF:66:23
+    //public static final String address = "1F:1C:32:AF:66:23";//寄出去的mac=== 1F:1C:32:AF:66:23
+    private static final long SCAN_PERIOD = 12000;//扫描时间
+    private static final String SCAN_DEVICE_FAIL = "SCAN_DEVICE_FAIL";//扫描失败
     public static int currentStatus = CALL_MODE;
     public static int READER_FLAGS = NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK;
     private View container;
     private LinearLayout videoLayout;
     private RelativeLayout rl_nfc, rl;
     private GridView mGridView;
-    private ImageView iv_setting, iv_bind, imageView, wifi_image;
+    private ImageView iv_setting, bluetooth_image, iv_bind, imageView, wifi_image;
     private TextView headPaneTextView, tv_message, tv_input_text;
     private EditText tv_input, et_blackno, et_unitno;
     private BinderListAdapter mAdapter;
@@ -184,6 +197,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private boolean nfcFlag = false;
     private boolean isFlag = true;
     private boolean flag = false;//控制开始接通时，相机为空则再接通
+    private boolean mScanning = false;//控制蓝牙扫描
     private Messenger serviceMessenger;
     private Messenger dialMessenger;
     private AdvertiseHandler advertiseHandler = null;
@@ -208,7 +222,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private AdverErrorCallBack adverErrorCallBack;
     private JSONArray rows;
     private Receive receive;
+    private BluetoothAdapter mBtAdapter;
+    private Bledevice device;
+    private BluetoothDevice bluetooth_dev;
     private Handler handle = new Handler();
+    private Handler bleHandler = new Handler();
+    private Runnable bleRunnable;
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
@@ -225,6 +244,26 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     };
 
+    //扫描回调
+    private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
+
+        @Override
+        public void onLeScan(final BluetoothDevice device, int rssi, final byte[] scanRecord) {
+            Log.d(TAG, "搜索到设备:" + device.getAddress() + ", address = " + address + ",rssi=" + rssi);
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.i(TAG, "搜索蓝牙设备信息");
+                }
+            });
+            if (device.getAddress().equals(address)) {
+                sendMessage(ACTION_SCAN_DEVICE);
+            }
+        }
+
+
+    };
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -244,8 +283,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initScreen();
         initHandler();
         initServer();//初始化服务类
-        initReceiver();//初始化广播
-
+        initQQReceiver();//初始化QQ物联广播
+        initAexNfcReader();//初始化本地广播
+        initBLE();//初始化蓝牙
 
         initVoiceHandler();
         initVoiceVolume();
@@ -282,13 +322,14 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         et_blackno = (EditText) findViewById(R.id.et_blockno);
         et_unitno = (EditText) findViewById(R.id.et_unitno);
         iv_bind = (ImageView) findViewById(R.id.user_bind);
+        imageView = (ImageView) findViewById(R.id.iv_erweima);
+        wifi_image = (ImageView) findViewById(R.id.wifi_image); //wifi图标控件初始化
+        iv_setting = (ImageView) findViewById(R.id.iv_setting);
+        bluetooth_image = (ImageView) findViewById(R.id.bluetooth_image);
         tv_message = (TextView) findViewById(R.id.tv_message);
         viewPager = (AutoScrollViewPager) findViewById(R.id.vp_main);
-        imageView = (ImageView) findViewById(R.id.iv_erweima);
         tv_input_text = (TextView) findViewById(R.id.tv_input_text);
-        wifi_image = (ImageView) findViewById(R.id.wifi_image); //wifi图标控件初始化
         mGridView = (GridView) findViewById(R.id.gridView_binderlist);//getBgBanners();//网络获得轮播背景图片数据
-        iv_setting = (ImageView) findViewById(R.id.iv_setting);
         rl = (RelativeLayout) findViewById(R.id.net_view_rl);
         rl.setOnClickListener(this);
         iv_setting.setOnClickListener(this);
@@ -311,6 +352,42 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             }
         });
         getQR();//生成二维码
+    }
+
+    /**
+     * 初始化蓝牙
+     */
+    public void initBLE() {
+        mBtAdapter = BluetoothAdapter.getDefaultAdapter();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ACTION_DATA_ITEMFRAGMENT);
+        intentFilter.addAction(ACTION_SCAN_DEVICE);//BLE搜索到设备
+        intentFilter.addAction(SCAN_DEVICE_FAIL);//搜索失败
+        registerReceiver(dataUpdateRecevice, intentFilter);
+        // 初始化蓝牙adapter
+        if (!mBtAdapter.isEnabled()) {
+            mBtAdapter.enable();
+            Log.d(TAG, "打开蓝牙");
+        }
+    }
+
+    private void bindDevice() {
+        if (device != null) {
+            if (!device.isRegisterReceiver) {
+                device.disconnectedDevice2();//注销服务
+                Log.d(TAG,"设备已注册，取消服务重新注册");
+                try {
+                    device.setBLEBroadcastDelegate(this);//设置连接，绑定服务
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            Log.d(TAG,"开始注册设备");
+            device = new BTTempDevice(this, bluetooth_dev);
+            device.setBLEBroadcastDelegate(MainActivity.this);
+        }
     }
 
     @Override
@@ -387,7 +464,24 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         sendBroadcast(ds_intent1);
                         break;
                     case R.id.action_ble_open:
+                        if (!mBtAdapter.isEnabled()) {
+                            mBtAdapter.enable();
+                            Toast.makeText(MainActivity.this, "打开蓝牙", Toast.LENGTH_LONG).show();
+                            Log.d(TAG, "蓝牙未打开，打开蓝牙");
+                        }
+                        if (mScanning) {
+                            scanLeDevice(false);//停止扫描
+                        }
+                        scanLeDevice(true);//开始扫描
                         Toast.makeText(MainActivity.this, "开启并连接蓝牙", Toast.LENGTH_LONG).show();
+                        task = new TimerTask() {
+                            @Override
+                            public void run() {// 通过消息更新
+                                Log.d(TAG, " 扫描心跳 ");
+                                sendMessage(SCAN_DEVICE_FAIL);
+                            }
+                        };
+                        timer.schedule(task, 20 * 1000, 10 * 1000);// 执行心跳包任务
                         break;
                     case R.id.action_ble_close:
                         Toast.makeText(MainActivity.this, "关闭蓝牙", Toast.LENGTH_LONG).show();
@@ -439,7 +533,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     /**
      * 注册QQ物联回调
      */
-    private void initReceiver() {
+    private void initQQReceiver() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(TXDeviceService.OnEraseAllBinders);
         filter.addAction(TXDeviceService.wifisetting);
@@ -1792,7 +1886,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 iv_bind.setImageDrawable(getResources().getDrawable(R.mipmap.bind_offline));
             }
         }
-        initAexNfcReader();
+
 
         //registering popup with OnMenuItemClickListener
     }
@@ -1811,6 +1905,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         disableReaderMode();
         unregisterReceiver(receive);
         unregisterReceiver(mNotifyReceiver);
+        unregisterReceiver(dataUpdateRecevice);
         sendBroadcast(new Intent("com.android.action.display_navigationbar"));
         super.onDestroy();
     }
@@ -1821,7 +1916,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             enableReaderMode();
             receive = new Receive();
             IntentFilter intentFilter = new IntentFilter();
-            intentFilter.addAction(NfcReader.ACTION_NFC_CARDINFO);
+            intentFilter.addAction(ACTION_NFC_CARDINFO);//NFC读取到卡片信息
             registerReceiver(receive, intentFilter);
         }
     }
@@ -2061,17 +2156,129 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     };
 
-    protected class Receive extends BroadcastReceiver {
+    BroadcastReceiver dataUpdateRecevice = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO Auto-generated method stub
+            switch (intent.getAction()) {
+                case ACTION_DATA_ITEMFRAGMENT:
+                    if (intent.getStringExtra("deviceMac").equals(address)) {
+                        String action = intent.getStringExtra("ACTION_STRING");
+                        switch (action) {
+                            case ACTION_GATT_CONNECTED:
+                                if (mScanning) {
+                                    scanLeDevice(false);
+                                }
+                                bluetooth_image.setImageResource(R.mipmap.ble_pressed);
+                                Log.e(TAG, "ACTION_GATT_CONNECTED连接成功-----------------------------");
+                                task.cancel();
+                                timer.cancel();
+                                break;
+                            case ACTION_GATT_DISCONNECTED:
+                                if (!mScanning) {
+                                    scanLeDevice(true);
+                                }
+                                bluetooth_image.setImageResource(R.mipmap.ble_button);
+                                break;
+                        }
+                        break;
+                    }
+                case ACTION_SCAN_DEVICE://搜索到设备
+                    if (mScanning) {
+                        scanLeDevice(false);//停止扫描
+                    }
+                    bluetooth_dev = mBtAdapter.getRemoteDevice(address);
+                    if (bluetooth_dev != null) {
+                        device = new BTTempDevice(MainActivity.this, bluetooth_dev);
+                    }
+                    Log.e(TAG,"开始绑定设备");
+                    bindDevice();//绑定设备
+                    break;
+                case SCAN_DEVICE_FAIL://搜索失败
+                    if (mScanning) {
+                        scanLeDevice(false);//停止扫描
+                    }
+                    Log.e(TAG, "扫描失败继续扫描");
+                    scanLeDevice(true);
+                    break;
+
+            }
+        }
+    };
+    private TimerTask task;// 定时任务
+    private Timer timer = new Timer();// 设计定时器
+
+    /**
+     * 扫描蓝牙
+     *
+     * @param enable
+     */
+    public void scanLeDevice(boolean enable) {
+        if (enable) {//开始扫描
+            Log.e(TAG, "开始扫描");
+            bleRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    mScanning = false;
+                    try {//魅族手机（MX4）会出现异常
+                        mBtAdapter.stopLeScan(mLeScanCallback);
+                    } catch (Exception e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            };
+            bleHandler.postDelayed(bleRunnable, SCAN_PERIOD);
+            mScanning = true;
+            Log.d(TAG, "scanLeDevice  startLeScan  ");
+            mBtAdapter.startLeScan(mLeScanCallback);
+            //			mBluetoothAdapter.startLeScan(BTTempBLEService.uuids, mLeScanCallback);
+        } else {//停止扫描
+            Log.e(TAG, "停止扫描");
+            if (bleRunnable != null && bleHandler != null) {
+                bleHandler.removeCallbacks(bleRunnable);
+            }
+            mScanning = false;
+            Log.d("LockFragment", "scanLeDevice  stopLeScan  ");
+            mBtAdapter.stopLeScan(mLeScanCallback);
+        }
+    }
+
+    @Override
+    public void onReceive(Context context, Intent intent, String macData, String uuid) {
+        if (address != null && !address.equals(macData)) return;
+        switch (intent.getAction()) {
+            case ACTION_GATT_CONNECTED:
+                bluetooth_image.setImageResource(R.mipmap.ble_pressed);
+                toast("蓝牙连接");
+                Log.e(TAG, "蓝牙连接");
+                break;
+            case ACTION_GATT_DISCONNECTED://断开连接
+                bluetooth_image.setImageResource(R.mipmap.ble_button);
+                toast("蓝牙断开");
+                Log.e(TAG, "蓝牙断开");
+                break;
+        }
+    }
+
+    public class Receive extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             String actionName = intent.getAction();
-            if (NfcReader.ACTION_NFC_CARDINFO.equals(actionName)) {
-                String cardInfo = intent.getStringExtra("cardinfo");
-                Log.d(TAG, "onReceive: cardinfo=" + cardInfo);
+            switch (actionName) {
+                case ACTION_NFC_CARDINFO:
+                    String cardInfo = intent.getStringExtra("cardinfo");
+                    Log.d(TAG, "onReceive: cardinfo=" + cardInfo);
+                    break;
             }
         }
     }
 
+    public void sendMessage(String action) {
+        Intent intent = new Intent(action);
+        sendBroadcast(intent);
+    }
 }
 
 

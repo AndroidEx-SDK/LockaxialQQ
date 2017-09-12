@@ -69,11 +69,12 @@ public abstract class Bledevice {
         isRegisterReceiver = true;
         this.registerReceiver();
         if (serviceIntent == null) {
+            Log.e(TAG, "serviceIntent is null");
             serviceIntent = new Intent(this.context, BTTempBLEService.class);
             isBound = this.context.bindService(serviceIntent, serviceConnection, Service.BIND_AUTO_CREATE);
+            Log.e(TAG, "isBound : "+ isBound);//绑定服务结果
         }
         this.delegate = delegate;
-
     }
 
     /**
@@ -284,9 +285,10 @@ public abstract class Bledevice {
     public void registerReceiver() {
         Activity activity = (Activity) this.context;
         if (activity != null) {
+            Log.e(TAG, "环境变量不为空");
             activity.getApplicationContext().registerReceiver(gattUpdateRecevice, this.bleIntentFilter());
         } else {
-            Log.e(TAG, "activity，调用接口");
+            Log.e(TAG, "环境变量为空");
         }
     }
 

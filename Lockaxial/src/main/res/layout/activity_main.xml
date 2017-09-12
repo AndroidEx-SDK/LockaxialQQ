@@ -1,21 +1,21 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-             xmlns:tools="http://schemas.android.com/tools"
-             android:id="@+id/container"
-             android:layout_width="match_parent"
-             android:layout_height="match_parent"
-             android:orientation="vertical">
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <SurfaceView
         android:id="@+id/surface_view"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent"/>
+        android:layout_height="fill_parent" />
 
     <ImageView
         android:id="@+id/image_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@mipmap/bg3"
-        android:scaleType="fitXY"/>
+        android:scaleType="fitXY" />
 
     <RelativeLayout
         android:id="@+id/rl_nfc"
@@ -23,8 +23,7 @@
         android:layout_height="400dp"
         android:layout_gravity="center"
         android:background="#ffffff"
-        android:visibility="gone"
-    >
+        android:visibility="gone">
 
         <TextView
             android:id="@+id/tv_title"
@@ -34,7 +33,7 @@
             android:layout_marginTop="10dp"
             android:text="录卡"
             android:textColor="#333333"
-            android:textSize="20sp"/>
+            android:textSize="20sp" />
 
         <EditText
             android:id="@+id/et_blockno"
@@ -45,7 +44,7 @@
             android:layout_marginTop="10dp"
             android:background="@android:drawable/edit_text"
             android:gravity="center"
-            android:hint="请输入楼栋编号"/>
+            android:hint="请输入楼栋编号" />
 
         <EditText
             android:id="@+id/et_unitno"
@@ -56,7 +55,7 @@
             android:layout_marginTop="10dp"
             android:background="@android:drawable/edit_text"
             android:gravity="center"
-            android:hint="请输入房屋编号"/>
+            android:hint="请输入房屋编号" />
 
         <TextView
             android:id="@+id/tv_message"
@@ -67,7 +66,7 @@
             android:layout_centerVertical="true"
             android:text=""
             android:textColor="#333333"
-            android:textSize="20sp"/>
+            android:textSize="20sp" />
     </RelativeLayout>
 
 
@@ -80,7 +79,7 @@
         android:gravity="center_horizontal|center_vertical"
         android:text=""
         android:textSize="30dp"
-        android:visibility="invisible"/>
+        android:visibility="invisible" />
 
     <RelativeLayout
         android:layout_width="fill_parent"
@@ -97,8 +96,7 @@
             <SurfaceView
                 android:id="@+id/autoCameraSurfaceview"
                 android:layout_width="0.1dp"
-                android:layout_height="0.1dp">
-            </SurfaceView>
+                android:layout_height="0.1dp"></SurfaceView>
         </RelativeLayout>
 
         <TextView
@@ -111,7 +109,7 @@
             android:text="确认键切换输入房号和密码"
             android:textColor="#333333"
             android:textSize="30dp"
-            android:textStyle="bold"/>
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_com"
@@ -125,16 +123,14 @@
             android:textColor="#ffffff"
             android:textSize="30dp"
             android:textStyle="bold"
-            android:visibility="gone"
-        />
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/iv_erweima"
             android:layout_width="100dp"
             android:layout_height="100dp"
             android:layout_alignParentBottom="true"
-            android:layout_marginLeft="20dp"
-        />
+            android:layout_marginLeft="20dp" />
 
         <RelativeLayout
             android:id="@+id/page_bottom"
@@ -157,7 +153,7 @@
                 android:text=""
                 android:textColor="@color/num_red"
                 android:textSize="30dp"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_lock"
@@ -169,7 +165,7 @@
                 android:text=""
                 android:textColor="@color/num_red"
                 android:textSize="30dp"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_input_label"
@@ -178,11 +174,11 @@
                 android:layout_marginLeft="40dp"
                 android:layout_toRightOf="@+id/tv_lock"
                 android:gravity="center_vertical"
-                android:text="请输入房屋编号"
                 android:lines="1"
+                android:text="请输入房屋编号"
                 android:textColor="#ffffff"
                 android:textSize="30dp"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_input_text"
@@ -194,7 +190,7 @@
                 android:text=""
                 android:textColor="#ffffff"
                 android:textSize="30dp"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
         </RelativeLayout>
 
         <LinearLayout
@@ -224,21 +220,20 @@
             android:maxWidth="300dip"
             android:singleLine="true"
             android:text="绑定者列表"
-            android:textColor="@color/Text_BLACK"/>
+            android:textColor="@color/Text_BLACK" />
 
         <ImageView
             android:layout_width="fill_parent"
             android:layout_height="2dip"
             android:scaleType="centerCrop"
-            android:src="@mipmap/window_seperator"/>
+            android:src="@mipmap/window_seperator" />
 
         <GridView
             android:id="@+id/gridView_binderlist"
             android:layout_width="match_parent"
             android:layout_height="354dp"
             android:layout_weight="0.61"
-            android:numColumns="6">
-        </GridView>
+            android:numColumns="6"></GridView>
 
         <Button
             android:id="@+id/btn_eraseallbinders"
@@ -248,7 +243,7 @@
             android:onClick="eraseAllBinders"
             android:text="解除所有绑定者"
             android:textColor="@color/Text_BLUE"
-            android:visibility="gone"/>
+            android:visibility="gone" />
 
         <Button
             android:id="@+id/btn_upload_log"
@@ -258,7 +253,7 @@
             android:onClick="uploadDeviceLog"
             android:text="上传设备日志"
             android:textColor="@color/Text_BLUE"
-            android:visibility="gone"/>
+            android:visibility="gone" />
 
     </LinearLayout>
 
@@ -266,7 +261,7 @@
     <com.viewpager.AutoScrollViewPager
         android:id="@+id/vp_main"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -274,8 +269,7 @@
         android:layout_gravity="bottom|left"
         android:layout_marginBottom="20dp"
         android:orientation="horizontal"
-        android:visibility="gone"
-    >
+        android:visibility="gone">
 
         <EditText
             android:id="@+id/tv_input"
@@ -292,16 +286,14 @@
             android:numeric="integer"
             android:textColor="@color/Text_WHITE"
             android:textSize="40sp"
-            android:visibility="gone"
-        />
+            android:visibility="gone" />
 
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="100dp"
-        android:orientation="vertical"
-    >
+        android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -316,8 +308,7 @@
                 android:layout_height="45dp"
                 android:layout_marginLeft="5dp"
                 android:clickable="true"
-                android:src="@mipmap/ic_launcher"
-            />
+                android:src="@mipmap/ic_launcher" />
 
 
             <ImageView
@@ -327,14 +318,21 @@
                 android:layout_marginLeft="5dp"
                 android:gravity="center"
                 android:src="@mipmap/new_logo_qq"
-                android:visibility="gone"
-            />
+                android:visibility="gone" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-            />
+                android:layout_weight="1" />
+
+            <ImageView
+                android:id="@+id/bluetooth_image"
+                android:layout_width="50dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top"
+                android:layout_marginRight="5dp"
+                android:layout_marginTop="5dp"
+                android:src="@mipmap/ble_button" />
 
             <ImageView
                 android:id="@+id/wifi_image"
@@ -342,8 +340,7 @@
                 android:layout_height="40dp"
                 android:layout_gravity="top"
                 android:layout_marginRight="5dp"
-                android:layout_marginTop="5dp"
-            />
+                android:layout_marginTop="5dp" />
 
             <ImageView
                 android:id="@+id/user_bind"
@@ -351,7 +348,7 @@
                 android:layout_height="40dp"
                 android:layout_gravity="top"
                 android:layout_marginRight="5dp"
-                android:layout_marginTop="5dp"/>
+                android:layout_marginTop="5dp" />
 
             <TextView
                 android:id="@+id/tv_day"
@@ -360,7 +357,7 @@
                 android:gravity="center_vertical"
                 android:text=""
                 android:textSize="20dp"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_date"
@@ -369,7 +366,7 @@
                 android:gravity="center_vertical"
                 android:text=""
                 android:textSize="20dp"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_time"
@@ -379,7 +376,7 @@
                 android:gravity="center_vertical"
                 android:text=""
                 android:textSize="20dp"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
 
         </LinearLayout>
 
@@ -397,7 +394,7 @@
                 android:layout_alignParentLeft="true"
                 android:layout_centerVertical="true"
                 android:layout_marginLeft="10dip"
-                android:src="@mipmap/msp_edit_warning"/>
+                android:src="@mipmap/msp_edit_warning" />
 
             <TextView
                 android:id="@+id/net_title_tv"
@@ -408,14 +405,14 @@
                 android:background="@color/yellow_warning"
                 android:text="@string/net_unavailable"
                 android:textColor="@android:color/black"
-                android:textSize="14sp"/>
+                android:textSize="14sp" />
 
             <ImageView
                 style="@style/wrap_content"
                 android:layout_alignParentRight="true"
                 android:layout_centerVertical="true"
                 android:layout_marginRight="5dp"
-                android:src="@mipmap/arrow_right"/>
+                android:src="@mipmap/arrow_right" />
 
         </RelativeLayout>
     </LinearLayout>
