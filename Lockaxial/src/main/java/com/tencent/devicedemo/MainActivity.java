@@ -417,6 +417,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             mBtAdapter.enable();
             Log.d(TAG, "打开蓝牙");
         }
+        if (mScanning) {
+            scanLeDevice(false);//停止扫描
+        }
+        scanLeDevice(true);//开始扫描
+        Log.d(TAG, "开始扫描蓝牙");
     }
 
     /**
@@ -2331,7 +2336,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 break;
             case DoorLock.DoorLockOpenDoor:
                 Log.e(TAG, "收到开门指令");
-
                 if (isConnectBLE) {
                     device.openLock();
                     try {
@@ -2342,7 +2346,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     }
                 } else {
                     toast("蓝牙未连接");
-                    if (!mScanning){
+                    if (!mScanning) {
                         scanLeDevice(true);
                     }
                 }

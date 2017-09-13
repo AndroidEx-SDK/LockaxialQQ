@@ -106,6 +106,9 @@ public abstract class Bledevice {
             Log.d(TAG, "serviceConnected :   服务启动 ");
             bleService = ((BTTempBLEService.LocalBinder) service).getService();
             // Automatically connects to the device upon successful start-up initialization.
+//            bleService.disconnect();
+//            //bleService.close();
+//            bleService.stopSelf();
             bleService.initBluetoothDevice(device);//初始化BLE 如果已经连接就不用再次连
             Log.w(TAG, "gatt is init onServiceConnected ");
         }

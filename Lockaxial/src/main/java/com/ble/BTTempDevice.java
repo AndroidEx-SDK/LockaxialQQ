@@ -98,14 +98,14 @@ public class BTTempDevice extends Bledevice {
         }
 
 
-        if (TEMP_SendCharateristic != null) {
-            Log.e("BTTempDevice", "openLock 发送读取门锁状态指令");
-            TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(lock_starts.toCharArray()));
-            this.writeValue(TEMP_SendCharateristic);
-            Log.e("BTTempDevice", "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
-        } else {
-            Log.e("BTTempDevice", "TEMP_SendCharateristic is null");
-        }
+//        if (TEMP_SendCharateristic != null) {
+//            Log.e("BTTempDevice", "openLock 发送读取门锁状态指令");
+//            TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(lock_starts.toCharArray()));
+//            this.writeValue(TEMP_SendCharateristic);
+//            Log.e("BTTempDevice", "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
+//        } else {
+//            Log.e("BTTempDevice", "TEMP_SendCharateristic is null");
+//        }
 
         Log.d("BTTempDevice", "openLock write cmd : " + Byte2HexUtil.byte2Hex(Byte2HexUtil.decodeHex(result.toCharArray())));
     }
