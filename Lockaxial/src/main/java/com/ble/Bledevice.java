@@ -14,6 +14,8 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.androidex.DoorLock;
+
 import java.util.List;
 
 import static com.ble.BTTempBLEService.ACTION_BIND_MAC;
@@ -267,6 +269,7 @@ public abstract class Bledevice {
         intentFilter.addAction(ACTION_TEMP_UPDATE);
         intentFilter.addAction(ACTION_HUM_UPDATE);
         intentFilter.addAction(ACTION_TEN_MINUTES);
+        intentFilter.addAction(DoorLock.DoorLockOpenDoor);//开门指令
         //自定义连接
         intentFilter.addAction("com.imagic.connected");
         return intentFilter;

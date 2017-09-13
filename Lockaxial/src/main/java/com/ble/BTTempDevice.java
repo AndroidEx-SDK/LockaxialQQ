@@ -10,6 +10,7 @@ import android.os.Message;
 import android.util.Log;
 
 import com.util.Byte2HexUtil;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -37,7 +38,7 @@ public class BTTempDevice extends Bledevice {
         public void handleMessage(Message msg) {
             Log.e("BTTempDevice", msg.what + "=======初始化======");
             if (msg.what == 11) {
-               // SynSystemTime();
+                // SynSystemTime();
             }
         }
     };
@@ -61,7 +62,7 @@ public class BTTempDevice extends Bledevice {
                     TEMP_SendCharateristic = characteristic;//Send：发送数据
                     Log.e("BTTempDevice", "可写特征：" + TEMP_SendCharateristic.getUuid().toString());
                 } else if (characteristic.getUuid().toString().contains(Lost_CharateristicUUID)) {
-                    Log.d("BTTempDevice", ": "+characteristic);
+                    Log.d("BTTempDevice", ": " + characteristic);
                     LOST_Charateristic = characteristic;//防丢服务特征
                     this.readValue(LOST_Charateristic);
                 }
@@ -74,51 +75,51 @@ public class BTTempDevice extends Bledevice {
      * 命令格式:[叫醒码][DZF_CMD:][长度][0x07][ID0][ID1][ID2][CMD_0][CMD1][参数]
      * 叫醒码: [0x00 0xff] 可选.如果用BLE_BCTS管脚叫醒,则可不用叫醒码.
      * 返回值: [房号][楼层号][命令']
-     *
+     * <p>
      * 1.开门: [叫醒码] "DZF_CMD:" Length,0x07,0x00,0x00,0x03,'S','O'-->
      * [ 44 5A 46 5F 43 4D 44 3A 06 07 00 00 03 53 4F]
-     *  44 5A 46 5F 43 4D 44 3A 06 07 00 00 03 53 4F
-     返回1:0x01 02 44 5A 46 4C 3A 0C 52 2F 09 00 00 00 03 35 17 1D 21 01 //开门记录
-     返回2:0x01 02 6F 00 命令正确执行
-     *
-     *
-     *
+     * 44 5A 46 5F 43 4D 44 3A 06 07 00 00 03 53 4F
+     * 返回1:0x01 02 44 5A 46 4C 3A 0C 52 2F 09 00 00 00 03 35 17 1D 21 01 //开门记录
+     * 返回2:0x01 02 6F 00 命令正确执行
      */
     public void openLock() {//0xaa  0x0a  0x1a 0x01  0x01 0x01 0x01 0x01 0x01  0x010 0x0 0x0b  开锁
         String result = "445A465F434D443A0607000003534F";
-        String result_close = "445A465F434D443A06070000035343";
         String lock_starts = "445A465F434D443A06070000035253";
 
         if (TEMP_SendCharateristic != null) {
             Log.e("BTTempDevice", "openLock 发送开锁指令");
             TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(result.toCharArray()));
             this.writeValue(TEMP_SendCharateristic);
-            Log.e("BTTempDevice", "TEMP_SendCharateristic ："+TEMP_SendCharateristic.getUuid().toString());
+            Log.e("BTTempDevice", "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
 
-        }else {
+        } else {
             Log.e("BTTempDevice", "TEMP_SendCharateristic is null");
 
         }
 
-        if (TEMP_SendCharateristic != null) {
-            Log.e("BTTempDevice", "openLock 发送关锁指令");
-            TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(result_close.toCharArray()));
-            this.writeValue(TEMP_SendCharateristic);
-            Log.e("BTTempDevice", "TEMP_SendCharateristic ："+TEMP_SendCharateristic.getUuid().toString());
-        }else {
-            Log.e("BTTempDevice", "TEMP_SendCharateristic is null");
-        }
 
         if (TEMP_SendCharateristic != null) {
             Log.e("BTTempDevice", "openLock 发送读取门锁状态指令");
             TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(lock_starts.toCharArray()));
             this.writeValue(TEMP_SendCharateristic);
-            Log.e("BTTempDevice", "TEMP_SendCharateristic ："+TEMP_SendCharateristic.getUuid().toString());
-        }else {
+            Log.e("BTTempDevice", "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
+        } else {
             Log.e("BTTempDevice", "TEMP_SendCharateristic is null");
         }
 
         Log.d("BTTempDevice", "openLock write cmd : " + Byte2HexUtil.byte2Hex(Byte2HexUtil.decodeHex(result.toCharArray())));
+    }
+
+    public void closeLock() {
+        String result_close = "445A465F434D443A06070000035343";
+        if (TEMP_SendCharateristic != null) {
+            Log.e("BTTempDevice", "openLock 发送关锁指令");
+            TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(result_close.toCharArray()));
+            this.writeValue(TEMP_SendCharateristic);
+            Log.e("BTTempDevice", "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
+        } else {
+            Log.e("BTTempDevice", "TEMP_SendCharateristic is null");
+        }
     }
 
     /**

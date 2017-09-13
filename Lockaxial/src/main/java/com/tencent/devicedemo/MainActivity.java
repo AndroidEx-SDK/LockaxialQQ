@@ -228,7 +228,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private JSONArray rows;
     private Receive receive;
     private BluetoothAdapter mBtAdapter;
-    private Bledevice device;
+    private BTTempDevice device;
     private BluetoothDevice bluetooth_dev;
     private Handler handle = new Handler();
     private Timer timer_scanBle;// 扫描蓝牙时定时器
@@ -2253,7 +2253,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         public void onReceive(Context context, Intent intent) {
             // TODO Auto-generated method stub
             switch (intent.getAction()) {
-                case ACTION_DATA_ITEMFRAGMENT:
+                case ACTION_DATA_ITEMFRAGMENT://该处不可删除
 
                     break;
                 case ACTION_SCAN_DEVICE://搜索到设备
@@ -2323,14 +2323,31 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 isConnectBLE = false;
                 bluetooth_image.setImageResource(R.mipmap.ble_button);
                 toast("蓝牙断开，重新开始扫描");
-                Log.e(TAG, "蓝牙断开,重新开始扫描");
                 Log.e(TAG, "蓝牙连接" + "isConnectBLE=" + isConnectBLE + "  mScanning=" + mScanning);
                 if (mScanning) {
                     scanLeDevice(false);
                 }
                 scanLeDevice(true);
                 break;
+            case DoorLock.DoorLockOpenDoor:
+                Log.e(TAG, "收到开门指令");
 
+                if (isConnectBLE) {
+                    device.openLock();
+                    try {
+                        Thread.sleep(5000);
+                        device.closeLock();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    toast("蓝牙未连接");
+                    if (!mScanning){
+                        scanLeDevice(true);
+                    }
+                }
+
+                break;
         }
     }
 
