@@ -1,5 +1,6 @@
 package com.androidex.service;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Service;
 import android.content.Context;
@@ -17,6 +18,7 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import com.androidex.DoorLock;
 import com.androidex.SoundPoolUtil;
 import com.androidex.aexlibs.hwService;
 import com.androidex.config.DeviceConfig;
@@ -385,10 +387,10 @@ public class MainService extends Service {
                     String version = (String) msg.obj;
                     onNewVersion(version);
                     Log.i("UpdateService", "checked new version " + version);
-                }else if(msg.what==MSG_RESTART_ADVERT){
+                } else if (msg.what == MSG_RESTART_ADVERT) {
                     //getLastAdvertisementList();
                     initAdvertisement();
-                }else if (msg.what == MSG_UPDATE_VERSION){
+                } else if (msg.what == MSG_UPDATE_VERSION) {
                     updateApp();
                     Log.i("UpdateService", "开启安装");
                 }
@@ -472,12 +474,12 @@ public class MainService extends Service {
         }
     }*/
 
-    protected void initAssembleUtil(){
-        if(DeviceConfig.IS_ASSEMBLE_AVAILABLE){
-            assembleUtil=new AssembleUtil(handler);
+    protected void initAssembleUtil() {
+        if (DeviceConfig.IS_ASSEMBLE_AVAILABLE) {
+            assembleUtil = new AssembleUtil(handler);
             try {
                 assembleUtil.open();
-            }catch(Exception e){
+            } catch (Exception e) {
             }
             sendInitMessenger(InitActivity.MSG_INIT_ASSEMBLE);
         }
@@ -517,7 +519,7 @@ public class MainService extends Service {
         } else {
             Log.i("MainService", "Test NoNetwork");
             sendInitMessenger(InitActivity.MSG_NO_NETWORK);//检测到没有网络发送消息让用户选择
-       }
+        }
     }
 
     protected void initWhenConnected() {
@@ -622,6 +624,7 @@ public class MainService extends Service {
         return mac;
     }
 
+    @SuppressLint("WifiManagerLeak")
     protected String getWifiMac() {
         String mac = getMacFromLocal();
         if (mac == null) {
@@ -774,7 +777,7 @@ public class MainService extends Service {
         try {
             Log.v("MainService", "POST Login ajax");
             URL url = new URL(DeviceConfig.SERVER_URL + "/app/auth/deviceLogin");
-            Log.v("MainService", "getClientInfo："+url);
+            Log.v("MainService", "getClientInfo：" + url);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setDoOutput(true);
             connection.setDoInput(true);
@@ -801,7 +804,7 @@ public class MainService extends Service {
                 resultValue = true;
                 try {
                     httpServerToken = resultObj.getString("token");
-                    Log.v("MainService", "httpServerToken: "+httpServerToken);
+                    Log.v("MainService", "httpServerToken: " + httpServerToken);
                 } catch (Exception e) {
                     httpServerToken = null;
                     Log.v("MainService", "httpServerToken:  null");
@@ -1855,6 +1858,7 @@ public class MainService extends Service {
 
     /**
      * 推送消息
+     *
      * @param pushList
      * @throws JSONException
      * @throws IOException
@@ -2339,7 +2343,7 @@ public class MainService extends Service {
         //MBaseActivity.controlCamera(1,2);
     }*/
 
-    private void openAssembleLock(){
+    private void openAssembleLock() {
         assembleUtil.openLock();
         sendDialMessenger(Constant.MSG_LOCK_OPENED);
     }
@@ -2360,6 +2364,12 @@ public class MainService extends Service {
         } else if (DeviceConfig.IS_AEX_AVAILABLE) {
             openAexLock();
         }
+        int status1 = 2;
+        Intent ds_intent1 = new Intent();
+        ds_intent1.setAction(DoorLock.DoorLockOpenDoor);
+        ds_intent1.putExtra("index", 1);
+        ds_intent1.putExtra("status", status1);
+        sendBroadcast(ds_intent1);
     }
 
     protected void startCreateAccessLog(String from, final String imageUrl) {
@@ -2431,7 +2441,7 @@ public class MainService extends Service {
             rtcClient.release();
             rtcClient = null;
         }
-       if(sqlUtil!=null){
+        if (sqlUtil != null) {
             sqlUtil.close();
         }
         /*
@@ -2670,7 +2680,7 @@ public class MainService extends Service {
         String url = DeviceConfig.SERVER_URL + "/app/device/retrieveChangedCardList?communityId=" + this.communityId;
         url = url + "&blockId=" + this.blockId;
         url = url + "&lockId=" + this.lockId;
-        Log.d(TAG, "retrieveChangedCardList: +++++"+url);
+        Log.d(TAG, "retrieveChangedCardList: +++++" + url);
         try {
             URL thisUrl = new URL(url);
             HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
@@ -2693,7 +2703,7 @@ public class MainService extends Service {
                     Log.d(TAG, "retrieveChangedCardList: data=" + data.toString());
                     sqlUtil.changeCard(data);
                     if (DeviceConfig.IS_ASSEMBLE_AVAILABLE) {
-                         assembleUtil.changeCard(data);
+                        assembleUtil.changeCard(data);
                     } else {
                         JSONArray list = new JSONArray();
                         for (int i = 0; i < data.length(); i++) {
@@ -3177,8 +3187,8 @@ public class MainService extends Service {
     protected boolean isAdvertisementListSame(JSONArray rows) {
         String thisValue = currentAdvertisementList.toString();
         String thisRow = rows.toString();
-        Log.d(TAG, "UpdateAdvertise: thisValue"+thisValue);
-        Log.d(TAG, "UpdateAdvertise: thisRow"+thisRow);
+        Log.d(TAG, "UpdateAdvertise: thisValue" + thisValue);
+        Log.d(TAG, "UpdateAdvertise: thisRow" + thisRow);
         return thisRow.equals(thisValue);
     }
 
@@ -3260,7 +3270,7 @@ public class MainService extends Service {
     protected void checkNewVersion() {
         Log.v("UpdateService", "check New Version");
         String url = DeviceConfig.UPDATE_SERVER_URL + DeviceConfig.UPDATE_RELEASE_FOLDER + DeviceConfig.UPDATE_RELEASE_PACKAGE;
-        Log.v("UpdateService", "===url："+url);
+        Log.v("UpdateService", "===url：" + url);
         try {
             URL thisUrl = new URL(url);
             HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
@@ -3268,7 +3278,7 @@ public class MainService extends Service {
             if (httpServerToken != null) {
                 conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
                 Log.v("UpdateService", "httpServerToken=" + httpServerToken);
-            }else Log.v("UpdateService", "httpServerToken= null" );
+            } else Log.v("UpdateService", "httpServerToken= null");
             conn.setConnectTimeout(5000);
             int code = conn.getResponseCode();
             Log.v("UpdateService", "code=" + code);
@@ -3278,7 +3288,7 @@ public class MainService extends Service {
                 Log.v("UpdateService", "result=" + result);
                 JSONObject resultObj = Ajax.getJSONObject(result);
                 int lastVersion = resultObj.getInt("version");
-                Log.v("UpdateService", "lastVersion=" + lastVersion+"nowVersion=="+DeviceConfig.RELEASE_VERSION);
+                Log.v("UpdateService", "lastVersion=" + lastVersion + "nowVersion==" + DeviceConfig.RELEASE_VERSION);
                 if (lastVersion > DeviceConfig.RELEASE_VERSION) { //检查当前版本是否和服务器最新版本一致，如果不是最新版本则发出更新消息
                     String packageName = resultObj.getString("name") + "." + DeviceConfig.DEVICE_MODE_FLAG + "." + lastVersion + ".apk";
                     Message message = handler.obtainMessage();
@@ -3349,13 +3359,13 @@ public class MainService extends Service {
                     if (getDownloadingFlag() == 0) {
                         Log.v("UpdateService", "download file begin");
                         String lastFile = downloadFile(url, fileName);
-                        Log.v("UpdateService", "download file begin==url:=="+url+"  fileName: "+fileName);
+                        Log.v("UpdateService", "download file begin==url:==" + url + "  fileName: " + fileName);
                         if (lastFile != null) {
                             if (lastVersionStatus.equals("D")) {
                                 Log.v("UpdateService", "change status to P");
                                 lastVersionStatus = "P";
                                 saveVersionFromLocal();
-                            }else {
+                            } else {
                                 Log.v("UpdateService", " status is P");
                             }
                         }
@@ -3386,12 +3396,12 @@ public class MainService extends Service {
             HttpURLConnection conn = (HttpURLConnection) urlObject.openConnection();
             String SDCard = Environment.getExternalStorageDirectory() + "";
             localFile = SDCard + "/" + fileName;//文件存储路径
-            Log.v("downloadFile", "File path: "+localFile);
+            Log.v("downloadFile", "File path: " + localFile);
             File file = new File(localFile);
             InputStream input = conn.getInputStream();
             if (!file.exists()) {
                 file.createNewFile();//新建文件
-            }else Log.v("downloadFile", "File is exists ");
+            } else Log.v("downloadFile", "File is exists ");
             output = new FileOutputStream(file);
             //读取大文件
             byte[] buffer = new byte[1024 * 8];
@@ -3406,9 +3416,9 @@ public class MainService extends Service {
                 out.flush();
                 if (getDownloadingFlag() == 1) {
                     result = localFile;
-                    Log.v("downloadFile", "result:  "+result+"  getDownloadingFlag="+1);
+                    Log.v("downloadFile", "result:  " + result + "  getDownloadingFlag=" + 1);
                 }
-                Log.v("downloadFile", "result:  "+result+"  getDownloadingFlag="+getDownloadingFlag());
+                Log.v("downloadFile", "result:  " + result + "  getDownloadingFlag=" + getDownloadingFlag());
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
@@ -3450,7 +3460,7 @@ public class MainService extends Service {
                         if (DeviceConfig.APPLICATION_MODEL == 0) {
                             if (lastVersionStatus.equals("P")) {
                                 lastVersionStatus = "I";
-                               //updateApp();
+                                //updateApp();
                             } else {
                                 sleep(1000 * 60 * 3);
                             }
@@ -3484,7 +3494,7 @@ public class MainService extends Service {
         String fileName = SDCard + "/" + lastVersionFile;
         File file = new File(fileName);
         Log.v("UpdateService", "------>start Update App<------");
-        if(lastVersion>DeviceConfig.RELEASE_VERSION){
+        if (lastVersion > DeviceConfig.RELEASE_VERSION) {
             if (file.exists()) {
                 Log.v("UpdateService", "check update file OK");
                 startInstallApp(fileName);
@@ -3492,8 +3502,8 @@ public class MainService extends Service {
                 //sendMessenger(MSG_INSTALL_SUCCEED,fileName);//发送安装指令
                 //sendDialMessenger(MSG_INSTALL_SUCCEED,fileName);
             }
-        }else {
-            ToastUtils.getInstance().showToast(MainService.this,"版本已是最新");
+        } else {
+            ToastUtils.getInstance().showToast(MainService.this, "版本已是最新");
         }
     }
 
