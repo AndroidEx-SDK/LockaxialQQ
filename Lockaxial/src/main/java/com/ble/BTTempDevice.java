@@ -107,6 +107,16 @@ public class BTTempDevice extends Bledevice {
         Log.d(TAG, "closeLock write cmd : " + Byte2HexUtil.byte2Hex(Byte2HexUtil.decodeHex(result_close.toCharArray())));
     }
 
+    /**
+     * 读门锁状态:[叫醒码] "DZF_CMD:" Length,0x07,0x00,0x00,0x03,'R','S'  -->[ 44 5A 46 5F 43 4D 44 3A 06 07 00 00 03 52 53]
+     * 返回:20字节:
+     * Byte[0-2]:房号,层号,命令':01 02 73
+     * Byte[3-9]:当前时间 BCD码: 秒,分,时,日,月,星期,年
+     * Byte[10]:电池电压:V = (Byte[10]*12.1/256) = Byte[10]*0.047266 如:Byte[10]=0x60 则电池电压为: Vbatt=0x60 * 0.047266=4.54V
+     * Byte[11]:当前门锁状态,0常开,1锁着,3反锁.
+     * Byte[12-13]:记录数:低字节Byte[12],高字节Byte[13]
+     * Byte[14-19]:其它信息:区域号[14]，酒店标识[15,16],领班区号Byte[17]+清洁区号Byte[18]+读卡扇区[19]
+     */
     public void getLockStarts() {
         String lock_starts = "445A465F434D443A06070000035253";
         if (TEMP_SendCharateristic != null) {
@@ -118,6 +128,29 @@ public class BTTempDevice extends Bledevice {
             Log.e(TAG, "TEMP_SendCharateristic is null");
         }
         Log.d(TAG, "lock_starts write cmd : " + Byte2HexUtil.byte2Hex(Byte2HexUtil.decodeHex(lock_starts.toCharArray())));
+    }
+
+    /**
+     * 读开门记录:[叫醒码] "DZF_CMD:" Length,0x07,0x00,0x00,0x03,'R','R','第n条记录','读m条记录'  -->[ 44 5A 46 5F 43 4D 44 3A 08 07 00 00 03 52 52 00 05]
+     * 返回:房号+层号+命令'+m*8字节, 每条记录8个字节Record[8]: 一次最多读5条记录(m<=5),0<n<863;
+     * 记录格式:   Record[0-2]:开门卡号ID
+     * Record[3]:分(BCD码)如 30分为Record[3]=0x30
+     * Record[4]:时(BCD码)如 12点为Record[4]=0x12
+     * Record[5-6]:日/月/年(5位4位7位二进制码) 如 15年5月29日: 0B0001111,0101,11101--> Record[6]=0B00011110=0x1E,Record[5]=0B10111101=0xBD
+     * Record[7]:记录属性:0.开门3秒后锁门  1.进入常开 2.结束常开
+     * 如: 其中一条记录为Record[0-7]=00 00 03 30 12 BD 1E 01 表示第三方通过串口在2015年5月29日12点30分设置门锁常开.
+     */
+    public void getOpenRecord() {
+        String lock_record = "445A465F434D443A080700000352520005";
+        if (TEMP_SendCharateristic != null) {
+            Log.e(TAG, "getLockStarts 发送读取开门记录的指令");
+            TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(lock_record.toCharArray()));
+            this.writeValue(TEMP_SendCharateristic);
+            Log.e(TAG, "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
+        } else {
+            Log.e(TAG, "TEMP_SendCharateristic is null");
+        }
+        Log.d(TAG, "lock_record write cmd : " + Byte2HexUtil.byte2Hex(Byte2HexUtil.decodeHex(lock_record.toCharArray())));
     }
 
     /**

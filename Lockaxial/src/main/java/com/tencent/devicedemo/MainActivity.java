@@ -1942,7 +1942,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         //registering popup with OnMenuItemClickListener
     }
 
-
     protected void onPause() {
         super.onPause();
         //unbindService(mConn);
