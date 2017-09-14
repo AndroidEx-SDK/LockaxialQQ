@@ -154,19 +154,6 @@ public class BTTempDevice extends Bledevice {
     }
 
     /**
-     * 心跳
-     */
-    public void sentHeartBeat(int rssi) {
-        String result = "aa0a1c" + Integer.toHexString(Math.abs(rssi)) + getLocalMac().replaceAll(":", "") + "000b";
-        if (TEMP_SendCharateristic != null) {
-            Log.e(TAG, "发送心跳 rssi:" + Math.abs(rssi));
-            TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(result.toCharArray()));
-            this.writeValue(TEMP_SendCharateristic);
-        }
-        Log.d(TAG, "sentHeartBeat  result ==" + result);
-    }
-
-    /**
      * 获取本机蓝牙地址
      *
      * @return
