@@ -1432,6 +1432,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         et_blackno.setFocusable(true);
                         et_blackno.setFocusableInTouchMode(true);
                         et_blackno.requestFocus();
+                        et_blackno.setText("");
+                        et_unitno.setText("");
                         break;
                     default:
                         imageView.setVisibility(View.VISIBLE);
