@@ -2279,9 +2279,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 }
                 scanLeDevice(true);
                 break;
-            case REFRESH_RSSI:
-
-
+            case REFRESH_RSSI://获取信号强度
                 break;
             case DoorLock.DoorLockOpenDoor:
                 Log.e(TAG, "收到开门指令");
@@ -2299,10 +2297,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         scanLeDevice(true);
                     }
                 }
-
                 break;
-            case DoorLock.DoorLockStatusChange:
-
+            case DoorLock.DoorLockStatusChange://门锁状态发生变化
                 break;
         }
     }

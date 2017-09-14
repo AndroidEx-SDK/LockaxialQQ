@@ -121,7 +121,6 @@ public class DoorLock extends Service implements OnBackCall{
     @SuppressWarnings("deprecation")
     @Override
     public void onStart(Intent intent, int startId) {
-
         super.onStart(intent, startId);
         mServiceInstance = this;
     }
@@ -181,9 +180,7 @@ public class DoorLock extends Service implements OnBackCall{
             if (intent.getAction().equals(mDoorSensorAction)){
                 String doorsensor = intent.getStringExtra("doorsensor");
                 UEventMap mds = new UEventMap(doorsensor);
-
                 Log.d(TAG, String.format("%s\t Door sensor=%s\n",mds.get("doorsensor"), mds.toString()));
-
                 Intent ds_intent = new Intent();
                 ds_intent.setAction(DoorLock.DoorLockStatusChange);
                 ds_intent.putExtra("doorsensor",mds.get("doorsensor"));
@@ -191,9 +188,7 @@ public class DoorLock extends Service implements OnBackCall{
             } else if(intent.getAction().equals(DoorLockOpenDoor)) {
                 int index = intent.getIntExtra("index", 0);
                 int status = intent.getIntExtra("status", 0);
-
                 if (status != 0) {
-
                     mDoorLock.openDoor(0xF0, 0x40);
                     //mDoorLock.openDoor(1, 0x20);
                 } else {

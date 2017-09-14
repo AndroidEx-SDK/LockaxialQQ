@@ -23,8 +23,6 @@ public class BTTempDevice extends Bledevice {
     public static final String Temp_SendCharateristicUUID = "fff2";//服务特征UUID：Send：发送数据
     public static final String Lost_CharateristicUUID = "fff3";//特殊服务特征UUID：0x2A06
     public static final String SERVER_UUID = "fff0";//主服务特征UUID
-
-    // 获取的特征值
     public static BluetoothGattCharacteristic TEMP_ReceiveCharateristic;               //接收数据特征值
     public static BluetoothGattCharacteristic TEMP_SendCharateristic;                  //发送数据特征值
     public static BluetoothGattCharacteristic LOST_Charateristic;                      //防丢特征
@@ -55,12 +53,12 @@ public class BTTempDevice extends Bledevice {
             for (BluetoothGattCharacteristic characteristic : service.getCharacteristics()) { // 迭代特征值
                 if (characteristic.getUuid().toString().contains(Temp_ReceiveCharateristicUUID)) {//
                     TEMP_ReceiveCharateristic = characteristic;//Receive：接收数据
-                    Log.e(TAG, "接收特征：" + TEMP_ReceiveCharateristic.getUuid().toString());
+                    Log.d(TAG, "接收特征：" + TEMP_ReceiveCharateristic.getUuid().toString());
                     this.setCharacteristicNotification(TEMP_ReceiveCharateristic, true);
                 } else if (characteristic.getUuid().toString().contains(Temp_SendCharateristicUUID)) {
-                    Log.e(TAG, "设备mac：" + device.getAddress());
+                    Log.d(TAG, "设备mac：" + device.getAddress());
                     TEMP_SendCharateristic = characteristic;//Send：发送数据
-                    Log.e(TAG, "可写特征：" + TEMP_SendCharateristic.getUuid().toString());
+                    Log.d(TAG, "可写特征：" + TEMP_SendCharateristic.getUuid().toString());
                 } else if (characteristic.getUuid().toString().contains(Lost_CharateristicUUID)) {
                     Log.d(TAG, ": " + characteristic);
                     LOST_Charateristic = characteristic;//防丢服务特征
