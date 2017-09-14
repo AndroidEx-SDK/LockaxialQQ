@@ -170,11 +170,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public static final String address = "67:C2:B2:2F:72:FC";//寄出去的mac=== 1F:1C:32:AF:66:23
     //public static final String address = "1F:1C:32:AF:66:23";//寄出去的mac=== 1F:1C:32:AF:66:23
     private static final long SCAN_PERIOD = 12000;//扫描时间
-    private static final String ACTION_SCAN_DEVICE = "0x0008";//扫描到设备
+    private static final String ACTION_SCAN_DEVICE = "ACTION_SCAN_DEVICE";//扫描到设备
     private static final String SCAN_DEVICE_FAIL = "SCAN_DEVICE_FAIL";//扫描失败
-    private static final int REFRESH_RSSI = 0x10002;
-    private static final int SCAN_DEVICE = 0x10003;
-    private static final int SCAN_DEVICE_FAIL_ = 0x10004;
+    private static final String REFRESH_RSSI = "REFRESH_RSSI";//获取蓝牙信号强度
     public static int currentStatus = CALL_MODE;
     public static int READER_FLAGS = NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK;
     private View container;
@@ -233,6 +231,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private Handler handle = new Handler();
     private Timer timer_scanBle;// 扫描蓝牙时定时器
     private Runnable bleRunnable;//蓝牙
+    private Handler bleHandler = new Handler();//蓝牙
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
@@ -249,56 +248,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     };
 
-    //handler跟新界面
-    private Handler bleHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            if (!Thread.currentThread().isInterrupted()) {
-                switch (msg.what) {
-                    case REFRESH_RSSI:
-                        //更新信号
-                        device.sendReadRssi();
-                        break;
-                    case SCAN_DEVICE: // 搜索到设备后连接
-                        Log.e(TAG, "搜索到设备重新连接SCAN_DEVICE");
-                        if (mScanning) {
-                            scanLeDevice(false);
-                        }
-                        if (!"".equals(address) && address != null) {
-                            bluetooth_dev = mBtAdapter.getRemoteDevice(address);
-                            if (bluetooth_dev != null) {
-                                Log.e("LockFragment", "重构tempDevice================");
-                                device = new BTTempDevice(MainActivity.this, bluetooth_dev);
-                            }
-                        }
-                        if (device != null) {
-                            if (!device.isRegisterReceiver) {
-                                device.disconnectedDevice2();//注销服务
-                                try {
-                                    device.setBLEBroadcastDelegate(MainActivity.this);//设置连接，绑定服务
-                                    Thread.sleep(500);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        } else {
-                            device = new BTTempDevice(MainActivity.this, bluetooth_dev);
-                            device.setBLEBroadcastDelegate(MainActivity.this);
-                        }
-                        break;
-
-                    case SCAN_DEVICE_FAIL_:
-                        // 未搜索到设备后连接
-                        Log.i("LockFragment", "超时");
-                        if (mScanning) {
-                            scanLeDevice(false);
-                        }
-                        break;
-                }
-            }
-        }
-    };
-
     //扫描回调
     private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
 
@@ -307,8 +256,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             if (device.getAddress().equals(address)) {
                 Log.d(TAG, "搜索到设备:" + device.getAddress() + ", address = " + address + ",rssi=" + rssi);
                 sendMessage(ACTION_SCAN_DEVICE);
-                // bleHandler.sendEmptyMessage(SCAN_DEVICE);
-
             }
         }
     };
@@ -333,16 +280,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initServer();//初始化服务类
         initQQReceiver();//初始化QQ物联广播
         initAexNfcReader();//初始化本地广播
-        initBLE();//初始化蓝牙
-
-        initVoiceHandler();
-        initVoiceVolume();
+        initVoiceHandler();//
+        initVoiceVolume();//
         initAdvertiseHandler();//初始化广告
-        initAutoCamera();
-        if (DeviceConfig.DEVICE_TYPE.equals("C")) {
-            setDialStatus("请输入楼栋编号");
-        }
-        startClockRefresh();
+        initAutoCamera();//
+        startClockRefresh();//
+        initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
         boolean initStatus = this.getIntent().getBooleanExtra("INIT_STATUS", true);
         if (!initStatus) {
             onConnectionError();
@@ -350,6 +293,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         getRssi();//使用定时器,每隔5秒获得一次信号强度值
         setNetWork();
         setAutioVolume();//获取系统相关音量
+        if (DeviceConfig.DEVICE_TYPE.equals("C")) {
+            setDialStatus("请输入楼栋编号");
+        }
         if (false) {
             AlarmManager am = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
             Intent intent;
@@ -638,7 +584,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         filter.addAction(TXDeviceService.isconnected);
         filter.addAction(TXDeviceService.BinderListChange);
         filter.addAction(TXDeviceService.OnEraseAllBinders);
-        filter.addAction(DoorLock.DoorLockStatusChange);
         mNotifyReceiver = new NotifyReceiverQQ(MainActivity.this, mAdapter, iv_bind, dialog);
         registerReceiver(mNotifyReceiver, filter);
         mNotifyReceiver.setmCallBack(MainActivity.this);
@@ -2334,6 +2279,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 }
                 scanLeDevice(true);
                 break;
+            case REFRESH_RSSI:
+
+
+                break;
             case DoorLock.DoorLockOpenDoor:
                 Log.e(TAG, "收到开门指令");
                 if (isConnectBLE) {
@@ -2350,6 +2299,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         scanLeDevice(true);
                     }
                 }
+
+                break;
+            case DoorLock.DoorLockStatusChange:
 
                 break;
         }
