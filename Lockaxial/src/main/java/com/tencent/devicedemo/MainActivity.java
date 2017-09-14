@@ -531,18 +531,22 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      * 开启重复扫描，
      */
     private void startScanBle() {
-        if (task_scanBle == null) {
-            task_scanBle = new TimerTask() {// 扫描蓝牙时的定时任务
-                @Override
-                public void run() {// 通过消息更新
-                    sendMessage(SCAN_DEVICE_FAIL);
-                    Log.d(TAG, " 未扫描到设备，重新开始扫描 ");
+        if (!isConnectBLE) {
+            if (task_scanBle == null) {
+                task_scanBle = new TimerTask() {// 扫描蓝牙时的定时任务
+                    @Override
+                    public void run() {// 通过消息更新
+                        sendMessage(SCAN_DEVICE_FAIL);
+                        Log.d(TAG, " 未扫描到设备，重新开始扫描 ");
+                    }
+                };
+                if (timer_scanBle == null) {
+                    timer_scanBle = new Timer();
                 }
-            };
-            if (timer_scanBle == null) {
-                timer_scanBle = new Timer();
+                timer_scanBle.schedule(task_scanBle, 20 * 1000, 12 * 1000);// 执行心跳包任务
             }
-            timer_scanBle.schedule(task_scanBle, 20 * 1000, 12 * 1000);// 执行心跳包任务
+        } else {
+            Log.d(TAG, "蓝牙已连接 ");
         }
     }
 
@@ -1958,6 +1962,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         sendBroadcast(new Intent("com.android.action.display_navigationbar"));
         if (device != null) {
             device.disconnectedDevice(address);
+            device.ungisterReceiver();
         }
         super.onDestroy();
     }

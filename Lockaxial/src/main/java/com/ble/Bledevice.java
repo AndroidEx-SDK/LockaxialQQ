@@ -26,10 +26,7 @@ import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTING;
 import static com.ble.BTTempBLEService.ACTION_GATT_DISCONNECTED;
 import static com.ble.BTTempBLEService.ACTION_GATT_SERVICES_DISCOVERED;
 import static com.ble.BTTempBLEService.ACTION_GAT_RSSI;
-import static com.ble.BTTempBLEService.ACTION_HUM_UPDATE;
 import static com.ble.BTTempBLEService.ACTION_LOCK_STARTS;
-import static com.ble.BTTempBLEService.ACTION_TEMP_UPDATE;
-import static com.ble.BTTempBLEService.ACTION_TEN_MINUTES;
 
 /*
  * 蓝牙设备的基类
@@ -269,12 +266,8 @@ public abstract class Bledevice {
         intentFilter.addAction(ACTION_BIND_MAC);
         intentFilter.addAction(ACTION_GATT_CONNECTING);
         intentFilter.addAction(ACTION_LOCK_STARTS);
-        intentFilter.addAction(ACTION_TEMP_UPDATE);
-        intentFilter.addAction(ACTION_HUM_UPDATE);
-        intentFilter.addAction(ACTION_TEN_MINUTES);
         intentFilter.addAction(DoorLock.DoorLockOpenDoor_BLE);//开门指令
         //自定义连接
-        intentFilter.addAction("com.imagic.connected");
         return intentFilter;
     }
 
@@ -291,10 +284,9 @@ public abstract class Bledevice {
     public void registerReceiver() {
         Activity activity = (Activity) this.context;
         if (activity != null) {
-            Log.e(TAG, "环境变量不为空");
             activity.getApplicationContext().registerReceiver(gattUpdateRecevice, this.bleIntentFilter());
         } else {
-            Log.e(TAG, "环境变量为空");
+            Log.e(TAG, "context is null");
         }
     }
 
@@ -321,11 +313,7 @@ public abstract class Bledevice {
             // TODO Auto-generated method stub
             String characteristicUUID = intent.getStringExtra(BTTempBLEService.RFSTAR_CHARACTERISTIC_ID);
             String mac = intent.getStringExtra("BT-MAC");
-            if (ACTION_GATT_CONNECTED.equals(intent.getAction())) {//连接
-                Log.e(TAG, "连接");
-            } else if (ACTION_GATT_DISCONNECTED.equals(intent.getAction())) { // 断开
-                Log.e(TAG, "断开");
-            } else if (ACTION_GATT_SERVICES_DISCOVERED.equals(intent.getAction()) && device.getAddress().equals(mac)) {//获取特征值
+            if (ACTION_GATT_SERVICES_DISCOVERED.equals(intent.getAction()) && device.getAddress().equals(mac)) {//获取特征值
                 Log.e(TAG, "发现服务 获取特征值");
                 discoverCharacteristicsFromService(getBLEGattServices());//初始化特征值
             }
