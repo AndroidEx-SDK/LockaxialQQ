@@ -1952,6 +1952,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         unregisterReceiver(mNotifyReceiver);
         unregisterReceiver(dataUpdateRecevice);
         sendBroadcast(new Intent("com.android.action.display_navigationbar"));
+        if (device != null) {
+            device.disconnectedDevice(address);
+        }
         super.onDestroy();
     }
 
