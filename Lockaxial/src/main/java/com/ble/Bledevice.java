@@ -20,7 +20,6 @@ import java.util.List;
 
 import static com.ble.BTTempBLEService.ACTION_BIND_MAC;
 import static com.ble.BTTempBLEService.ACTION_DATA_AVAILABLE;
-import static com.ble.BTTempBLEService.ACTION_DATA_ITEMFRAGMENT;
 import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTED;
 import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTING;
 import static com.ble.BTTempBLEService.ACTION_GATT_DISCONNECTED;
@@ -71,7 +70,7 @@ public abstract class Bledevice {
             Log.e(TAG, "serviceIntent is null");
             serviceIntent = new Intent(this.context, BTTempBLEService.class);
             isBound = this.context.bindService(serviceIntent, serviceConnection, Service.BIND_AUTO_CREATE);
-            Log.e(TAG, "isBound : "+ isBound);//绑定服务结果
+            Log.e(TAG, "isBound : " + isBound);//绑定服务结果
         }
         this.delegate = delegate;
     }
@@ -319,16 +318,6 @@ public abstract class Bledevice {
             }
             if (device.getAddress().equals(mac) || mac == null) {
                 delegate.onReceive(context, intent, device.getAddress(), characteristicUUID);
-                if (ACTION_GATT_DISCONNECTED.equals(intent.getAction()) || ACTION_GATT_CONNECTED.equals(intent.getAction())) {
-                    Intent intent_item = new Intent(ACTION_DATA_ITEMFRAGMENT);
-                    intent_item.putExtra("deviceMac", device.getAddress());
-                    intent_item.putExtra("uuid", characteristicUUID);
-                    intent_item.putExtra("ACTION_STRING", intent.getAction());
-                    intent_item.putExtra("name", device.getName());
-                    intent_item.putExtra(BTTempBLEService.EXTRA_DATA, intent.getByteArrayExtra(BTTempBLEService.EXTRA_DATA));
-                    context.sendBroadcast(intent_item);
-                    Log.d(TAG, "deviceMac：" + device.getName() + " uuid:" + characteristicUUID + " ACTION_STRING:" + intent.getAction() + "    EXTRA_DATA:" + intent.getByteArrayExtra(BTTempBLEService.EXTRA_DATA));
-                }
             }
         }
     };

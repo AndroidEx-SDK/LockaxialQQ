@@ -115,7 +115,6 @@ import static com.androidex.service.MainService.communityId;
 import static com.androidex.service.MainService.httpServerToken;
 import static com.androidex.service.MainService.lockId;
 import static com.androidex.utils.NfcReader.ACTION_NFC_CARDINFO;
-import static com.ble.BTTempBLEService.ACTION_DATA_ITEMFRAGMENT;
 import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTED;
 import static com.ble.BTTempBLEService.ACTION_GATT_DISCONNECTED;
 import static com.util.Constant.CALLING_MODE;
@@ -355,7 +354,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public void initBLE() {
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ACTION_DATA_ITEMFRAGMENT);
         intentFilter.addAction(ACTION_SCAN_DEVICE);//BLE搜索到设备
         intentFilter.addAction(SCAN_DEVICE_FAIL);//搜索失败
         registerReceiver(dataUpdateRecevice, intentFilter);
@@ -2219,9 +2217,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         public void onReceive(Context context, Intent intent) {
             // TODO Auto-generated method stub
             switch (intent.getAction()) {
-                case ACTION_DATA_ITEMFRAGMENT://该处不可删除
-
-                    break;
                 case ACTION_SCAN_DEVICE://搜索到设备
                     Log.d(TAG, "搜索到设备,开始绑定设备,mScanning=" + mScanning);
                     bindDevice();//绑定设备
