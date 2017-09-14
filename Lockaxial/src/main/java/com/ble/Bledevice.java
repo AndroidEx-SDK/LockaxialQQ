@@ -272,7 +272,7 @@ public abstract class Bledevice {
         intentFilter.addAction(ACTION_TEMP_UPDATE);
         intentFilter.addAction(ACTION_HUM_UPDATE);
         intentFilter.addAction(ACTION_TEN_MINUTES);
-        intentFilter.addAction(DoorLock.DoorLockOpenDoor);//开门指令
+        intentFilter.addAction(DoorLock.DoorLockOpenDoor_BLE);//开门指令
         //自定义连接
         intentFilter.addAction("com.imagic.connected");
         return intentFilter;

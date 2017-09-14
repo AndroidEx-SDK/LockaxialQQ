@@ -459,6 +459,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         ds_intent.putExtra("index", 0);
                         ds_intent.putExtra("status", status);
                         sendBroadcast(ds_intent);
+
+                        Intent intent_ble = new Intent();
+                        intent_ble.setAction(DoorLock.DoorLockOpenDoor_BLE);
+                        sendBroadcast(intent_ble);
                         break;
 
                     case R.id.action_settings5:
@@ -2281,7 +2285,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 break;
             case REFRESH_RSSI://获取信号强度
                 break;
-            case DoorLock.DoorLockOpenDoor:
+            case DoorLock.DoorLockOpenDoor_BLE:
                 Log.e(TAG, "收到开门指令");
                 if (isConnectBLE) {
                     device.openLock();

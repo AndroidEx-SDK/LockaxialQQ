@@ -97,7 +97,7 @@ public class BTTempDevice extends Bledevice {
     public void closeLock() {
         String result_close = "445A465F434D443A06070000035343";
         if (TEMP_SendCharateristic != null) {
-            Log.e(TAG, "openLock 发送关锁指令");
+            Log.e(TAG, "closeLock 发送关锁指令");
             TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(result_close.toCharArray()));
             this.writeValue(TEMP_SendCharateristic);
             Log.d(TAG, "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());

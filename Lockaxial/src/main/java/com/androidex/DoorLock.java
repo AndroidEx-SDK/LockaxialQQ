@@ -25,7 +25,7 @@ import java.util.HashMap;
  * Created by yangjun on 16/6/6.
  * 锁相开源门禁机软件的主要服务类,DoorLock主要提供开门,关门指令以及上报门开和关闭的事件.
  */
-public class DoorLock extends Service implements OnBackCall{
+public class DoorLock extends Service implements OnBackCall {
 
     public static final String TAG = "DoorLock";
     public static final String mDoorSensorAction = "com.android.action.doorsensor";
@@ -35,19 +35,19 @@ public class DoorLock extends Service implements OnBackCall{
     /**
      * 当门的状态改变时的事件定义
      */
-    public static final String DoorLockStatusChange 	 = "DoorLockStatusChange";
+    public static final String DoorLockStatusChange = "DoorLockStatusChange";
     /**
      * DoorLock通过DoorLockOpenDoor广播获得开门指令并发送给门禁控制器
      */
-    public static final String DoorLockOpenDoor          = "DoorLockOpenDoor";
-    public static final String actionRunReboot           = "com.androidex.REBOOT";
-    public static final String actionRunShutdown         = "com.androidex.ACTION_REQUEST_SHUTDOWN";
+    public static final String DoorLockOpenDoor = "DoorLockOpenDoor";
+    public static final String DoorLockOpenDoor_BLE = "DoorLockOpenDoor_BLE";
+    public static final String actionRunReboot = "com.androidex.REBOOT";
+    public static final String actionRunShutdown = "com.androidex.ACTION_REQUEST_SHUTDOWN";
     private NotifyReceiver mReceiver;
     private static DoorLock mServiceInstance = null;
     private boolean mPlugedShutdown = false;
 
-    public static DoorLock getInstance()
-    {
+    public static DoorLock getInstance() {
         return mServiceInstance;
     }
 
@@ -137,7 +137,7 @@ public class DoorLock extends Service implements OnBackCall{
 
     @Override
     public void onBackCallEvent(int code, String args) {
-        Log.v("onBackCallEvent",args);
+        Log.v("onBackCallEvent", args);
     }
 
     public class DoorLockServiceBinder extends IDoorLockInterface.Stub {
@@ -146,46 +146,48 @@ public class DoorLock extends Service implements OnBackCall{
 
         /**
          * 开门指令
-         * @param index     门的序号,主门=0,副门=1
-         * @param delay     延迟关门的时间,0表示不启用延迟关门,大于0表示延迟时间,延迟时间为delay*150ms
-         * @return          大于0表示成功,实际上等于9表示真正的成功,因为返回值表示写入的数据,开门指令长度为9.
+         *
+         * @param index 门的序号,主门=0,副门=1
+         * @param delay 延迟关门的时间,0表示不启用延迟关门,大于0表示延迟时间,延迟时间为delay*150ms
+         * @return 大于0表示成功, 实际上等于9表示真正的成功, 因为返回值表示写入的数据, 开门指令长度为9.
          */
-        public int openDoor(int index, int delay){
+        public int openDoor(int index, int delay) {
             kkfile rkey = new kkfile();
-            if(index < 0 || index > 0xFE) index = 0;
-            if(ident < 0 || ident > 0xFE) ident = 0;
-            if(delay < 0 || delay > 0xFE) delay = 0;
-            String cmd = String.format("FB%02X2503%02X01%02X00FE",ident,index,delay);
-            int r = rkey.native_file_writeHex(rkeyDev,cmd);
+            if (index < 0 || index > 0xFE) index = 0;
+            if (ident < 0 || ident > 0xFE) ident = 0;
+            if (delay < 0 || delay > 0xFE) delay = 0;
+            String cmd = String.format("FB%02X2503%02X01%02X00FE", ident, index, delay);
+            int r = rkey.native_file_writeHex(rkeyDev, cmd);
 
-            if(r > 0) {
-                SoundPoolUtil.getSoundPoolUtil().loadVoice(getBaseContext(),011111);
+            if (r > 0) {
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(getBaseContext(), 011111);
             }
-            return r > 0?1:0;
+            return r > 0 ? 1 : 0;
         }
-        public int closeDoor(int index){
+
+        public int closeDoor(int index) {
             kkfile rkey = new kkfile();
 
-            if(index < 0 || index > 0xFE) index = 0;
-            if(ident < 0 || ident > 0xFE) ident = 0;
-            String cmd = String.format("FB%02X2503%02X000000FE",ident,index);
-            int r = rkey.native_file_writeHex(rkeyDev,cmd);
-            return r > 0 ? 1:0;
+            if (index < 0 || index > 0xFE) index = 0;
+            if (ident < 0 || ident > 0xFE) ident = 0;
+            String cmd = String.format("FB%02X2503%02X000000FE", ident, index);
+            int r = rkey.native_file_writeHex(rkeyDev, cmd);
+            return r > 0 ? 1 : 0;
         }
     }
 
     public class NotifyReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(mDoorSensorAction)){
+            if (intent.getAction().equals(mDoorSensorAction)) {
                 String doorsensor = intent.getStringExtra("doorsensor");
                 UEventMap mds = new UEventMap(doorsensor);
-                Log.d(TAG, String.format("%s\t Door sensor=%s\n",mds.get("doorsensor"), mds.toString()));
+                Log.d(TAG, String.format("%s\t Door sensor=%s\n", mds.get("doorsensor"), mds.toString()));
                 Intent ds_intent = new Intent();
                 ds_intent.setAction(DoorLock.DoorLockStatusChange);
-                ds_intent.putExtra("doorsensor",mds.get("doorsensor"));
+                ds_intent.putExtra("doorsensor", mds.get("doorsensor"));
                 sendBroadcast(ds_intent);
-            } else if(intent.getAction().equals(DoorLockOpenDoor)) {
+            } else if (intent.getAction().equals(DoorLockOpenDoor)) {
                 int index = intent.getIntExtra("index", 0);
                 int status = intent.getIntExtra("status", 0);
                 if (status != 0) {
@@ -194,31 +196,34 @@ public class DoorLock extends Service implements OnBackCall{
                 } else {
                     int result = mDoorLock.closeDoor(index);
                 }
-            } else if(intent.getAction().equals(actionRunReboot)){
+            } else if (intent.getAction().equals(actionRunReboot)) {
                 runReboot();
-            } else if(intent.getAction().equals(actionRunShutdown)){
+            } else if (intent.getAction().equals(actionRunShutdown)) {
                 runShutdown();
-            } else if(intent.getAction().equals(TXDeviceService.OnReceiveDataPoint)){
+            } else if (intent.getAction().equals(TXDeviceService.OnReceiveDataPoint)) {
                 Log.d(TAG, "onReceive: 执行了吗?");
                 Long from = intent.getExtras().getLong("from", 0);
                 Parcelable[] arrayDataPoint = intent.getExtras().getParcelableArray("datapoint");
                 for (int i = 0; i < arrayDataPoint.length; ++i) {
-                    TXDataPoint dp = (TXDataPoint)(arrayDataPoint[i]);
+                    TXDataPoint dp = (TXDataPoint) (arrayDataPoint[i]);
                     try {
-                        switch((int) dp.property_id) {
+                        switch ((int) dp.property_id) {
                             case 1600006:   //主门开锁
                             {
                                 TXDataPoint dpa[] = new TXDataPoint[1];
                                 int status = Integer.parseInt(dp.property_val);
                                 Intent ds_intent = new Intent();
                                 ds_intent.setAction(DoorLock.DoorLockOpenDoor);
-                                ds_intent.putExtra("index",0);
-                                ds_intent.putExtra("status",status);
+                                ds_intent.putExtra("index", 0);
+                                ds_intent.putExtra("status", status);
                                 sendBroadcast(ds_intent);
-
                                 dpa[0] = dp;
-                                Log.d(TAG, "onReceive: "+ Arrays.toString(dpa));
+                                Log.d(TAG, "onReceive: " + Arrays.toString(dpa));
                                 TXDeviceService.reportDataPoint(dpa);
+
+                                Intent intent_ble = new Intent();
+                                intent_ble.setAction(DoorLockOpenDoor_BLE);
+                                sendBroadcast(intent_ble);
                             }
                             break;
                             case 100003101: //副门开锁
@@ -226,19 +231,18 @@ public class DoorLock extends Service implements OnBackCall{
                                 int status = Integer.parseInt(dp.property_val);
                                 Intent ds_intent = new Intent();
                                 ds_intent.setAction(DoorLock.DoorLockOpenDoor);
-                                ds_intent.putExtra("index",1);
-                                ds_intent.putExtra("status",status);
+                                ds_intent.putExtra("index", 1);
+                                ds_intent.putExtra("status", status);
                                 sendBroadcast(ds_intent);
                             }
                             break;
                         }
 
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
-            } else if(intent.getAction().equals(Intent.ACTION_BATTERY_CHANGED)){
+            } else if (intent.getAction().equals(Intent.ACTION_BATTERY_CHANGED)) {
                 /* 接收电池信息的函数,如果需要外电断电时关闭机器,可以在这里做
                  * “status”（int类型）…状态，定义值是BatteryManager.BATTERY_STATUS_XXX。
                  * “health”（int类型）…健康，定义值是BatteryManager.BATTERY_HEALTH_XXX。
@@ -310,12 +314,12 @@ public class DoorLock extends Service implements OnBackCall{
                         break;
                     default:
                         acString = "plugged battery only";                          //
-                        if(mPlugedShutdown) {
+                        if (mPlugedShutdown) {
                             runShutdown();                                                        // 当检测出是电池供电时，直接执行关机程序
                         }
                         break;
                 }
-				/*
+                /*
 				Log.v("status", statusString);
                 Log.v("health", healthString);
 				Log.v("present", String.valueOf(present));
@@ -333,18 +337,18 @@ public class DoorLock extends Service implements OnBackCall{
 
     public static final class UEventMap {
         // collection of key=value pairs parsed from the uevent message
-        private final HashMap<String,String> mMap = new HashMap<String,String>();
+        private final HashMap<String, String> mMap = new HashMap<String, String>();
 
         public UEventMap(String message) {
             int offset = 0;
             int length = message.length();
 
-            if(length == 0)return;
-            if(message.substring(0,1).equals("{")){
+            if (length == 0) return;
+            if (message.substring(0, 1).equals("{")) {
                 message = message.substring(1);
             }
-            if(message.substring(message.length() - 1,message.length()).equals("}")){
-                message = message.substring(0,message.length() - 1);
+            if (message.substring(message.length() - 1, message.length()).equals("}")) {
+                message = message.substring(0, message.length() - 1);
             }
             length = message.length();
             while (offset < length) {

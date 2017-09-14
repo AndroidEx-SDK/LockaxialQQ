@@ -127,10 +127,8 @@ public class MainService extends Service {
     public static final int SZ_SECURITY_LEVEL = (3);
     public static final int ADVERTISEMENT_WAITING = 0;
     public static final int ADVERTISEMENT_REFRESHING = 1;
-
     public static final int REGISTER_ACTIVITY_INIT = 1;
     public static final int REGISTER_ACTIVITY_DIAL = 3;
-
     public static final int MSG_GETTOKEN = 10001;
     public static final int MSG_LOGIN = 20001;
     public static final int MSG_CALLMEMBER = 20002;
@@ -162,9 +160,7 @@ public class MainService extends Service {
     public static final int MSG_START_OFFLINE = 20025;
     public static final int MSG_RESTART_ADVERT = 20026;
     public static final int MSG_UPDATE_VERSION = 20027;
-
     public static final int MSG_FIND_NEW_VERSION = 30001;
-
     public static final int CALL_WAITING = 20;
     public static final int CALL_VIDEO_CONNECTING = 21;
     public static final int CALL_VIDEO_CONNECTED = 22;
@@ -2363,13 +2359,10 @@ public class MainService extends Service {
             openAssembleLock();
         } else if (DeviceConfig.IS_AEX_AVAILABLE) {
             openAexLock();
+            Intent ds_intent = new Intent();
+            ds_intent.setAction(DoorLock.DoorLockOpenDoor_BLE);
+            sendBroadcast(ds_intent);
         }
-        int status1 = 2;
-        Intent ds_intent1 = new Intent();
-        ds_intent1.setAction(DoorLock.DoorLockOpenDoor);
-        ds_intent1.putExtra("index", 1);
-        ds_intent1.putExtra("status", status1);
-        sendBroadcast(ds_intent1);
     }
 
     protected void startCreateAccessLog(String from, final String imageUrl) {
