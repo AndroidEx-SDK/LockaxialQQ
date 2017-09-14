@@ -185,7 +185,7 @@ public class MainService extends Service {
     public static int communityId = 0;//社区ID
     public int blockId = 0;//楼栋ID
     public int inputBlockId = 0;
-    public int lockId = 0;
+    public static int lockId = 0;
     public String unitNo = "";
     public String tempKey = "";
     public String messageFrom = null;
@@ -276,6 +276,7 @@ public class MainService extends Service {
                     Log.i("MainService", "register init messenger");
                 } else if (msg.what == REGISTER_ACTIVITY_DIAL) {
                     startRongyun();
+                    retrieveCardList();//注册卡信息
                     initAdvertisement();//初始化广告
                     initConnectReport();
                     Log.i("MainService", "register Dial messenger");
@@ -2283,8 +2284,8 @@ public class MainService extends Service {
     protected void onMessage(String from, String mime, String content) {
         if (content.equals("refresh card info")) {
             sendDialMessenger(MSG_REFRESH_DATA, "card");
-            retrieveChangedCardList();
-            //retrieveCardList();//注册卡信息
+            //retrieveChangedCardList();
+            retrieveCardList();//注册卡信息
         } else if (content.equals("refresh finger info")) {
             sendDialMessenger(MSG_REFRESH_DATA, "finger");
             //retrieveChangedFingerList();
@@ -2567,7 +2568,7 @@ public class MainService extends Service {
         advertisementThread = new Thread() {
             public void run() {
                 try {
-                    //retrieveCardList();//注册卡信息
+                    retrieveCardList();//注册卡信息
                     if (resetFlag > 0) {
                         initDeviceData();
                     } else {
@@ -2589,7 +2590,7 @@ public class MainService extends Service {
     }
 
 
-    /*protected void retrieveCardList() {
+    protected void retrieveCardList() {
         Log.d(TAG, "retrieveCardList: =============");
         String url = DeviceConfig.SERVER_URL + "/app/device/retrieveCardList?communityId=" + this.communityId
                 + "&blockId=" + this.blockId + "&lockId=" + this.lockId;
@@ -2626,7 +2627,6 @@ public class MainService extends Service {
             e.printStackTrace();
         }
     }
-*/
     /*protected void retrieveChangedFingerList(){
         String url=DeviceConfig.SERVER_URL+"/app/device/retrieveChangedFingerList?communityId="+this.communityId;
         url=url+"&blockId="+this.blockId;

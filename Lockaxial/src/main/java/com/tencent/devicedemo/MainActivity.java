@@ -113,6 +113,7 @@ import static com.androidex.NetWork.isNetworkAvailable;
 import static com.androidex.service.MainService.MSG_UPDATE_VERSION;
 import static com.androidex.service.MainService.communityId;
 import static com.androidex.service.MainService.httpServerToken;
+import static com.androidex.service.MainService.lockId;
 import static com.androidex.utils.NfcReader.ACTION_NFC_CARDINFO;
 import static com.ble.BTTempBLEService.ACTION_DATA_ITEMFRAGMENT;
 import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTED;
@@ -1288,7 +1289,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     /**
-     * 录制卡片
+     * 录入卡片
      */
     private void receiveCard() {
         String bla = et_blackno.getText().toString();
@@ -1300,6 +1301,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             url = url + "&communityId=" + communityId;
             url = url + "&blockNo=" + bla;
             url = url + "&unitNo=" + uin;
+            url = url + "&userId=" + lockId;
             Log.d(TAG, "login: url=" + url);
             try {
                 URL thisUrl = new URL(url);
