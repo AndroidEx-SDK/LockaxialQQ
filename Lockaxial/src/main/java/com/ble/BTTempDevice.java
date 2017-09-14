@@ -18,6 +18,7 @@ import java.util.List;
 
 
 public class BTTempDevice extends Bledevice {
+    private static final String TAG = "BTTempDevice";
     public static final String Temp_ReceiveCharateristicUUID = "fff1";//服务特征UUID：Receive：接收数据
     public static final String Temp_SendCharateristicUUID = "fff2";//服务特征UUID：Send：发送数据
     public static final String Lost_CharateristicUUID = "fff3";//特殊服务特征UUID：0x2A06
@@ -50,19 +51,18 @@ public class BTTempDevice extends Bledevice {
     public void discoverCharacteristicsFromService(List<BluetoothGattService> gattServices) {
         if (gattServices == null) return;
         for (BluetoothGattService service : gattServices) {
-            Log.e("BTTempDevice", "service uuid:" + service.getUuid().toString());// 迭代服务
+            Log.e(TAG, "service uuid:" + service.getUuid().toString());// 迭代服务
             for (BluetoothGattCharacteristic characteristic : service.getCharacteristics()) { // 迭代特征值
-
                 if (characteristic.getUuid().toString().contains(Temp_ReceiveCharateristicUUID)) {//
                     TEMP_ReceiveCharateristic = characteristic;//Receive：接收数据
-                    Log.e("BTTempDevice", "接收特征：" + TEMP_ReceiveCharateristic.getUuid().toString());
+                    Log.e(TAG, "接收特征：" + TEMP_ReceiveCharateristic.getUuid().toString());
                     this.setCharacteristicNotification(TEMP_ReceiveCharateristic, true);
                 } else if (characteristic.getUuid().toString().contains(Temp_SendCharateristicUUID)) {
-                    Log.e("BTTempDevice", "设备mac：" + device.getAddress());
+                    Log.e(TAG, "设备mac：" + device.getAddress());
                     TEMP_SendCharateristic = characteristic;//Send：发送数据
-                    Log.e("BTTempDevice", "可写特征：" + TEMP_SendCharateristic.getUuid().toString());
+                    Log.e(TAG, "可写特征：" + TEMP_SendCharateristic.getUuid().toString());
                 } else if (characteristic.getUuid().toString().contains(Lost_CharateristicUUID)) {
-                    Log.d("BTTempDevice", ": " + characteristic);
+                    Log.d(TAG, ": " + characteristic);
                     LOST_Charateristic = characteristic;//防丢服务特征
                     this.readValue(LOST_Charateristic);
                 }
@@ -82,44 +82,44 @@ public class BTTempDevice extends Bledevice {
      * 返回1:0x01 02 44 5A 46 4C 3A 0C 52 2F 09 00 00 00 03 35 17 1D 21 01 //开门记录
      * 返回2:0x01 02 6F 00 命令正确执行
      */
-    public void openLock() {//0xaa  0x0a  0x1a 0x01  0x01 0x01 0x01 0x01 0x01  0x010 0x0 0x0b  开锁
+    public void openLock() {//开锁
         String result = "445A465F434D443A0607000003534F";
-        String lock_starts = "445A465F434D443A06070000035253";
-
         if (TEMP_SendCharateristic != null) {
             Log.e("BTTempDevice", "openLock 发送开锁指令");
             TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(result.toCharArray()));
             this.writeValue(TEMP_SendCharateristic);
-            Log.e("BTTempDevice", "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
+            Log.e(TAG, "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
 
         } else {
-            Log.e("BTTempDevice", "TEMP_SendCharateristic is null");
-
+            Log.e(TAG, "TEMP_SendCharateristic is null");
         }
-
-
-//        if (TEMP_SendCharateristic != null) {
-//            Log.e("BTTempDevice", "openLock 发送读取门锁状态指令");
-//            TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(lock_starts.toCharArray()));
-//            this.writeValue(TEMP_SendCharateristic);
-//            Log.e("BTTempDevice", "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
-//        } else {
-//            Log.e("BTTempDevice", "TEMP_SendCharateristic is null");
-//        }
-
-        Log.d("BTTempDevice", "openLock write cmd : " + Byte2HexUtil.byte2Hex(Byte2HexUtil.decodeHex(result.toCharArray())));
+        Log.d(TAG, "openLock write cmd : " + Byte2HexUtil.byte2Hex(Byte2HexUtil.decodeHex(result.toCharArray())));
     }
 
     public void closeLock() {
         String result_close = "445A465F434D443A06070000035343";
         if (TEMP_SendCharateristic != null) {
-            Log.e("BTTempDevice", "openLock 发送关锁指令");
+            Log.e(TAG, "openLock 发送关锁指令");
             TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(result_close.toCharArray()));
             this.writeValue(TEMP_SendCharateristic);
-            Log.e("BTTempDevice", "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
+            Log.d(TAG, "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
         } else {
-            Log.e("BTTempDevice", "TEMP_SendCharateristic is null");
+            Log.e(TAG, "TEMP_SendCharateristic is null");
         }
+        Log.d(TAG, "closeLock write cmd : " + Byte2HexUtil.byte2Hex(Byte2HexUtil.decodeHex(result_close.toCharArray())));
+    }
+
+    public void getLockStarts() {
+        String lock_starts = "445A465F434D443A06070000035253";
+        if (TEMP_SendCharateristic != null) {
+            Log.e(TAG, "getLockStarts 发送读取门锁状态指令");
+            TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(lock_starts.toCharArray()));
+            this.writeValue(TEMP_SendCharateristic);
+            Log.e(TAG, "TEMP_SendCharateristic ：" + TEMP_SendCharateristic.getUuid().toString());
+        } else {
+            Log.e(TAG, "TEMP_SendCharateristic is null");
+        }
+        Log.d(TAG, "lock_starts write cmd : " + Byte2HexUtil.byte2Hex(Byte2HexUtil.decodeHex(lock_starts.toCharArray())));
     }
 
     /**
@@ -128,11 +128,11 @@ public class BTTempDevice extends Bledevice {
     public void sentHeartBeat(int rssi) {
         String result = "aa0a1c" + Integer.toHexString(Math.abs(rssi)) + getLocalMac().replaceAll(":", "") + "000b";
         if (TEMP_SendCharateristic != null) {
-            Log.e("BTTempDevice", "发送心跳 rssi:" + Math.abs(rssi));
+            Log.e(TAG, "发送心跳 rssi:" + Math.abs(rssi));
             TEMP_SendCharateristic.setValue(Byte2HexUtil.decodeHex(result.toCharArray()));
             this.writeValue(TEMP_SendCharateristic);
         }
-        Log.d("BTTempDevice", "sentHeartBeat  result ==" + result);
+        Log.d(TAG, "sentHeartBeat  result ==" + result);
     }
 
     /**
