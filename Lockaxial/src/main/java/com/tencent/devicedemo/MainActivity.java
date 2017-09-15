@@ -71,7 +71,6 @@ import com.androidex.utils.HttpUtils;
 import com.androidex.utils.NfcReader;
 import com.androidex.utils.UploadUtil;
 import com.ble.BTTempDevice;
-import com.ble.Bledevice;
 import com.brocast.NotifyReceiverQQ;
 import com.entity.Banner;
 import com.google.android.gms.appindexing.Action;
@@ -162,7 +161,7 @@ import static com.util.Constant.ON_YUNTONGXUN_LOGIN_SUCCESS;
 import static com.util.Constant.PASSWORD_CHECKING_MODE;
 import static com.util.Constant.PASSWORD_MODE;
 
-public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener, Bledevice.RFStarBLEBroadcastReceiver {
+public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener {
     private static final String TAG = "MainActivity";
     public static final int INPUT_CARDINFO_RESULTCODE = 0X01;
     public static final int INPUT_CARDINFO_REQUESTCODE = 0X02;
@@ -356,6 +355,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(ACTION_SCAN_DEVICE);//BLE搜索到设备
         intentFilter.addAction(SCAN_DEVICE_FAIL);//搜索失败
+        intentFilter.addAction(DoorLock.DoorLockOpenDoor_BLE);//开门指令
+        intentFilter.addAction(ACTION_GATT_CONNECTED);//连接成功
+        intentFilter.addAction(ACTION_GATT_DISCONNECTED);//断开连接
+        intentFilter.addAction(REFRESH_RSSI);//获取信号值
         registerReceiver(dataUpdateRecevice, intentFilter);
         // 初始化蓝牙adapter
         if (!mBtAdapter.isEnabled()) {
@@ -382,7 +385,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 device.disconnectedDevice2();//注销服务
                 Log.d(TAG, "设备已注册，取消服务重新注册");
                 try {
-                    device.setBLEBroadcastDelegate(this);//设置连接，绑定服务
+                    device.setBLEBroadcastDelegate();//设置连接，绑定服务
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -391,7 +394,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         } else {
             Log.d(TAG, "开始注册设备绑定服务");
             device = new BTTempDevice(MainActivity.this, bluetooth_dev);
-            device.setBLEBroadcastDelegate(MainActivity.this);
+            device.setBLEBroadcastDelegate();
         }
     }
 
@@ -2227,6 +2230,50 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     Log.e(TAG, "扫描失败继续扫描");
                     scanLeDevice(true);
                     break;
+                case ACTION_GATT_CONNECTED:
+                    isConnectBLE = true;
+                    bluetooth_image.setImageResource(R.mipmap.ble_pressed);
+                    toast("蓝牙连接");
+                    Log.e(TAG, "蓝牙连接" + "isConnectBLE=" + isConnectBLE + "  mScanning=" + mScanning);
+                    if (mScanning) {
+                        scanLeDevice(false);//停止扫描
+                    }
+                    break;
+
+                case ACTION_GATT_DISCONNECTED://断开连接
+                    isConnectBLE = false;
+                    bluetooth_image.setImageResource(R.mipmap.ble_button);
+                    toast("蓝牙断开，重新开始扫描");
+                    Log.e(TAG, "蓝牙连接" + "isConnectBLE=" + isConnectBLE + "  mScanning=" + mScanning);
+                    if (mScanning) {
+                        scanLeDevice(false);
+                    }
+                    scanLeDevice(true);
+                    break;
+                case REFRESH_RSSI://获取信号强度
+                    break;
+
+                case DoorLock.DoorLockOpenDoor_BLE://开门指令
+                    Log.e(TAG, "收到开门指令");
+                    if (isConnectBLE) {
+                        device.openLock();
+                        try {
+                            Thread.sleep(5000);
+                            device.closeLock();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        toast("蓝牙未连接");
+                        if (!mScanning) {
+                            scanLeDevice(true);
+                        }
+                    }
+                    break;
+                case DoorLock.DoorLockStatusChange://门锁状态发生变化
+                    break;
+
+
             }
         }
     };
@@ -2263,53 +2310,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             mScanning = false;
             mBtAdapter.stopLeScan(mLeScanCallback);
             Log.d(TAG, "scanLeDevice  stopLeScan  ");
-        }
-    }
-
-    @Override
-    public void onReceive(Context context, Intent intent, String macData, String uuid) {
-        if (address != null && !address.equals(macData)) return;
-        switch (intent.getAction()) {
-            case ACTION_GATT_CONNECTED:
-                isConnectBLE = true;
-                bluetooth_image.setImageResource(R.mipmap.ble_pressed);
-                toast("蓝牙连接");
-                Log.e(TAG, "蓝牙连接" + "isConnectBLE=" + isConnectBLE + "  mScanning=" + mScanning);
-                if (mScanning) {
-                    scanLeDevice(false);//停止扫描
-                }
-                break;
-            case ACTION_GATT_DISCONNECTED://断开连接
-                isConnectBLE = false;
-                bluetooth_image.setImageResource(R.mipmap.ble_button);
-                toast("蓝牙断开，重新开始扫描");
-                Log.e(TAG, "蓝牙连接" + "isConnectBLE=" + isConnectBLE + "  mScanning=" + mScanning);
-                if (mScanning) {
-                    scanLeDevice(false);
-                }
-                scanLeDevice(true);
-                break;
-            case REFRESH_RSSI://获取信号强度
-                break;
-            case DoorLock.DoorLockOpenDoor_BLE:
-                Log.e(TAG, "收到开门指令");
-                if (isConnectBLE) {
-                    device.openLock();
-                    try {
-                        Thread.sleep(5000);
-                        device.closeLock();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    toast("蓝牙未连接");
-                    if (!mScanning) {
-                        scanLeDevice(true);
-                    }
-                }
-                break;
-            case DoorLock.DoorLockStatusChange://门锁状态发生变化
-                break;
         }
     }
 

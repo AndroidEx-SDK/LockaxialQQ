@@ -14,15 +14,11 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.androidex.DoorLock;
-
 import java.util.List;
 
 import static com.ble.BTTempBLEService.ACTION_BIND_MAC;
 import static com.ble.BTTempBLEService.ACTION_DATA_AVAILABLE;
-import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTED;
 import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTING;
-import static com.ble.BTTempBLEService.ACTION_GATT_DISCONNECTED;
 import static com.ble.BTTempBLEService.ACTION_GATT_SERVICES_DISCOVERED;
 import static com.ble.BTTempBLEService.ACTION_GAT_RSSI;
 import static com.ble.BTTempBLEService.ACTION_LOCK_STARTS;
@@ -62,7 +58,7 @@ public abstract class Bledevice {
     /**
      * 设置连接，绑定服务
      */
-    public void setBLEBroadcastDelegate(RFStarBLEBroadcastReceiver delegate) {
+    public void setBLEBroadcastDelegate() {
         Log.e(TAG, device.getAddress() + " 初始化");
         isRegisterReceiver = true;
         this.registerReceiver();
@@ -72,16 +68,6 @@ public abstract class Bledevice {
             isBound = this.context.bindService(serviceIntent, serviceConnection, Service.BIND_AUTO_CREATE);
             Log.e(TAG, "isBound : " + isBound);//绑定服务结果
         }
-        this.delegate = delegate;
-    }
-
-    /**
-     * 设置通知
-     *
-     * @param delegate
-     */
-    public void setRFStarBLEBroadcastReceiver(RFStarBLEBroadcastReceiver delegate) {
-        this.delegate = delegate;
     }
 
     /**
@@ -185,6 +171,7 @@ public abstract class Bledevice {
     public void disconnectedDevice(String address) {
         Log.e(TAG, " disconnectedDevice 断开连接------1--------" + this.bleService);
         isRegisterReceiver = false;
+        this.ungisterReceiver();
         try {
             this.bleService.disconnect(address);
             this.closeDevice();
@@ -257,15 +244,12 @@ public abstract class Bledevice {
      */
     protected IntentFilter bleIntentFilter() {
         final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ACTION_GATT_CONNECTED);
-        intentFilter.addAction(ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(ACTION_GATT_SERVICES_DISCOVERED);
         intentFilter.addAction(ACTION_DATA_AVAILABLE);
         intentFilter.addAction(ACTION_GAT_RSSI);
         intentFilter.addAction(ACTION_BIND_MAC);
         intentFilter.addAction(ACTION_GATT_CONNECTING);
         intentFilter.addAction(ACTION_LOCK_STARTS);
-        intentFilter.addAction(DoorLock.DoorLockOpenDoor_BLE);//开门指令
         //自定义连接
         return intentFilter;
     }
@@ -310,14 +294,10 @@ public abstract class Bledevice {
         @Override
         public void onReceive(final Context context, Intent intent) {
             // TODO Auto-generated method stub
-            String characteristicUUID = intent.getStringExtra(BTTempBLEService.RFSTAR_CHARACTERISTIC_ID);
             String mac = intent.getStringExtra("BT-MAC");
             if (ACTION_GATT_SERVICES_DISCOVERED.equals(intent.getAction()) && device.getAddress().equals(mac)) {//获取特征值
                 Log.e(TAG, "发现服务 获取特征值");
                 discoverCharacteristicsFromService(getBLEGattServices());//初始化特征值
-            }
-            if (device.getAddress().equals(mac) || mac == null) {
-                delegate.onReceive(context, intent, device.getAddress(), characteristicUUID);
             }
         }
     };
