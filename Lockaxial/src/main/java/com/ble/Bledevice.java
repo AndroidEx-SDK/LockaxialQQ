@@ -70,6 +70,17 @@ public abstract class Bledevice {
         }
     }
 
+    public void unBindService() {
+        Log.e(TAG, " unBindService: " + isBound);//解绑服务
+        if (serviceConnection != null) {
+            if (isBound) {
+                Log.e(TAG, " unBindService: " + isBound);//解绑服务
+                this.context.unbindService(serviceConnection);
+                isBound = false;
+            }
+        }
+    }
+
     /**
      * 连接服务
      */
@@ -171,7 +182,6 @@ public abstract class Bledevice {
     public void disconnectedDevice(String address) {
         Log.e(TAG, " disconnectedDevice 断开连接------1--------" + this.bleService);
         isRegisterReceiver = false;
-        this.ungisterReceiver();
         try {
             this.bleService.disconnect(address);
             this.closeDevice();
@@ -179,6 +189,9 @@ public abstract class Bledevice {
             // TODO: handle exception
             e.printStackTrace();
         }
+        ungisterReceiver();
+        unBindService();
+
     }
 
     /**

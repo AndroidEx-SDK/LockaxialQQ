@@ -398,6 +398,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     }
 
+
     @Override
     public void onClick(View v) {
         switch (v.getId()) {//跳转网络或网络设置
@@ -1962,7 +1963,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         sendBroadcast(new Intent("com.android.action.display_navigationbar"));
         if (device != null) {
             device.disconnectedDevice(address);
-            device.ungisterReceiver();
+            Log.e(TAG, "onDestroy 开始注销蓝牙服务");//绑定服务结果
         }
         super.onDestroy();
     }
