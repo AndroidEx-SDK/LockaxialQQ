@@ -12,8 +12,8 @@ public class Constant {
     public static final int MSG_RTC_ONVIDEO = 10001;//视频通话连接
     public static final int MSG_RTC_DISCONNECT = 10002;//视频通话断开
     public static final int MSG_PASSWORD_CHECK = 10003;//验证密码
-    public static final int MSG_LOCK_OPENED = 10004;
-    public static final int MSG_CALLMEMBER_ERROR = 10005;
+    public static final int MSG_LOCK_OPENED = 10004;//开锁
+    public static final int MSG_CALLMEMBER_ERROR = 10005;//呼叫错误
     public static final int MSG_CALLMEMBER_TIMEOUT = 11005;
     public static final int MSG_CALLMEMBER_NO_ONLINE = 12005;
     public static final int MSG_CALLMEMBER_SERVER_ERROR = 12105;
@@ -23,14 +23,12 @@ public class Constant {
     public static final int MSG_CALLMEMBER_DIRECT_SUCCESS = 16005;
     public static final int MSG_CALLMEMBER_DIRECT_FAILED = 17005;
     public static final int MSG_CALLMEMBER_DIRECT_COMPLETE = 18005;
-
     public static final int MSG_CONNECT_ERROR = 10007;
     public static final int MSG_CONNECT_SUCCESS = 10008;
     public static final int ON_YUNTONGXUN_INIT_ERROR = 10009;
     public static final int ON_YUNTONGXUN_LOGIN_SUCCESS = 10010;
     public static final int ON_YUNTONGXUN_LOGIN_FAIL = 10011;
     public static final int MSG_CANCEL_CALL_COMPLETE = 10012;
-
     public static final int MSG_ADVERTISE_REFRESH = 10013;
     public static final int MSG_ADVERTISE_IMAGE = 10014;
     public static final int MSG_INVALID_CARD = 10015;//无效房卡
@@ -46,6 +44,7 @@ public class Constant {
     public static final int MSG_INSTALL_SUCCEED = 0x05;//安装成功
     public static final int MSG_INSTALL_FAIL = 0x06;//安装失败
     public static final int MSG_DELAY_CALL = 10021;//延迟200ms接通
+    public static final int MSG_INVALID_CARD_OPENDOOR = 10022;//开门
 
     public static final int CALL_MODE = 1;
     public static final int PASSWORD_MODE = 2;

@@ -106,6 +106,7 @@ import static com.util.Constant.MSG_CALLMEMBER_TIMEOUT;
 import static com.util.Constant.MSG_CALLMEMBER_TIMEOUT_AND_TRY_DIRECT;
 import static com.util.Constant.MSG_CONNECT_ERROR;
 import static com.util.Constant.MSG_INVALID_CARD;
+import static com.util.Constant.MSG_INVALID_CARD_OPENDOOR;
 import static com.util.Constant.MSG_LOCK_OPENED;
 import static com.util.Constant.MSG_PASSWORD_CHECK;
 import static com.util.Constant.MSG_REFRESH_COMMUNITYNAME;
@@ -923,6 +924,7 @@ public class MainService extends Service {
                 openLock();
                 Log.e(TAG, "onCard====:" + card);
                 startCardAccessLog(card);
+                sendDialMessenger(MSG_INVALID_CARD_OPENDOOR);//开门弹框
             } else {
                 sendDialMessenger(MSG_INVALID_CARD);//无效房卡
             }

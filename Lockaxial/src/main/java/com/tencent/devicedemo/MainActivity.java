@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
+import android.app.Dialog;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -83,6 +84,7 @@ import com.tencent.device.TXBinderInfo;
 import com.tencent.device.TXDeviceService;
 import com.tencent.devicedemo.interfac.NetworkCallBack;
 import com.tencent.devicedemo.interfac.TakePictureCallback;
+import com.util.DialogUtil;
 import com.util.Intenet;
 import com.util.ShellUtils;
 import com.viewpager.AutoScrollViewPager;
@@ -146,6 +148,7 @@ import static com.util.Constant.MSG_INPUT_CARDINFO_REPETITION;
 import static com.util.Constant.MSG_INPUT_CARDINFO_SUCCEED;
 import static com.util.Constant.MSG_INSTALL_SUCCEED;
 import static com.util.Constant.MSG_INVALID_CARD;
+import static com.util.Constant.MSG_INVALID_CARD_OPENDOOR;
 import static com.util.Constant.MSG_LOCK_OPENED;
 import static com.util.Constant.MSG_PASSWORD_CHECK;
 import static com.util.Constant.MSG_REFRESH_COMMUNITYNAME;
@@ -284,7 +287,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initAdvertiseHandler();//初始化广告
         initAutoCamera();//
         startClockRefresh();//
-        initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
+        //initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
         boolean initStatus = this.getIntent().getBooleanExtra("INIT_STATUS", true);
         if (!initStatus) {
             onConnectionError();
@@ -861,7 +864,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     onRtcDisconnect();
                 } else if (msg.what == MSG_PASSWORD_CHECK) {
                     onPasswordCheck((Integer) msg.obj);
-                } else if (msg.what == MSG_LOCK_OPENED) {
+                } else if (msg.what == MSG_LOCK_OPENED) {//门开了
                     onLockOpened();
                 } else if (msg.what == MSG_CALLMEMBER_ERROR) {
                     onCallMemberError(msg.what);
@@ -905,6 +908,14 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     onAdvertiseImageChange(msg.obj);
                 } else if (msg.what == MSG_INVALID_CARD) {
                     Utils.DisplayToast(MainActivity.this, "无效房卡");
+                } else if (msg.what == MSG_INVALID_CARD_OPENDOOR) {
+                    Dialog dialog = DialogUtil.showBottomDialog(MainActivity.this);
+                    try {
+                        Thread.sleep(5000);
+                        dialog.dismiss();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 } else if (msg.what == MainService.MSG_ASSEMBLE_KEY) {
                     int keyCode = (Integer) msg.obj;
                     onKeyDown(keyCode);
