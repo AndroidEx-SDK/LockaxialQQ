@@ -320,7 +320,7 @@ public class DoorLock extends Service implements OnBackCall {
                         break;
                 }
                 /*
-				Log.v("status", statusString);
+                Log.v("status", statusString);
                 Log.v("health", healthString);
 				Log.v("present", String.valueOf(present));
 				Log.v("level", String.valueOf(level));

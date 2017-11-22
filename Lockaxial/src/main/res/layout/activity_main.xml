@@ -257,7 +257,6 @@
 
     </LinearLayout>
 
-
     <com.viewpager.AutoScrollViewPager
         android:id="@+id/vp_main"
         android:layout_width="match_parent"
