@@ -148,7 +148,6 @@ import static com.util.Constant.MSG_INPUT_CARDINFO_REPETITION;
 import static com.util.Constant.MSG_INPUT_CARDINFO_SUCCEED;
 import static com.util.Constant.MSG_INSTALL_SUCCEED;
 import static com.util.Constant.MSG_INVALID_CARD;
-import static com.util.Constant.MSG_INVALID_CARD_OPENDOOR;
 import static com.util.Constant.MSG_LOCK_OPENED;
 import static com.util.Constant.MSG_PASSWORD_CHECK;
 import static com.util.Constant.MSG_REFRESH_COMMUNITYNAME;
@@ -234,6 +233,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private Timer timer_scanBle;// 扫描蓝牙时定时器
     private Runnable bleRunnable;//蓝牙
     private Handler bleHandler = new Handler();//蓝牙
+    Timer timer = new Timer();
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
@@ -733,6 +733,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
             BaseApplication.getApplication().getImageLoader().displayImage("http://www.tyjdtzjc.cn/resource/kindeditor/attached/image/20150831/20150831021658_90595.png", imageView, options);
         } else {
+
             imageView.setImageBitmap(bitmap);
         }
     }
@@ -866,6 +867,19 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     onPasswordCheck((Integer) msg.obj);
                 } else if (msg.what == MSG_LOCK_OPENED) {//门开了
                     onLockOpened();
+                    final Dialog weituoDialog = DialogUtil.showBottomDialog(MainActivity.this);
+                    final TimerTask task = new TimerTask() {
+                        @Override
+                        public void run() {
+                            runOnUiThread(new Runnable() {      // UI thread
+                                @Override
+                                public void run() {
+                                    weituoDialog.dismiss();
+                                }
+                            });
+                        }
+                    };
+                    timer.schedule(task, 5000, 5000);
                 } else if (msg.what == MSG_CALLMEMBER_ERROR) {
                     onCallMemberError(msg.what);
                 } else if (msg.what == MSG_CALLMEMBER_SERVER_ERROR) {
@@ -908,14 +922,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     onAdvertiseImageChange(msg.obj);
                 } else if (msg.what == MSG_INVALID_CARD) {
                     Utils.DisplayToast(MainActivity.this, "无效房卡");
-                } else if (msg.what == MSG_INVALID_CARD_OPENDOOR) {
-                    Dialog dialog = DialogUtil.showBottomDialog(MainActivity.this);
-                    try {
-                        Thread.sleep(5000);
-                        dialog.dismiss();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                 } else if (msg.what == MainService.MSG_ASSEMBLE_KEY) {
                     int keyCode = (Integer) msg.obj;
                     onKeyDown(keyCode);
