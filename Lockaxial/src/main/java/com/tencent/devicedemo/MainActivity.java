@@ -287,7 +287,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initAdvertiseHandler();//初始化广告
         initAutoCamera();//
         startClockRefresh();//
-        //initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
+        initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
         boolean initStatus = this.getIntent().getBooleanExtra("INIT_STATUS", true);
         if (!initStatus) {
             onConnectionError();
