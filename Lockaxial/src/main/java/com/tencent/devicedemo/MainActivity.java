@@ -168,8 +168,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public static final int INPUT_CARDINFO_RESULTCODE = 0X01;
     public static final int INPUT_CARDINFO_REQUESTCODE = 0X02;
     public static final int INPUT_SYSTEMSET_REQUESTCODE = 0X03;
-    public static final String address = "67:C2:B2:2F:72:FC";//寄出去的mac=== 1F:1C:32:AF:66:23
-    //public static final String address = "1F:1C:32:AF:66:23";//寄出去的mac=== 1F:1C:32:AF:66:23
+    //public static final String address = "67:C2:B2:2F:72:FC";//寄出去的mac=== 1F:1C:32:AF:66:23
+    public static final String address = "1F:1C:32:AF:66:23";//寄出去的mac=== 1F:1C:32:AF:66:23
     private static final long SCAN_PERIOD = 12000;//扫描时间
     private static final String ACTION_SCAN_DEVICE = "ACTION_SCAN_DEVICE";//扫描到设备
     private static final String SCAN_DEVICE_FAIL = "SCAN_DEVICE_FAIL";//扫描失败
