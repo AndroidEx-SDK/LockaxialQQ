@@ -8,6 +8,7 @@ import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.app.Dialog;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -279,19 +280,15 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initView();//初始化View
         initScreen();
         initHandler();
+        initAexNfcReader();//初始化本地广播
         initServer();//初始化服务类
         initQQReceiver();//初始化QQ物联广播
-        initAexNfcReader();//初始化本地广播
         initVoiceHandler();//
         initVoiceVolume();//
         initAdvertiseHandler();//初始化广告
         initAutoCamera();//
         startClockRefresh();//
-        initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
-        boolean initStatus = this.getIntent().getBooleanExtra("INIT_STATUS", true);
-        if (!initStatus) {
-            onConnectionError();
-        }
+        //initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
         getRssi();//使用定时器,每隔5秒获得一次信号强度值
         setNetWork();
         setAutioVolume();//获取系统相关音量
@@ -328,6 +325,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         mGridView = (GridView) findViewById(R.id.gridView_binderlist);//getBgBanners();//网络获得轮播背景图片数据
         rl = (RelativeLayout) findViewById(R.id.net_view_rl);
         rl.setOnClickListener(this);
+        showMacText = (TextView) findViewById(R.id.show_mac);
         iv_setting.setOnClickListener(this);
         mAdapter = new BinderListAdapter(this);
         mGridView.setAdapter(mAdapter);
@@ -614,7 +612,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             @Override
             public void run() {
                 //获取网络连接状态
-                if (!isNetworkAvailable(MainActivity.this)) {//无可用网络
+                /**if (!isNetworkAvailable(MainActivity.this)) {//无可用网络
                     Message message = new Message();
                     message.what = 6;
                     mHandler.sendMessage(message);
@@ -622,8 +620,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     Message message = new Message();
                     message.what = 7;
                     mHandler.sendMessage(message);
-                }
-
+                }*/
                 switch (NetWork.getCurrentNetType(MainActivity.this)) {
                     case NETWORK_TYPE_WIFI:
                         wifiInfo = wifiManager.getConnectionInfo();
@@ -720,21 +717,36 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      * 生成一个可以绑定设备的二维码，qq物联绑定的二维码
      */
     private void getQR() {
-        //生成一个可以绑定设备的二维码
-        Log.d("mainactivity", GetUserInfo.getSn(this));
-        Bitmap bitmap = Zxing.createQRImage("http://iot.qq.com/add?pid=1700003316&sn=" + GetUserInfo.getSn(this), 200, 200, null);
-        if (bitmap == null) {
-            options = new DisplayImageOptions.Builder()
-                    .showImageOnFail(R.mipmap.fail)
-                    .showImageOnLoading(R.mipmap.loading)
-                    .cacheOnDisk(true)
-                    .bitmapConfig(Bitmap.Config.ARGB_8888)
-                    .build();
+        Bitmap bitmap = null;
+        try {
+            //生成一个可以绑定设备的二维码
+            Log.d("mainactivity", GetUserInfo.getSn(this));
+            bitmap = Zxing.createQRImage("http://iot.qq.com/add?pid=1700003316&sn=" + GetUserInfo.getSn(this), 200, 200, null);
+            if (bitmap == null) {
+                options = new DisplayImageOptions.Builder()
+                        .showImageOnFail(R.mipmap.fail)
+                        .showImageOnLoading(R.mipmap.loading)
+                        .cacheOnDisk(true)
+                        .bitmapConfig(Bitmap.Config.ARGB_8888)
+                        .build();
 
-            BaseApplication.getApplication().getImageLoader().displayImage("http://www.tyjdtzjc.cn/resource/kindeditor/attached/image/20150831/20150831021658_90595.png", imageView, options);
-        } else {
+                BaseApplication.getApplication().getImageLoader().displayImage("http://www.tyjdtzjc.cn/resource/kindeditor/attached/image/20150831/20150831021658_90595.png", imageView, options);
+            } else {
 
-            imageView.setImageBitmap(bitmap);
+                imageView.setImageBitmap(bitmap);
+            }
+        } catch (Exception e) {
+            Log.i("xiao_", "生成QQ二维码出错");
+            if (bitmap == null) {
+                options = new DisplayImageOptions.Builder()
+                        .showImageOnFail(R.mipmap.fail)
+                        .showImageOnLoading(R.mipmap.loading)
+                        .cacheOnDisk(true)
+                        .bitmapConfig(Bitmap.Config.ARGB_8888)
+                        .build();
+
+                BaseApplication.getApplication().getImageLoader().displayImage("http://www.tyjdtzjc.cn/resource/kindeditor/attached/image/20150831/20150831021658_90595.png", imageView, options);
+            }
         }
     }
 
@@ -742,8 +754,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      * 初始化系统服务类
      */
     protected void initServer() {
+        Log.i("xiao_","开始初始化服务");
         Intent i = new Intent(MainActivity.this, MainService.class);
-        bindService(i, connection, 0);
+        bindService(i, connection, Service.BIND_AUTO_CREATE);
 
         Intent startIntent = new Intent(MainActivity.this, TXDeviceService.class);
         startService(startIntent);
@@ -767,8 +780,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
         setTextView(R.id.tv_community, MainService.communityName);
         setTextView(R.id.tv_lock, MainService.lockName);
-
-
     }
 
     /**
@@ -956,6 +967,38 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     shellUtils.run("pm -r install " + filePath, 5000);
                     //hwservice.execRootCommand("pm -r install /sdcard/LockaxialQQ.a.2.apk");
                     Log.i(TAG, "UpdateService:" + filePath);
+
+                 /************xiaozd add********************/
+                }else if(msg.what == InitActivity.MSG_LOGIN){
+                    Log.i("xiao_","登录成功");
+                    if(msg.obj!=null){
+                        JSONObject result = (JSONObject) msg.obj;
+                        try{
+                            int code = result.getInt("code");
+                            if(code == 0){//登录成功
+                                //初始化token
+                                sendMainMessager(MainService.MSG_REGISTER,null);
+                                //初始化社区信息
+                                JSONObject user = result.getJSONObject("user");
+                                setCommunityName(user.getString("communityName"));
+                                setLockName(user.getString("lockName"));
+                            }else if(code == 1){ //登录失败,MAC地址不存在服务器
+                                //显示MAC地址并提示添加
+                                showMacaddress(result.getString("mac"));
+                            }
+                        }catch(Exception e){
+
+                        }
+                    }
+                }else if(msg.what == MainService.MSG_REGISTER_ACTIVITY_DIAL){
+                    sendMainMessager(MainService.REGISTER_ACTIVITY_DIAL,null);
+                    //开始读卡
+                    enableReaderMode();
+                    Log.i("xiao_","收到消息MSG_REGISTER_ACTIVITY_DIAL -》开始MainActivity初始化-》》》可以读卡");
+                }else if(msg.what == MainService.MSG_LOADLOCAL_DATA){
+                    //加载本地数据显示到界面
+                    setCommunityName(MainService.communityName);
+                    setLockName(MainService.lockName);
                 }
             }
         };
@@ -1731,15 +1774,21 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         public void onServiceConnected(ComponentName name, IBinder service) {
             //获取Service端的Messenger
             serviceMessenger = new Messenger(service);
-            Message message = Message.obtain();
-            message.what = MainService.REGISTER_ACTIVITY_DIAL;
-            message.replyTo = dialMessenger;
-            try {
-                //通过ServiceMessenger将注册消息发送到Service中的Handler
-                serviceMessenger.send(message);
-            } catch (RemoteException e) {
-                e.printStackTrace();
+            Log.i("xiao_","连接MainService成功"+(serviceMessenger!=null));
+            netWorkFlag = NetWork.isNetworkAvailable(MainActivity.this)?1:0;
+            if(netWorkFlag == 0){
+                enableReaderMode();
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        rl.setVisibility(View.VISIBLE);
+                    }
+                });
+            }else{
+                setStatusBarIcon(true);
             }
+            sendMainMessager(MainService.REGISTER_ACTIVITY_INIT,netWorkFlag==1?true:false);
+            initNetListen();
         }
 
         @Override
@@ -1747,6 +1796,142 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
         }
     };
+
+
+
+    /**********xiaozd add****************************/
+    private int netWorkFlag = -1;
+    private TextView showMacText;
+
+    private void initNetListen(){
+        Timer netTimer = new Timer();
+        netTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                int s = NetWork.isNetworkAvailable(MainActivity.this)?1:0;
+                if(s != netWorkFlag){
+                    Log.i("xiao_","网络波动---->"+s);
+                    if(s == 1){
+                        //关闭读卡
+                        disableReaderMode();
+                    }else{
+                        //打开读卡
+                        enableReaderMode();
+                    }
+                    sendMainMessager(MainService.MSG_UPDATE_NETWORKSTATE,s==1?true:false);
+                    netWorkFlag = s;
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if(netWorkFlag == 1){
+                                setStatusBarIcon(true);
+                                rl.setVisibility(View.GONE);
+                            }else{
+                                setStatusBarIcon(false);
+                                rl.setVisibility(View.VISIBLE);
+                            }
+                        }
+                    });
+                }
+            }
+        }, 500, 1000);
+    }
+
+    private void setStatusBarIcon(boolean state){
+        if(state){
+            //显示
+            if(wifi_image.getVisibility() == View.INVISIBLE){
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        wifi_image.setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+            if(iv_bind.getVisibility() == View.INVISIBLE){
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        iv_bind.setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+        }else{
+            //隐藏
+            if(wifi_image.getVisibility() == View.VISIBLE){
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        wifi_image.setVisibility(View.INVISIBLE);
+                    }
+                });
+            }
+            if(iv_bind.getVisibility() == View.VISIBLE){
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        iv_bind.setVisibility(View.INVISIBLE);
+                    }
+                });
+            }
+        }
+    }
+
+    private void showMacaddress(String mac){
+        if(showMacText!=null && mac!=null && mac.length()>0){
+            showMacText.setVisibility(View.VISIBLE);
+            showMacText.setText("MAC地址未注册，请添加\nMac地址："+mac);
+        }
+    }
+
+    /**
+     * 通过ServiceMessenger将注册消息发送到Service中的Handler
+     *
+     * */
+    private void sendMainMessager(int what,Object o){
+        Message message = Message.obtain();
+        message.what = what;
+        message.replyTo = dialMessenger;
+        message.obj = o;
+        try {
+            serviceMessenger.send(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     *
+     * MainActivity初始化
+     * */
+    private void sendInitDIALMessage(){
+        Message message = Message.obtain();
+        message.what = MainService.REGISTER_ACTIVITY_DIAL;
+        message.replyTo = dialMessenger;
+        try {
+            //通过ServiceMessenger将注册消息发送到Service中的Handler
+            serviceMessenger.send(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 初始化控制设备&组合设备&获取token
+     *
+     * */
+    private void sendInitMessage(){
+        Message message = Message.obtain();
+        message.what = MainService.REGISTER_ACTIVITY_INIT;
+        message.replyTo = dialMessenger;
+        try {
+            //通过ServiceMessenger将注册消息发送到Service中的Handler
+            serviceMessenger.send(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+    /**********xiaozd end****************************/
 
     /**
      * 开始启动拍照
@@ -1988,7 +2173,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private void initAexNfcReader() {
         if (DeviceConfig.IS_NFC_AVAILABLE) {
             nfcReader = new NfcReader(this);
-            enableReaderMode();
+            //enableReaderMode(); //xiaozd add
             receive = new Receive();
             IntentFilter intentFilter = new IntentFilter();
             intentFilter.addAction(ACTION_NFC_CARDINFO);//NFC读取到卡片信息
@@ -2159,7 +2344,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     /**
-     * 使用Handler实现UI线程与Timer线程之间的信息传递,每5秒告诉UI线程获得wifiInto
+     * 使用Handler实现UI线程与Timer线程之间的信息传递,每5秒告诉UI线程获得wifi Info
      */
     private Handler mHandler = new Handler() {
 
@@ -2218,6 +2403,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     rl.setVisibility(View.VISIBLE);
                     break;
                 case 7:
+                    //提示用户无网络连接
                     rl.setVisibility(View.GONE);
                     break;
                 default:

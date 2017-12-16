@@ -117,25 +117,15 @@
                  See: res/xml/nfc_tech_filter.xml -->
             <intent-filter>
                 <action android:name="android.nfc.action.TECH_DISCOVERED"/>
+
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
             <meta-data
                 android:name="android.nfc.action.TECH_DISCOVERED"
                 android:resource="@xml/nfc_tech_filter"/>
         </activity>
-
-        <activity
-            android:name=".InitActivity"
-            android:configChanges="keyboardHidden|orientation|locale|screenSize"
-            android:launchMode="singleTask"
-            android:theme="@style/Apptheme">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-
-                <category android:name="android.intent.category.LAUNCHER"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-            </intent-filter>
-        </activity>
-
         <!--监听开机自启动-->
         <receiver android:name=".BootBroadcastReceiver">
             <intent-filter>

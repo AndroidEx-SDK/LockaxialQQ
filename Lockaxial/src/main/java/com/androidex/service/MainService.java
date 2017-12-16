@@ -169,6 +169,12 @@ public class MainService extends Service {
     public static final int CALL_DIRECT_CONNECTED = 25;
     public static final int CALL_DIRECT_CONNECT_FAIL = 26;
 
+    //xiaozd add
+    public static final int MSG_UPDATE_NETWORKSTATE = 20028;
+    public static final int MSG_REGISTER_ACTIVITY_DIAL = 20029;
+    public static final int MSG_LOADLOCAL_DATA = 20030;
+    private boolean netWorkstate = false;
+
     public static final String APP_ID = "71012";
     public static final String APP_KEY = "71007b1c-6b75-4d6f-85aa-40c1f3b842ef";
     public static final String LOGTAG = "Intercom";
@@ -198,7 +204,7 @@ public class MainService extends Service {
     Device device = null;
     public static Connection callConnection;
     private String token = null;
-    boolean isReconnectingRtc = false;
+    boolean isReconnectingRtc = false; //可视对讲服务注册状态
     boolean incomingFlag = false;
 
     protected Messenger initMessenger = null;
@@ -270,18 +276,20 @@ public class MainService extends Service {
         handler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
-                if (msg.what == REGISTER_ACTIVITY_INIT) {
+                if (msg.what == REGISTER_ACTIVITY_INIT) { //InitActivity入口
+                    netWorkstate = (boolean)msg.obj;
                     initMessenger = msg.replyTo;
                     init();
+                    Log.i("xiao_","MainServic开始初始化");
                     Log.i("MainService", "register init messenger");
-                } else if (msg.what == REGISTER_ACTIVITY_DIAL) {
-                    startRongyun();
-                    retrieveCardList();//注册卡信息
-                    initAdvertisement();//初始化广告
+                } else if (msg.what == REGISTER_ACTIVITY_DIAL) {  //MainActivity初始化入口
+                    startRongyun(); //允许被多次调用
+                    retrieveCardList(); //注册门卡信息
+                    initAdvertisement(); //初始化广告
                     initConnectReport();
                     Log.i("MainService", "register Dial messenger");
                     dialMessenger = msg.replyTo;
-                    startUpdateThread();
+                    startUpdateThread(); //更新程序线程
                 } else if (msg.what == MSG_GETTOKEN) {
                     onResponseGetToken(msg);
                 } else if (msg.what == MSG_LOGIN) {
@@ -390,6 +398,14 @@ public class MainService extends Service {
                 } else if (msg.what == MSG_UPDATE_VERSION) {
                     updateApp();
                     Log.i("UpdateService", "开启安装");
+                } else if(msg.what == MSG_UPDATE_NETWORKSTATE){
+                    netWorkstate = (boolean)msg.obj;
+                    Log.i("xiao_","网络波动"+netWorkstate);
+                    if(netWorkstate){
+                        initWhenConnected(); //开始在线版本
+                    }else{
+                        initWhenOffline(); //开始离线版本
+                    }
                 }
             }
         };
@@ -510,15 +526,27 @@ public class MainService extends Service {
         //initAdLoad();
         initSqlUtil();
         Log.i("MainService", "init SQL");
-        if (isNetworkConnectedWithTimeout()) {//不做网络判断
+        /**if (isNetworkConnectedWithTimeout()) {//不做网络判断
             Log.i("MainService", "Test Connected");
-            initWhenConnected();
+            initWhenConnected(); //开始在线版本
         } else {
             Log.i("MainService", "Test NoNetwork");
-            sendInitMessenger(InitActivity.MSG_NO_NETWORK);//检测到没有网络发送消息让用户选择
+            //sendInitMessenger(InitActivity.MSG_NO_NETWORK);//检测到没有网络发送消息让用户选择
+            //xiaozd add
+            initWhenOffline();
+        }*/
+
+        //xiaozd add
+        if(netWorkstate){
+            initWhenConnected(); //开始在线版本
+        }else{
+            initWhenOffline(); //开始离线版本
         }
     }
 
+    /**
+     * 进入在线版本
+     * */
     protected void initWhenConnected() {
         if (initMacAddress()) {
             Log.i("MainService", "INIT MAC Address");
@@ -531,20 +559,29 @@ public class MainService extends Service {
         }
     }
 
+    /*
+    * 进入离线版本
+    * **/
     protected void initWhenOffline() {
-        Log.i("MainService", "init when offline");
+        Log.i("xiao_", "进入离线模式");
         if (initMacAddress()) {
-            Log.i("MainService", "INIT MAC Address");
+            Log.i("xiao_", "通过MAC地址验证");
             try {
                 loadInfoFromLocal();
-                startDialActivity(false);
-                rtcConnectTimeout();
+                sendInitMessenger(MSG_LOADLOCAL_DATA);
+                //startDialActivity(false);  //xiaozd add
+                //rtcConnectTimeout();
             } catch (Exception e) {
+                e.printStackTrace();
                 Log.v("MainService", "onDeviceStateChanged,result=" + e.getMessage());
             }
         }
     }
 
+    /**
+     * 每隔1S检查网络
+     *
+     * */
     public boolean isNetworkConnectedWithTimeout() {
         boolean result = false;
         for (int i = 0; i < 5; i++) {
@@ -696,6 +733,11 @@ public class MainService extends Service {
         }
     }
 
+    /**
+     *
+     * 获取WIFI mac地址和密码
+     *
+     * */
     protected boolean initMacAddress() {
         String mac = getMac();
         if (mac == null || mac.length() == 0) {
@@ -747,7 +789,7 @@ public class MainService extends Service {
                         startGetToken();
                     }
                 } else {
-                    onInitRtcError();
+                    onInitRtcError(); //反复注册，直到注册成功
                 }
             }
         });
@@ -1135,6 +1177,7 @@ public class MainService extends Service {
                     token = jsonrsp.getString(RtcConst.kcapabilityToken);
                     Log.v("MainService", "handleMessage getCapabilityToken:" + token);
                     if (!isReconnectingRtc) {
+                        Log.i("xiao_","onResponseGetToken - > InitActivity.MSG_GET_TOKEN");
                         Message message = Message.obtain();
                         message.what = InitActivity.MSG_GET_TOKEN;
                         message.obj = token;
@@ -1245,6 +1288,7 @@ public class MainService extends Service {
     private void startGetToken() {
         new Thread() {
             public void run() {
+                Log.i("xiao_","startGetToken()");
                 getTokenFromServer();
             }
         }.start();
@@ -1266,6 +1310,7 @@ public class MainService extends Service {
                 jargs.put(RtcConst.kAccRetry, 5);//设置重连时间
                 device = rtcClient.createDevice(jargs.toString(), deviceListener); //注册
                 if (!isReconnectingRtc) {
+                    Log.i("xiao_","可视对讲服务注册成功");
                     Message message = Message.obtain();
                     message.what = InitActivity.MSG_RTC_REGISTER;
                     try {
@@ -1290,10 +1335,21 @@ public class MainService extends Service {
 
     protected void onRegisterCompleted() {
         if (isReconnectingRtc) {
+            Log.i("xiao_","onRegisterCompleted（）-> true");
             isReconnectingRtc = false;
             rtcConnectSuccess();
         } else {
-            startDialActivity(true);
+            Log.i("xiao_","false 发送MSG_REGISTER_ACTIVITY_DIAL ->MainActivity");
+            //可视对讲服务注册成功 xiaozd add
+            //startDialActivity(true);
+            Message m = Message.obtain();
+            m.what = MainService.MSG_REGISTER_ACTIVITY_DIAL;
+            try {
+                initMessenger.send(m);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+
         }
     }
 
@@ -1315,7 +1371,7 @@ public class MainService extends Service {
         Message message = Message.obtain();
         message.what = code;
         try {
-            dialMessenger.send(message);
+            initMessenger.send(message);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -1326,7 +1382,7 @@ public class MainService extends Service {
         message.what = code;
         message.obj = object;
         try {
-            dialMessenger.send(message);
+            initMessenger.send(message);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -1517,6 +1573,7 @@ public class MainService extends Service {
                 @Override
                 public void onDtmfReceived(String s, char c) {
                     if (c == '#') {
+                        Log.i("xiao_","收到云端开锁消息->");
                         openLock();
                     }
                 }
@@ -2352,7 +2409,6 @@ public class MainService extends Service {
             SoundPoolUtil.getSoundPoolUtil().loadVoice(getBaseContext(), 011111);
         }
     }
-
     protected void openLock() {
         if (DeviceConfig.IS_RFID_AVAILABLE) {
             // openLedLock();//开继电器门锁,开普通门锁
@@ -2454,6 +2510,10 @@ public class MainService extends Service {
     }
 
     protected void initConnectReport() {
+        //xiaozd add
+        if(connectReportThread!=null){
+            connectReportThread.interrupt();
+        }
         connectReportThread = new Thread() {
             public void run() {
                 try {
@@ -2472,6 +2532,7 @@ public class MainService extends Service {
     protected void connectReport() {
         String url = DeviceConfig.SERVER_URL + "/app/device/connectReport?communityId=" + this.communityId
                 + "&lockId=" + this.lockId;
+        Log.i("xiao_","connectReport（）->地址："+url);
         try {
             URL thisUrl = new URL(url);
             HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
@@ -2501,6 +2562,7 @@ public class MainService extends Service {
             String url = DeviceConfig.SERVER_URL + "/app/device/retrieveDeviceData?communityId=" + this.communityId + "&blockId=" + this.blockId
                     + "&lockId=" + this.lockId;
             Log.e(TAG, "initDeviceData: url=" + url);
+            Log.i("xiao_","initDeviceData（）->地址："+url);
             try {
                 URL thisUrl = new URL(url);
                 HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
@@ -2542,6 +2604,7 @@ public class MainService extends Service {
         url = url + "&blockId=" + this.blockId;
         url = url + "&lockId=" + this.lockId;
         Log.e(TAG, "completeInitDeviceData: url=" + url);
+        Log.i("xiao_","completeInitDeviceData（）->地址："+url);
         try {
             URL thisUrl = new URL(url);
             HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
@@ -2565,6 +2628,10 @@ public class MainService extends Service {
     }
 
     protected void initAdvertisement() {
+        //xiaozd add
+        if(advertisementThread!=null){
+            advertisementThread.interrupt();
+        }
         advertisementThread = new Thread() {
             public void run() {
                 try {
@@ -2595,6 +2662,7 @@ public class MainService extends Service {
         String url = DeviceConfig.SERVER_URL + "/app/device/retrieveCardList?communityId=" + this.communityId
                 + "&blockId=" + this.blockId + "&lockId=" + this.lockId;
         Log.d(TAG, "retrieveCardList: url=" + url);
+        Log.i("xiao_","retrieveCardList()->地址："+url);
         try {
             URL thisUrl = new URL(url);
             HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
@@ -2674,6 +2742,7 @@ public class MainService extends Service {
         url = url + "&blockId=" + this.blockId;
         url = url + "&lockId=" + this.lockId;
         Log.d(TAG, "retrieveChangedCardList: +++++" + url);
+        Log.i("xiao_","retrieveChangedCardList（）->地址："+url);
         try {
             URL thisUrl = new URL(url);
             HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
@@ -3063,6 +3132,10 @@ public class MainService extends Service {
         }
     }
 
+    /**
+     * 根据社区ID&锁ID
+     *
+     * */
     protected JSONArray checkAdvertiseList() {
         String url = DeviceConfig.SERVER_URL + "/app/advertisement/checkAdvertiseList?communityId=" + this.communityId;
         url = url + "&lockId=" + this.lockId;
@@ -3444,6 +3517,10 @@ public class MainService extends Service {
     }
 
     protected void startUpdateThread() {
+        //xiaozd add
+        if(updateThread!=null){
+            updateThread.interrupt();
+        }
         updateThread = new Thread() {
             public void run() {
                 try {

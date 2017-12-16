@@ -335,6 +335,7 @@
 
             <ImageView
                 android:id="@+id/wifi_image"
+                android:visibility="invisible"
                 android:layout_width="50dp"
                 android:layout_height="40dp"
                 android:layout_gravity="top"
@@ -346,6 +347,7 @@
                 android:layout_width="50dp"
                 android:layout_height="40dp"
                 android:layout_gravity="top"
+                android:visibility="invisible"
                 android:layout_marginRight="5dp"
                 android:layout_marginTop="5dp" />
 
@@ -415,5 +417,18 @@
 
         </RelativeLayout>
     </LinearLayout>
+    <TextView
+        android:id="@+id/show_mac"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:gravity="center"
+        android:text=""
+        android:layout_gravity="right|top"
+        android:layout_marginTop="100dp"
+        android:layout_marginRight="5dp"
+        android:textColor="@color/num_red"
+        android:visibility="gone"
+        android:textSize="20dp"
+        android:textStyle="bold" />
 
 </FrameLayout>
