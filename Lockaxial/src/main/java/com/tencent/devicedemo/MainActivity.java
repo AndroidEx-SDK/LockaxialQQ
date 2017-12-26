@@ -1796,6 +1796,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 });
             }else{
                 setStatusBarIcon(true);
+                initSystemtime();
             }
             sendMainMessager(MainService.REGISTER_ACTIVITY_INIT,netWorkFlag==1?true:false);
             initNetListen();
@@ -1812,6 +1813,46 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     /**********xiaozd add****************************/
     private int netWorkFlag = -1;
     private TextView showMacText;
+    private boolean checkTime = false;
+
+    /**
+     * 校时
+     * */
+    private void initSystemtime(){
+        if(NetWork.isNetworkAvailable(this) && !checkTime){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Calendar c = HttpApi.getInstance().loadTime();
+                    if(c!=null){
+                        if(checkTime(c)){
+                            SimpleDateFormat d = new SimpleDateFormat("yyyyMMdd.HHmmss");
+                            String cmd = "date -s '[_update_time]'";
+                            String time = d.format(c.getTime());
+                            cmd = cmd.replace("[_update_time]",time);
+                            hwservice.execRootCommand(cmd);
+                            checkTime = true;
+                            HttpApi.e("时间更新："+time);
+                        }else{
+                            HttpApi.e("系统与服务器时间差小，不更新");
+                        }
+                    }else{
+                        HttpApi.i("获取服务器时间出错！");
+                    }
+
+                }
+            }).start();
+        }
+    }
+
+    private boolean checkTime(Calendar c){
+        Calendar c1 = Calendar.getInstance();
+        long abs = Math.abs(c.getTimeInMillis() - c1.getTimeInMillis());
+        if(abs>1*60*1000){
+            return true;
+        }
+        return false;
+    }
 
     private void initNetListen(){
         Timer netTimer = new Timer();
@@ -1823,6 +1864,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     if(s == 1){
                         //关闭读卡
                         disableReaderMode();
+                        //时间更新
+                        initSystemtime();
                     }else{
                         //打开读卡
                         enableReaderMode();
