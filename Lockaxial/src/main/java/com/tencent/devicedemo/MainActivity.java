@@ -113,7 +113,6 @@ import jni.util.Utils;
 
 import static com.androidex.NetWork.NETWOKR_TYPE_ETHERNET;
 import static com.androidex.NetWork.NETWORK_TYPE_WIFI;
-import static com.androidex.NetWork.isNetworkAvailable;
 import static com.androidex.service.MainService.MSG_UPDATE_VERSION;
 import static com.androidex.service.MainService.communityId;
 import static com.androidex.service.MainService.httpServerToken;
@@ -734,9 +733,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         .build();
 
                 BaseApplication.getApplication().getImageLoader().displayImage("http://www.tyjdtzjc.cn/resource/kindeditor/attached/image/20150831/20150831021658_90595.png", imageView, options);
+                Log.i("xiao_", "未生成QQ二维码");
             } else {
-
                 imageView.setImageBitmap(bitmap);
+                Log.i("xiao_", "生成二维码");
             }
         } catch (Exception e) {
             Log.i("xiao_", "生成QQ二维码出错");
