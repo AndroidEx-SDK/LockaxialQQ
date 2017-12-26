@@ -351,6 +351,7 @@ public class InitActivity extends AndroidExActivityBase {
         }
     }
 
+    //选择离线版本，直接进入MainActivity
     private void onStartOffline() {
         sendMainMessenger(MainService.MSG_START_OFFLINE);
     }

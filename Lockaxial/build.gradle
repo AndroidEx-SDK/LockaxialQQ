@@ -73,4 +73,5 @@ dependencies {
     compile 'com.google.android.gms:play-services-appindexing:8.4.0'
     compile files('libs/rtcsdk.jar')
     compile files('libs/zixing-core-3.2.0.jar')
+    compile 'com.squareup.okhttp3:okhttp:3.8.1'
 }

@@ -17,7 +17,6 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.KeyEvent;
-
 import com.androidex.DoorLock;
 import com.androidex.SoundPoolUtil;
 import com.androidex.aexlibs.hwService;
@@ -25,6 +24,7 @@ import com.androidex.config.DeviceConfig;
 import com.androidex.utils.AexUtil;
 import com.androidex.utils.Ajax;
 import com.androidex.utils.AssembleUtil;
+import com.androidex.utils.HttpApi;
 import com.androidex.utils.HttpUtils;
 import com.androidex.utils.SqlUtil;
 import com.androidex.utils.WifiAdmin;
@@ -175,8 +175,8 @@ public class MainService extends Service {
     public static final int MSG_LOADLOCAL_DATA = 20030;
     private boolean netWorkstate = false;
 
-    public static final String APP_ID = "71012";
-    public static final String APP_KEY = "71007b1c-6b75-4d6f-85aa-40c1f3b842ef";
+    public static final String APP_ID = "71986"; //71012
+    public static final String APP_KEY = "c9f8f45f-d3ad-4876-b5fd-78f5796dab59"; //71007b1c-6b75-4d6f-85aa-40c1f3b842ef
     public static final String LOGTAG = "Intercom";
 
     public static String httpServerToken = null;
@@ -280,11 +280,11 @@ public class MainService extends Service {
                     netWorkstate = (boolean)msg.obj;
                     initMessenger = msg.replyTo;
                     init();
-                    Log.i("xiao_","MainServic开始初始化");
+                    HttpApi.i("MainServic开始初始化");
                     Log.i("MainService", "register init messenger");
                 } else if (msg.what == REGISTER_ACTIVITY_DIAL) {  //MainActivity初始化入口
                     startRongyun(); //允许被多次调用
-                    retrieveCardList(); //注册门卡信息
+                    //retrieveCardList(); //注册门卡信息
                     initAdvertisement(); //初始化广告
                     initConnectReport();
                     Log.i("MainService", "register Dial messenger");
@@ -302,9 +302,9 @@ public class MainService extends Service {
                     startGetToken();
                 } else if (msg.what == MSG_START_DIAL) {
                     String[] parameters = (String[]) msg.obj;
-                    unitNo = parameters[0];
-                    imageUrl = parameters[1];
-                    imageUuid = parameters[2];
+                    unitNo = parameters[0]; //号码
+                    imageUrl = parameters[1]; //拍照路径
+                    imageUuid = parameters[2]; //uuid
                     startCallMember();
                 } else if (msg.what == MSG_CHECK_PASSWORD) {
                     String[] parameters = (String[]) msg.obj;
@@ -400,7 +400,7 @@ public class MainService extends Service {
                     Log.i("UpdateService", "开启安装");
                 } else if(msg.what == MSG_UPDATE_NETWORKSTATE){
                     netWorkstate = (boolean)msg.obj;
-                    Log.i("xiao_","网络波动"+netWorkstate);
+                    HttpApi.i("网络波动"+netWorkstate);
                     if(netWorkstate){
                         initWhenConnected(); //开始在线版本
                     }else{
@@ -437,7 +437,7 @@ public class MainService extends Service {
     protected void startRongyun() {
         if (!isRongyunInitialized) {
             isRongyunInitialized = true;
-            if (DeviceConfig.IS_CALL_DIRECT_AVAILABLE) {
+            if (DeviceConfig.IS_CALL_DIRECT_AVAILABLE) { //这里不会执行
                 startYuntongxun();
             }
         }
@@ -563,9 +563,9 @@ public class MainService extends Service {
     * 进入离线版本
     * **/
     protected void initWhenOffline() {
-        Log.i("xiao_", "进入离线模式");
+        HttpApi.i("进入离线模式");
         if (initMacAddress()) {
-            Log.i("xiao_", "通过MAC地址验证");
+            HttpApi.i("通过MAC地址验证");
             try {
                 loadInfoFromLocal();
                 sendInitMessenger(MSG_LOADLOCAL_DATA);
@@ -740,6 +740,7 @@ public class MainService extends Service {
      * */
     protected boolean initMacAddress() {
         String mac = getMac();
+        HttpApi.i("MAC地址："+mac);
         if (mac == null || mac.length() == 0) {
             Message message = Message.obtain();
             message.what = InitActivity.MSG_NO_MAC_ADDRESS;
@@ -808,55 +809,37 @@ public class MainService extends Service {
     }
 
     protected boolean getClientInfo() throws JSONException {
-        Log.v("MainService", "start get client info");
-        JSONObject data = new JSONObject();
-        data.put("username", mac);
-        data.put("password", key);
         boolean resultValue = false;
         try {
-            Log.v("MainService", "POST Login ajax");
-            URL url = new URL(DeviceConfig.SERVER_URL + "/app/auth/deviceLogin");
-            Log.v("MainService", "getClientInfo：" + url);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setDoOutput(true);
-            connection.setDoInput(true);
-            connection.setUseCaches(false);
-            connection.setInstanceFollowRedirects(true);
-            connection.setRequestMethod("POST");
-            if (httpServerToken != null) {
-                connection.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-            }
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.connect();
-            OutputStreamWriter out = new OutputStreamWriter(
-                    connection.getOutputStream(), "UTF-8");
-            out.append(data.toString());
-            out.flush();
-            out.close();
-            InputStream is = connection.getInputStream();
-            String result = HttpUtils.readMyInputStream(is);
-            Log.v("MainService", "response=" + result);
-            JSONObject resultObj = Ajax.getJSONObject(result);
-            int code = resultObj.getInt("code");
-            if (code == 0) {
-                resultValue = true;
-                try {
-                    httpServerToken = resultObj.getString("token");
-                    Log.v("MainService", "httpServerToken: " + httpServerToken);
-                } catch (Exception e) {
-                    httpServerToken = null;
-                    Log.v("MainService", "httpServerToken:  null");
+            String url = DeviceConfig.SERVER_URL + "/app/auth/deviceLogin";
+            JSONObject data = new JSONObject();
+            data.put("username", mac);
+            data.put("password", key);
+            String result = HttpApi.getInstance().loadHttpforPost(url,data,httpServerToken);
+            if(result!=null){
+                HttpApi.i("getClientInfo()->"+result);
+                JSONObject resultObj = Ajax.getJSONObject(result);
+                int code = resultObj.getInt("code");
+                if (code == 0) {
+                    resultValue = true;
+                    try {
+                        httpServerToken = resultObj.getString("token");
+                    } catch (Exception e) {
+                        httpServerToken = null;
+                    }
+                    initDeviceConfig(resultObj);
                 }
-                initDeviceConfig(resultObj);
+                Message message = handler.obtainMessage();
+                message.what = MSG_LOGIN;
+                resultObj.put("mac", this.mac);
+                message.obj = resultObj;
+                handler.sendMessage(message);
+            }else{
+                //服务器异常或没有网络
+                HttpApi.e("getClientInfo()->服务器无响应");
             }
-            Message message = handler.obtainMessage();
-            message.what = MSG_LOGIN;
-            resultObj.put("mac", this.mac);
-            message.obj = resultObj;
-            handler.sendMessage(message);
-        } catch (IOException e) {
-            Log.v("MainService", "response error=" + e.getMessage());
+        } catch (Exception e) {
+            HttpApi.e("getClientInfo()->服务器数据解析异常");
             Message message = Message.obtain();
             message.what = InitActivity.MSG_LOGIN_ERROR;
             try {
@@ -995,28 +978,20 @@ public class MainService extends Service {
         try {
             String url = DeviceConfig.SERVER_URL + "/app/device/checkBlockNo?communityId=" + this.communityId;
             url = url + "&blockNo=" + blockNo.substring(0, 2);
-            Log.d(TAG, "onCheckBlockNo: url=" + url);
             try {
-                URL thisUrl = new URL(url);
-                HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-                conn.setRequestMethod("GET");
-                if (httpServerToken != null) {
-                    conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-                }
-                conn.setConnectTimeout(5000);
-                int code = conn.getResponseCode();
-                if (code == 200) {
-                    InputStream is = conn.getInputStream();
-                    String result = HttpUtils.readMyInputStream(is);
+                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+                if(result!=null){
+                    HttpApi.i("onCheckBlockNo()->"+result);
                     JSONObject resultObj = Ajax.getJSONObject(result);
                     int resultCode = resultObj.getInt("code");
                     if (resultCode == 0) {
                         inputBlockId = resultObj.getInt("blockId");
-                        Log.e(TAG, "onCheckBlockNo: inputBlockId=" + inputBlockId);
                     } else {
                         inputBlockId = 0;
                     }
                     sendDialMessenger(Constant.MSG_CHECK_BLOCKNO, inputBlockId);
+                }else{
+                    HttpApi.e("onCheckBlockNo()->服务器异常");
                 }
             } catch (Exception e) {
                 sendDialMessenger(Constant.MSG_CHECK_BLOCKNO, -1);
@@ -1032,17 +1007,11 @@ public class MainService extends Service {
             url = url + "&lockId=" + this.lockId;
             url = url + "&cardNo=" + cardNo;
             try {
-                URL thisUrl = new URL(url);
-                HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-                conn.setRequestMethod("GET");
-                if (httpServerToken != null) {
-                    conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-                }
-                conn.setConnectTimeout(5000);
-                int code = conn.getResponseCode();
-                if (code == 200) {
-                    InputStream is = conn.getInputStream();
-                    String result = HttpUtils.readMyInputStream(is);
+                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+                if(result!=null){
+                    HttpApi.i("onCardAccessLog()->"+result);
+                }else{
+                    HttpApi.i("onCardAccessLog()->服务器异常");
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -1073,22 +1042,15 @@ public class MainService extends Service {
                 url = url + "&imageUrl=" + URLEncoder.encode(this.imageUrl, "UTF-8");
             }
             try {
-                URL thisUrl = new URL(url);
-                HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-                conn.setRequestMethod("GET");
-                if (httpServerToken != null) {
-                    conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-                }
-                conn.setConnectTimeout(5000);
-                int code = conn.getResponseCode();
-                if (code == 200) {
-                    InputStream is = conn.getInputStream();
-                    String result = HttpUtils.readMyInputStream(is);
-
+                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+                if(result!=null){
+                    HttpApi.i("checkGuestPassword()->"+result);
                     Message message = handler.obtainMessage();
                     message.what = MSG_GUEST_PASSWORD_CHECK;
                     message.obj = Ajax.getJSONObject(result);
                     handler.sendMessage(message);
+                }else{
+                    HttpApi.i("checkGuestPassword()->服务器异常");
                 }
             } catch (Exception e) {
                 Message message = handler.obtainMessage();
@@ -1126,14 +1088,12 @@ public class MainService extends Service {
                 return;
             }
             try {
-                URL thisUrl = new URL(url);
-                HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-                conn.setRequestMethod("GET");
-                if (httpServerToken != null) {
-                    conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
+                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+                if(result!=null){
+                    HttpApi.i("checkGuestPasswordAppendImage()->"+result);
+                }else{
+                    HttpApi.i("checkGuestPasswordAppendImage()->服务器异常");
                 }
-                conn.setConnectTimeout(5000);
-                int code = conn.getResponseCode();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1177,7 +1137,7 @@ public class MainService extends Service {
                     token = jsonrsp.getString(RtcConst.kcapabilityToken);
                     Log.v("MainService", "handleMessage getCapabilityToken:" + token);
                     if (!isReconnectingRtc) {
-                        Log.i("xiao_","onResponseGetToken - > InitActivity.MSG_GET_TOKEN");
+                        HttpApi.i("onResponseGetToken - > InitActivity.MSG_GET_TOKEN");
                         Message message = Message.obtain();
                         message.what = InitActivity.MSG_GET_TOKEN;
                         message.obj = token;
@@ -1199,13 +1159,13 @@ public class MainService extends Service {
                 Log.v("MainService", "获取token失败 [status:" + e.getMessage() + "]");
             }
         } else {
+            HttpApi.i("token----->"+(jsonrsp != null && jsonrsp.isNull("code") == false));
             onGetTokenError();
         }
     }
 
     protected void onGetTokenError() {
         Message message = Message.obtain();
-        message.what = InitActivity.MSG_CANNOT_GET_TOKEN;
         try {
             initMessenger.send(message);
         } catch (RemoteException e) {
@@ -1288,7 +1248,7 @@ public class MainService extends Service {
     private void startGetToken() {
         new Thread() {
             public void run() {
-                Log.i("xiao_","startGetToken()");
+                HttpApi.i("startGetToken()");
                 getTokenFromServer();
             }
         }.start();
@@ -1310,7 +1270,7 @@ public class MainService extends Service {
                 jargs.put(RtcConst.kAccRetry, 5);//设置重连时间
                 device = rtcClient.createDevice(jargs.toString(), deviceListener); //注册
                 if (!isReconnectingRtc) {
-                    Log.i("xiao_","可视对讲服务注册成功");
+                    HttpApi.i("可视对讲服务注册成功");
                     Message message = Message.obtain();
                     message.what = InitActivity.MSG_RTC_REGISTER;
                     try {
@@ -1335,11 +1295,11 @@ public class MainService extends Service {
 
     protected void onRegisterCompleted() {
         if (isReconnectingRtc) {
-            Log.i("xiao_","onRegisterCompleted（）-> true");
+            HttpApi.i("onRegisterCompleted（）-> true");
             isReconnectingRtc = false;
             rtcConnectSuccess();
         } else {
-            Log.i("xiao_","false 发送MSG_REGISTER_ACTIVITY_DIAL ->MainActivity");
+            HttpApi.i("false 发送MSG_REGISTER_ACTIVITY_DIAL ->MainActivity");
             //可视对讲服务注册成功 xiaozd add
             //startDialActivity(true);
             Message m = Message.obtain();
@@ -1573,7 +1533,7 @@ public class MainService extends Service {
                 @Override
                 public void onDtmfReceived(String s, char c) {
                     if (c == '#') {
-                        Log.i("xiao_","收到云端开锁消息->");
+                        HttpApi.i("收到云端开锁消息->");
                         openLock();
                     }
                 }
@@ -1711,17 +1671,9 @@ public class MainService extends Service {
             }
             url = url + "&unitNo=" + this.unitNo;
             try {
-                URL thisUrl = new URL(url);
-                HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-                conn.setRequestMethod("GET");
-                if (httpServerToken != null) {
-                    conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-                }
-                conn.setConnectTimeout(5000);
-                int code = conn.getResponseCode();
-                if (code == 200 && isCurrentCallWorking(callUuid)) {
-                    InputStream is = conn.getInputStream();
-                    String result = HttpUtils.readMyInputStream(is);
+                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+                if(result!=null && isCurrentCallWorking(callUuid)){
+                    HttpApi.i("callMember()->"+result);
                     Message message = handler.obtainMessage();
                     message.what = MSG_CALLMEMBER;
                     Object[] objects = new Object[2];
@@ -1729,6 +1681,8 @@ public class MainService extends Service {
                     objects[1] = Ajax.getJSONObject(result);
                     message.obj = objects;
                     handler.sendMessage(message);
+                }else{
+                    HttpApi.e("callMember->服务器异常");
                 }
             } catch (Exception e) {
                 Message message = handler.obtainMessage();
@@ -1759,10 +1713,13 @@ public class MainService extends Service {
             Object[] objects = (Object[]) msg.obj;
             final String callUuid = (String) objects[0];
             JSONObject result = (JSONObject) objects[1];
+            HttpApi.i("拨号中->网络请求在线列表");
             JSONArray userList = (JSONArray) result.get("userList");
             JSONArray unitDeviceList = (JSONArray) result.get("unitDeviceList");
+            HttpApi.i("拨号中->网络请求在线列表"+(result!=null?result.toString():""));
             if ((userList != null && userList.length() > 0) || (unitDeviceList != null && unitDeviceList.length() > 0)) {
                 Log.v("MainService", "收到新的呼叫，清除呼叫数据，UUID=" + callUuid);
+                HttpApi.i("拨号中->清除呼叫数据");
                 allUserList.clear();
                 triedUserList.clear();
                 onlineUserList.clear();
@@ -1781,8 +1738,10 @@ public class MainService extends Service {
                 }
 
                 if (DeviceConfig.CALL_MEMBER_MODE == DeviceConfig.CALL_MEMBER_MODE_PARALL) {
+                    HttpApi.i("拨号中->准备拨号Parall");
                     sendCallMessageParall();
                 } else {
+                    HttpApi.i("拨号中->准备拨号Serial");
                     sendCallMessageSerial();
                 }
             } else {
@@ -1816,10 +1775,14 @@ public class MainService extends Service {
                         username = username.replaceAll(":", "");
                     }
                     String userUrl = RtcRules.UserToRemoteUri_new(username, RtcConst.UEType_Any);
+                    HttpApi.i("拨号中->准备拨号userUrl = "+userUrl);
+                    HttpApi.i("拨号中->准备拨号data = "+data.toString());
                     int sendResult = device.sendIm(userUrl, "cmd/json", data.toString());
                     Log.v("MainService", "sendIm(): " + sendResult);
+                    HttpApi.i("拨号中->sendIm()"+sendResult);
                     triedUserList.add(userObject);
                 } else {
+                    HttpApi.i("拨号中->没有人在线");
                     afterTryAllMembers();
                 }
             } catch (JSONException e) {
@@ -1902,8 +1865,8 @@ public class MainService extends Service {
             public void run() {
                 try {
                     onPushCallMessage(pushList);
-                } catch (IOException e) {
-                } catch (JSONException e) {
+                } catch (Exception e) {
+
                 }
             }
         };
@@ -1917,36 +1880,25 @@ public class MainService extends Service {
      * @throws JSONException
      * @throws IOException
      */
-    protected void onPushCallMessage(String pushList) throws JSONException, IOException {
+    protected void onPushCallMessage(String pushList) throws Exception{
         JSONObject data = new JSONObject();
         data.put("pushList", pushList);
         data.put("from", key);
         data.put("unitName", communityName + unitNo);
         String dataStr = data.toString();
-        URL url = new URL(DeviceConfig.SERVER_URL + "/app/device/pushCallMessage");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setDoOutput(true);
-        connection.setDoInput(true);
-        connection.setUseCaches(false);
-        connection.setInstanceFollowRedirects(true);
-        connection.setRequestMethod("POST");
-        if (httpServerToken != null) {
-            connection.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-        }
-        connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("Content-Type", "application/json");
-        connection.connect();
-        OutputStreamWriter out = new OutputStreamWriter(
-                connection.getOutputStream(), "UTF-8");
-        out.append(dataStr);
-        out.flush();
-        out.close();
-        InputStream is = connection.getInputStream();
-        String result = HttpUtils.readMyInputStream(is);
-        JSONObject resultObj = Ajax.getJSONObject(result);
-        int code = resultObj.getInt("code");
-        if (code == 0) {
-        } else {
+        String url = DeviceConfig.SERVER_URL + "/app/device/pushCallMessage";
+        String result = HttpApi.getInstance().loadHttpforPost(url,data,httpServerToken);
+        if(result!=null){
+            HttpApi.i("onPushCallMessage()->"+result);
+            JSONObject resultObj = Ajax.getJSONObject(result);
+            int code = resultObj.getInt("code");
+            if (code == 0) {
+
+            } else {
+
+            }
+        }else{
+            HttpApi.e("onPushCallMessage()->服务器异常");
         }
     }
 
@@ -2175,6 +2127,7 @@ public class MainService extends Service {
 
         @Override
         public void onNewCall(Connection call) {
+            HttpApi.i("收到来电->>>>");
             JSONObject callInfo = null;
             String acceptMember = null;
             try {
@@ -2183,7 +2136,7 @@ public class MainService extends Service {
             } catch (JSONException e) {
             }
             Log.v("MainService", "onNewCall,call=" + call.info());
-            if (callConnection != null) {
+            if (callConnection != null) { //判断是否在通话
                 call.reject();
                 call = null;
                 Log.v("MainService", "onNewCall,reject call");
@@ -2194,7 +2147,7 @@ public class MainService extends Service {
             call.setIncomingListener(connectionListener);
             call.accept(callType);
             Log.v("MainService", "接通" + acceptMember);
-            cancelOtherMembers(acceptMember);
+            cancelOtherMembers(acceptMember);  //挂断其他电话
             Log.v("MainService", acceptMember + "用户接通，取消其他呼叫");
             resetCallMode();
             stopTimeoutCheckThread();
@@ -2215,10 +2168,12 @@ public class MainService extends Service {
         @Override
         public void onSendIm(int status) {
             // TODO Auto-generated method stub
+            HttpApi.i("发送消息回调->onSendIm");
             if (callConnectState == CALL_VIDEO_CONNECTING) {
                 //检查当前的呼叫模式是并行还是串行
                 if (DeviceConfig.CALL_MEMBER_MODE == DeviceConfig.CALL_MEMBER_MODE_PARALL) {
                     //检查并行呼叫状态
+                    HttpApi.i("发送消息回调->checkSendCallMessageParall()");
                     checkSendCallMessageParall(status);
                 } else {
                     checkSendCallMessageSerial(status);
@@ -2296,11 +2251,12 @@ public class MainService extends Service {
     ConnectionListener connectionListener = new ConnectionListener() {
         @Override
         public void onConnecting() {
-
+            HttpApi.i("ConnectionListener>>>>>>>>onConnecting");
         }
 
         @Override
         public void onConnected() {
+            HttpApi.i("ConnectionListener>>>>>>>>onConnected");
         }
 
         @Override
@@ -2312,6 +2268,7 @@ public class MainService extends Service {
 
         @Override
         public void onVideo() {
+            Log.i("xiao","接通视频通话");
             Message message = Message.obtain();
             message.what = MSG_RTC_ONVIDEO;
             try {
@@ -2339,6 +2296,7 @@ public class MainService extends Service {
     }
 
     protected void onMessage(String from, String mime, String content) {
+        HttpApi.i("from = "+from+"    mime = "+mime+"     content = "+content);
         if (content.equals("refresh card info")) {
             sendDialMessenger(MSG_REFRESH_DATA, "card");
             //retrieveChangedCardList();
@@ -2351,7 +2309,7 @@ public class MainService extends Service {
 //            initDeviceData();
 //            retrieveChangedFingerList();
 //            retrieveChangedCardList();
-        } else if (content.startsWith("reject call")) {
+        } else if (content.startsWith("reject call")) { //挂断
             if (!rejectUserList.contains(from)) {
                 rejectUserList.add(from);
             }
@@ -2369,7 +2327,7 @@ public class MainService extends Service {
             resetCallMode();
             stopTimeoutCheckThread();
             openLock();
-        } else if (content.startsWith("refuse call")) {
+        } else if (content.startsWith("refuse call")) { //拒绝接听
             if (!rejectUserList.contains(from)) {
                 rejectUserList.add(from);
             }
@@ -2443,21 +2401,15 @@ public class MainService extends Service {
             }
         }
         try {
-            URL thisUrl = new URL(url);
-            HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-            conn.setRequestMethod("GET");
-            if (httpServerToken != null) {
-                conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-            }
-            conn.setConnectTimeout(5000);
-            int code = conn.getResponseCode();
-            if (code == 200) {
-                InputStream is = conn.getInputStream();
-                String result = HttpUtils.readMyInputStream(is);
+            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+            if(result!=null){
+                HttpApi.i("createAccessLog()->"+result);
                 Message message = handler.obtainMessage();
                 message.what = MSG_CREATELOG;
                 message.obj = Ajax.getJSONObject(result);
                 handler.sendMessage(message);
+            }else{
+                HttpApi.e("createAccessLog()->服务器异常");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -2532,24 +2484,19 @@ public class MainService extends Service {
     protected void connectReport() {
         String url = DeviceConfig.SERVER_URL + "/app/device/connectReport?communityId=" + this.communityId
                 + "&lockId=" + this.lockId;
-        Log.i("xiao_","connectReport（）->地址："+url);
         try {
-            URL thisUrl = new URL(url);
-            HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-            conn.setRequestMethod("GET");
-            if (httpServerToken != null) {
-                conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-            }
-            conn.setConnectTimeout(5000);
-            int code = conn.getResponseCode();
-            if (code == 200) {
-                InputStream is = conn.getInputStream();
-                String result = HttpUtils.readMyInputStream(is);
+            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+            if(result!=null){
+                HttpApi.i("connectReport()->"+result);
                 JSONObject resultObject = Ajax.getJSONObject(result);
                 int resultCode = resultObject.getInt("code");
                 if (resultCode == 0) {
+
                 } else {
+
                 }
+            }else{
+                HttpApi.e("connectReport()->服务器异常");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -2561,36 +2508,23 @@ public class MainService extends Service {
             sqlUtil.clearDeviceData();
             String url = DeviceConfig.SERVER_URL + "/app/device/retrieveDeviceData?communityId=" + this.communityId + "&blockId=" + this.blockId
                     + "&lockId=" + this.lockId;
-            Log.e(TAG, "initDeviceData: url=" + url);
-            Log.i("xiao_","initDeviceData（）->地址："+url);
             try {
-                URL thisUrl = new URL(url);
-                HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-                conn.setRequestMethod("GET");
-                if (httpServerToken != null) {
-                    conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-                }
-                conn.setConnectTimeout(5000);
-                int code = conn.getResponseCode();
-                if (code == 200) {
-                    InputStream is = conn.getInputStream();
-                    String result = HttpUtils.readMyInputStream(is);
+                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+                if(result!=null){
+                    HttpApi.e("initDeviceData()->"+result);
                     JSONObject resultObject = Ajax.getJSONObject(result);
                     int resultCode = resultObject.getInt("code");
                     if (resultCode == 0) {
                         JSONArray fingerList = resultObject.getJSONArray("fingerList");
-                        //sqlUtil.changeFinger(fingerList);
-                        if (DeviceConfig.IS_ASSEMBLE_AVAILABLE && !DeviceConfig.IS_FINGER_AVAILABLE) {
-                            //assembleUtil.changeFinger(fingerList);
-                        }
                         JSONArray cardList = resultObject.getJSONArray("cardList");
-                        Log.d(TAG, "initDeviceData: cardlist=" + cardList.toString());
                         sqlUtil.changeCard(cardList);
                         if (DeviceConfig.IS_ASSEMBLE_AVAILABLE) {
                             assembleUtil.changeCard(cardList);
                         }
                         completeInitDeviceData();
                     }
+                }else{
+                    HttpApi.e("initDeviceData()->服务器异常");
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -2603,24 +2537,16 @@ public class MainService extends Service {
         String url = DeviceConfig.SERVER_URL + "/app/device/completeInitDeviceData?communityId=" + this.communityId;
         url = url + "&blockId=" + this.blockId;
         url = url + "&lockId=" + this.lockId;
-        Log.e(TAG, "completeInitDeviceData: url=" + url);
-        Log.i("xiao_","completeInitDeviceData（）->地址："+url);
         try {
-            URL thisUrl = new URL(url);
-            HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-            conn.setRequestMethod("GET");
-            if (httpServerToken != null) {
-                conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-            }
-            conn.setConnectTimeout(5000);
-            int code = conn.getResponseCode();
-            if (code == 200) {
-                InputStream is = conn.getInputStream();
-                String result = HttpUtils.readMyInputStream(is);
+            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+            if(result!=null){
+                HttpApi.i("completeInitDeviceData()->"+result);
                 JSONObject resultObject = Ajax.getJSONObject(result);
                 int resultCode = resultObject.getInt("code");
                 if (resultCode == 0) {
                 }
+            }else{
+                HttpApi.e("completeInitDeviceData()->服务器异常");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -2658,26 +2584,12 @@ public class MainService extends Service {
 
 
     protected void retrieveCardList() {
-        Log.d(TAG, "retrieveCardList: =============");
         String url = DeviceConfig.SERVER_URL + "/app/device/retrieveCardList?communityId=" + this.communityId
                 + "&blockId=" + this.blockId + "&lockId=" + this.lockId;
-        Log.d(TAG, "retrieveCardList: url=" + url);
-        Log.i("xiao_","retrieveCardList()->地址："+url);
         try {
-            URL thisUrl = new URL(url);
-            HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setConnectTimeout(5000);
-            if (httpServerToken != null) {
-                conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-            }
-            Log.d(TAG, "retrieveCardList: token=" + httpServerToken);
-            int code = conn.getResponseCode();
-            Log.d(TAG, "retrieveCardList: code=" + code);
-            if (code == 200) {
-                InputStream is = conn.getInputStream();
-                String result = HttpUtils.readMyInputStream(is);
-                Log.d(TAG, "retrieveCardList: result=" + result);
+            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+            if(result!=null){
+                HttpApi.i("retrieveCardList()->"+result);
                 JSONObject resultObject = Ajax.getJSONObject(result);
                 int resultCode = resultObject.getInt("code");
                 if (resultCode == 0) {
@@ -2690,6 +2602,8 @@ public class MainService extends Service {
                         sqlUtil.insertCard(cardNo, lockId);
                     }
                 }
+            }else{
+                HttpApi.i("retrieveCardList()->服务器无响应");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -2737,32 +2651,17 @@ public class MainService extends Service {
      * 卡片更新接口
      */
     protected void retrieveChangedCardList() {
-        Log.d(TAG, "retrieveChangedCardList: +++++++++++");
         String url = DeviceConfig.SERVER_URL + "/app/device/retrieveChangedCardList?communityId=" + this.communityId;
         url = url + "&blockId=" + this.blockId;
         url = url + "&lockId=" + this.lockId;
-        Log.d(TAG, "retrieveChangedCardList: +++++" + url);
-        Log.i("xiao_","retrieveChangedCardList（）->地址："+url);
         try {
-            URL thisUrl = new URL(url);
-            HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-            conn.setRequestMethod("GET");
-            if (httpServerToken != null) {
-                conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-            }
-            conn.setConnectTimeout(5000);
-            int code = conn.getResponseCode();
-            Log.d(TAG, "retrieveChangedCardList: code = " + code);
-            if (code == 200) {
-                InputStream is = conn.getInputStream();
-                String result = HttpUtils.readMyInputStream(is);
-                Log.d(TAG, "retrieveChangedCardList: result=" + result);
+            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+            if(result!=null){
+                HttpApi.i("retrieveChangedCardList()->"+result);
                 JSONObject resultObject = Ajax.getJSONObject(result);
                 int resultCode = resultObject.getInt("code");
-                Log.d(TAG, "retrieveChangedCardList: resultcode=" + resultCode);
                 if (resultCode == 0) {
                     JSONArray data = resultObject.getJSONArray("data");
-                    Log.d(TAG, "retrieveChangedCardList: data=" + data.toString());
                     sqlUtil.changeCard(data);
                     if (DeviceConfig.IS_ASSEMBLE_AVAILABLE) {
                         assembleUtil.changeCard(data);
@@ -2775,6 +2674,9 @@ public class MainService extends Service {
                         startChangeCardComplete(list, new JSONArray());
                     }
                 }
+
+            }else{
+                HttpApi.e("retrieveChangedCardList()->服务器异常");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -2786,45 +2688,31 @@ public class MainService extends Service {
             public void run() {
                 try {
                     onCardOpenLock(index);
-                } catch (IOException e) {
-                } catch (JSONException e) {
+                } catch (Exception e) {
                 }
             }
         };
         thread.start();
     }
 
-    protected void onCardOpenLock(int index) throws JSONException, IOException {
+    protected void onCardOpenLock(int index) throws Exception {
         JSONObject data = new JSONObject();
         data.put("lockId", lockId);
         data.put("communityId", communityId);
         data.put("lockIndex", index);
-        String dataStr = data.toString();
-        URL url = new URL(DeviceConfig.SERVER_URL + "/app/device/cardOpenLock");
-        Log.e(TAG, "onCardOpenLock,url:==" + url);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setDoOutput(true);
-        connection.setDoInput(true);
-        connection.setUseCaches(false);
-        connection.setInstanceFollowRedirects(true);
-        connection.setRequestMethod("POST");
-        if (httpServerToken != null) {
-            connection.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-        }
-        connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("Content-Type", "application/json");
-        connection.connect();
-        OutputStreamWriter out = new OutputStreamWriter(
-                connection.getOutputStream(), "UTF-8");
-        out.append(dataStr);
-        out.flush();
-        out.close();
-        InputStream is = connection.getInputStream();
-        String result = HttpUtils.readMyInputStream(is);
-        JSONObject resultObj = Ajax.getJSONObject(result);
-        int code = resultObj.getInt("code");
-        if (code == 0) {
-        } else {
+        String url = DeviceConfig.SERVER_URL + "/app/device/cardOpenLock";
+        String result = HttpApi.getInstance().loadHttpforPost(url,data,httpServerToken);
+        if(result!=null){
+            HttpApi.i("onCardOpenLock()->"+result);
+            JSONObject resultObj = Ajax.getJSONObject(result);
+            int code = resultObj.getInt("code");
+            if (code == 0) {
+
+            } else {
+
+            }
+        }else{
+            HttpApi.e("onCardOpenLock()->服务器异常");
         }
     }
 
@@ -3040,8 +2928,7 @@ public class MainService extends Service {
             public void run() {
                 try {
                     onChangeCardComplete(cardListSuccess, cardListFailed);
-                } catch (IOException e) {
-                } catch (JSONException e) {
+                } catch (Exception e) {
                 }
             }
         };
@@ -3082,37 +2969,25 @@ public class MainService extends Service {
         }
     }*/
 
-    protected void onChangeCardComplete(JSONArray cardListSuccess, JSONArray cardListFailed) throws JSONException, IOException {
+    protected void onChangeCardComplete(JSONArray cardListSuccess, JSONArray cardListFailed) throws Exception{
         JSONObject data = new JSONObject();
         data.put("lockId", lockId);
         data.put("communityId", communityId);
         data.put("cardListSuccess", cardListSuccess);
         data.put("cardListFailed", cardListFailed);
-        String dataStr = data.toString();
-        URL url = new URL(DeviceConfig.SERVER_URL + "/app/device/changeCardComplete");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setDoOutput(true);
-        connection.setDoInput(true);
-        connection.setUseCaches(false);
-        connection.setInstanceFollowRedirects(true);
-        connection.setRequestMethod("POST");
-        if (httpServerToken != null) {
-            connection.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-        }
-        connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("Content-Type", "application/json");
-        connection.connect();
-        OutputStreamWriter out = new OutputStreamWriter(
-                connection.getOutputStream(), "UTF-8");
-        out.append(dataStr);
-        out.flush();
-        out.close();
-        InputStream is = connection.getInputStream();
-        String result = HttpUtils.readMyInputStream(is);
-        JSONObject resultObj = Ajax.getJSONObject(result);
-        int code = resultObj.getInt("code");
-        if (code == 0) {
-        } else {
+        String url = DeviceConfig.SERVER_URL + "/app/device/changeCardComplete";
+        String result = HttpApi.getInstance().loadHttpforPost(url,data,httpServerToken);
+        if(result!=null){
+            HttpApi.i("onChangeCardComplete()->"+result);
+            JSONObject resultObj = Ajax.getJSONObject(result);
+            int code = resultObj.getInt("code");
+            if (code == 0) {
+
+            } else {
+
+            }
+        }else{
+            HttpApi.e("onChangeCardComplete()->服务器异常");
         }
     }
 
@@ -3140,29 +3015,16 @@ public class MainService extends Service {
         String url = DeviceConfig.SERVER_URL + "/app/advertisement/checkAdvertiseList?communityId=" + this.communityId;
         url = url + "&lockId=" + this.lockId;
         JSONArray rows = null;
-        Log.d(TAG, "UpdateAdvertise: url=" + url);
         try {
-            URL thisUrl = new URL(url);
-            HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-            conn.setRequestMethod("GET");
-            if (httpServerToken != null) {
-                conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-            }
-            conn.setConnectTimeout(5000);
-            int code = conn.getResponseCode();
-            Log.d(TAG, "checkAdvertiseList: code=" + code);
-            if (code == 200) {
-                InputStream is = conn.getInputStream();
-                String result = HttpUtils.readMyInputStream(is);
+            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+            if(result!=null){
+                HttpApi.i("checkAdvertiseList()->"+result);
                 JSONObject obj = Ajax.getJSONObject(result);
                 int resultCode = obj.getInt("code");
-                Log.d(TAG, "checkAdvertiseList: resultcode=" + resultCode);
                 if (resultCode == 0) {
                     try {
                         rows = obj.getJSONArray("data");
-                        Log.d(TAG, "checkAdvertiseList: rows=" + rows);
                         if (rows != null) {
-                            Log.d(TAG, "checkAdvertiseList: ++++++++");
                             downloadAdvertisement(rows);
                         }
                     } catch (Exception e) {
@@ -3176,6 +3038,8 @@ public class MainService extends Service {
                     } catch (Exception e) {
                     }
                 }
+            }else{
+                HttpApi.e("checkAdvertiseList()->服务器异常");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -3338,23 +3202,11 @@ public class MainService extends Service {
         String url = DeviceConfig.UPDATE_SERVER_URL + DeviceConfig.UPDATE_RELEASE_FOLDER + DeviceConfig.UPDATE_RELEASE_PACKAGE;
         Log.v("UpdateService", "===url：" + url);
         try {
-            URL thisUrl = new URL(url);
-            HttpURLConnection conn = (HttpURLConnection) thisUrl.openConnection();
-            conn.setRequestMethod("GET");
-            if (httpServerToken != null) {
-                conn.setRequestProperty("Authorization", "Bearer " + httpServerToken);
-                Log.v("UpdateService", "httpServerToken=" + httpServerToken);
-            } else Log.v("UpdateService", "httpServerToken= null");
-            conn.setConnectTimeout(5000);
-            int code = conn.getResponseCode();
-            Log.v("UpdateService", "code=" + code);
-            if (code == 200) {
-                InputStream is = conn.getInputStream();
-                String result = HttpUtils.readMyInputStream(is);
-                Log.v("UpdateService", "result=" + result);
+            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
+            if(result!=null){
+                HttpApi.i("checkNewVersion()->"+result);
                 JSONObject resultObj = Ajax.getJSONObject(result);
                 int lastVersion = resultObj.getInt("version");
-                Log.v("UpdateService", "lastVersion=" + lastVersion + "nowVersion==" + DeviceConfig.RELEASE_VERSION);
                 if (lastVersion > DeviceConfig.RELEASE_VERSION) { //检查当前版本是否和服务器最新版本一致，如果不是最新版本则发出更新消息
                     String packageName = resultObj.getString("name") + "." + DeviceConfig.DEVICE_MODE_FLAG + "." + lastVersion + ".apk";
                     Message message = handler.obtainMessage();
@@ -3362,6 +3214,8 @@ public class MainService extends Service {
                     message.obj = packageName;
                     handler.sendMessage(message);
                 }
+            }else{
+                HttpApi.e("checkNewVersion()->服务器异常");
             }
         } catch (Exception e) {
             e.printStackTrace();

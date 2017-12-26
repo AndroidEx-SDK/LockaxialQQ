@@ -69,6 +69,7 @@ import com.androidex.config.DeviceConfig;
 import com.androidex.service.MainService;
 import com.androidex.utils.AdvertiseHandler;
 import com.androidex.utils.Ajax;
+import com.androidex.utils.HttpApi;
 import com.androidex.utils.HttpUtils;
 import com.androidex.utils.NfcReader;
 import com.androidex.utils.UploadUtil;
@@ -100,6 +101,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -403,10 +405,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     @Override
     public void onClick(View v) {
         switch (v.getId()) {//跳转网络或网络设置
-            case R.id.net_view_rl:
+            case R.id.net_view_rl:{
                 Intent intent = new Intent(Settings.ACTION_SETTINGS);
                 intent.putExtra("back", true);
                 startActivityForResult(intent, INPUT_SYSTEMSET_REQUESTCODE);
+            }
                 break;
             case R.id.iv_setting:
                 initMenu();//初始化左上角弹出框
@@ -871,7 +874,13 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 if (msg.what == MSG_RTC_NEWCALL) {
                     onRtcConnected();
                 } else if (msg.what == MSG_RTC_ONVIDEO) {
-                    onRtcVideoOn();
+                    //onRtcVideoOn();
+                    mHandler.postDelayed(new Runnable() {  //延时2s接听视频通话
+                        @Override
+                        public void run() {
+                            onRtcVideoOn();
+                        }
+                    },2*1000);
                 } else if (msg.what == MSG_RTC_DISCONNECT) {
                     onRtcDisconnect();
                 } else if (msg.what == MSG_PASSWORD_CHECK) {
@@ -1057,7 +1066,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         // java.lang.RuntimeException: Fail to connect to camera service
         videoLayout.setVisibility(View.VISIBLE);
         setVideoSurfaceVisibility(View.VISIBLE);
-        setDialValue("正在" + blockNo + "视频通话");
+        setDialValue("正在和" + blockNo + "视频通话");
     }
 
     public void onRtcDisconnect() {
@@ -1211,6 +1220,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      * 开始呼叫
      */
     private void startDialing(String num) {
+        Log.i("xiao_","开始呼叫"+num);
         setCurrentStatus(CALLING_MODE);
         if (DeviceConfig.DEVICE_TYPE.equals("C")) {
             blockId = 0;
@@ -1810,7 +1820,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             public void run() {
                 int s = NetWork.isNetworkAvailable(MainActivity.this)?1:0;
                 if(s != netWorkFlag){
-                    Log.i("xiao_","网络波动---->"+s);
                     if(s == 1){
                         //关闭读卡
                         disableReaderMode();
@@ -1938,7 +1947,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      */
     protected void takePicture(final String thisValue, final boolean isCall, final TakePictureCallback callback) {
         if (currentStatus == CALLING_MODE || currentStatus == PASSWORD_CHECKING_MODE) {
-            final String uuid = getUUID();
+            final String uuid = getUUID(); //随机生成UUID
             lastImageUuid = uuid;
             setImageUuidAvaibale(uuid);
             callback.beforeTakePickture(thisValue, isCall, uuid);
@@ -2157,15 +2166,19 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     protected void onDestroy() {
-        unbindService(connection);
-        disableReaderMode();
-        unregisterReceiver(receive);
-        unregisterReceiver(mNotifyReceiver);
-        unregisterReceiver(dataUpdateRecevice);
-        sendBroadcast(new Intent("com.android.action.display_navigationbar"));
-        if (device != null) {
-            device.disconnectedDevice(address);
-            Log.e(TAG, "onDestroy 开始注销蓝牙服务");//绑定服务结果
+        try{
+            unbindService(connection);
+            disableReaderMode();
+            unregisterReceiver(receive);
+            unregisterReceiver(mNotifyReceiver);
+            unregisterReceiver(dataUpdateRecevice);
+            sendBroadcast(new Intent("com.android.action.display_navigationbar"));
+            if (device != null) {
+                device.disconnectedDevice(address);
+                Log.e(TAG, "onDestroy 开始注销蓝牙服务");//绑定服务结果
+            }
+        }catch(Exception e){
+            e.printStackTrace();
         }
         super.onDestroy();
     }
