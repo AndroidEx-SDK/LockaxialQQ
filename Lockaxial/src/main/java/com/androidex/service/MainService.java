@@ -175,8 +175,11 @@ public class MainService extends Service {
     public static final int MSG_LOADLOCAL_DATA = 20030;
     private boolean netWorkstate = false;
 
-    public static final String APP_ID = "71986"; //71012
-    public static final String APP_KEY = "c9f8f45f-d3ad-4876-b5fd-78f5796dab59"; //71007b1c-6b75-4d6f-85aa-40c1f3b842ef
+
+    //public static final String APP_ID = "71986";
+    //public static final String APP_KEY = "c9f8f45f-d3ad-4876-b5fd-78f5796dab59";
+    public static final String APP_ID = "71012";
+    public static final String APP_KEY = "71007b1c-6b75-4d6f-85aa-40c1f3b842ef";
     public static final String LOGTAG = "Intercom";
 
     public static String httpServerToken = null;

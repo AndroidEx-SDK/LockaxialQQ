@@ -358,6 +358,7 @@
                 android:gravity="center_vertical"
                 android:text=""
                 android:textSize="20dp"
+                android:textColor="@color/Text_WHITE"
                 android:textStyle="bold" />
 
             <TextView
@@ -366,6 +367,7 @@
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
                 android:text=""
+                android:textColor="@color/Text_WHITE"
                 android:textSize="20dp"
                 android:textStyle="bold" />
 
@@ -376,7 +378,7 @@
                 android:layout_marginRight="15dp"
                 android:gravity="center_vertical"
                 android:text=""
-                android:textColor="#ffffff"
+                android:textColor="@color/Text_WHITE"
                 android:textSize="20dp"
                 android:textStyle="bold" />
 
