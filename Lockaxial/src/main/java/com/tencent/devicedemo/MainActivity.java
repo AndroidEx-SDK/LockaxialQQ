@@ -1814,6 +1814,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private int netWorkFlag = -1;
     private TextView showMacText;
     private boolean checkTime = false;
+    private Timer netTimer = new Timer();
 
     /**
      * 校时
@@ -1855,7 +1856,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     private void initNetListen(){
-        Timer netTimer = new Timer();
         netTimer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -2215,6 +2215,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             unregisterReceiver(receive);
             unregisterReceiver(mNotifyReceiver);
             unregisterReceiver(dataUpdateRecevice);
+            if(netTimer!=null){
+                netTimer.cancel();
+                netTimer = null;
+            }
             sendBroadcast(new Intent("com.android.action.display_navigationbar"));
             if (device != null) {
                 device.disconnectedDevice(address);
@@ -2243,7 +2247,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             if (nfc != null) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                     if (this instanceof NfcAdapter.ReaderCallback) {
-                        nfc.enableReaderMode(this, this, NfcReader.READER_FLAGS, null);
+                        if(!this.isDestroyed()){
+                            nfc.enableReaderMode(this, this, NfcReader.READER_FLAGS, null);
+                        }
                     }
                 }
             }
@@ -2256,7 +2262,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             NfcAdapter nfc = NfcAdapter.getDefaultAdapter(this);
             if (nfc != null) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    nfc.disableReaderMode(this);
+                    if(!this.isDestroyed()){
+                        nfc.disableReaderMode(this);
+                    }
                 }
             }
         }

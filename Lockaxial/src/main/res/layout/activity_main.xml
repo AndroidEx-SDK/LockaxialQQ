@@ -307,7 +307,7 @@
                 android:layout_height="45dp"
                 android:layout_marginLeft="5dp"
                 android:clickable="true"
-                android:src="@mipmap/ic_dyzn_icon" />
+                android:src="@mipmap/ic_launcher" />
 
 
             <ImageView
