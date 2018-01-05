@@ -3,3 +3,5 @@ build
 *.iml
 *.pro
 *.propertie
+.gradle/
+local.properties
