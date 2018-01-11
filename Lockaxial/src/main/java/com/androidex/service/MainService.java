@@ -2,7 +2,9 @@ package com.androidex.service;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -78,6 +80,8 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import jni.http.HttpManager;
 import jni.http.HttpResult;
@@ -257,14 +261,28 @@ public class MainService extends Service {
     Thread updateThread = null;
     private hwService hwservice;
 
+    //xiaozd add
+    private ActivityManager activityManager;
+    private boolean isPullTime = false;
+    private Timer activityTimer = null;
+    private Runnable startMain = new Runnable() {
+        @Override
+        public void run() {
+            Intent i = new Intent(MainService.this,MainActivity.class);
+            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            MainService.this.startActivity(i);
+        }
+    };
+
     public MainService() {
     }
 
     @Override
     public void onCreate() {
+        HttpApi.i("MainService开始初始化");
+        activityManager = (ActivityManager)getSystemService(ACTIVITY_SERVICE);
         hwservice = new hwService(MainService.this);
         wifiAdmin = new WifiAdmin(this);
-        Log.v("MainService", "------>create MainService<-------");
         initHandler();
         initUpdateHandler();//开启版本检测更新，一个小时监测一次
     }
@@ -284,13 +302,11 @@ public class MainService extends Service {
                     initMessenger = msg.replyTo;
                     init();
                     HttpApi.i("MainServic开始初始化");
-                    Log.i("MainService", "register init messenger");
                 } else if (msg.what == REGISTER_ACTIVITY_DIAL) {  //MainActivity初始化入口
                     startRongyun(); //允许被多次调用
                     //retrieveCardList(); //注册门卡信息
                     initAdvertisement(); //初始化广告
                     initConnectReport();
-                    Log.i("MainService", "register Dial messenger");
                     dialMessenger = msg.replyTo;
                     startUpdateThread(); //更新程序线程
                 } else if (msg.what == MSG_GETTOKEN) {
@@ -456,7 +472,7 @@ public class MainService extends Service {
 
     protected void cancelCurrentCall() {
         cancelOtherMembers(null);
-        Log.v("MainService", "用户取消当前呼叫");
+        HttpApi.i("用户取消呼叫");
         resetCallMode();
         stopTimeoutCheckThread();
     }
@@ -529,6 +545,8 @@ public class MainService extends Service {
         //initAdLoad();
         initSqlUtil();
         Log.i("MainService", "init SQL");
+        //xiaozd add
+        initCheckTopActivity();
         /**if (isNetworkConnectedWithTimeout()) {//不做网络判断
             Log.i("MainService", "Test Connected");
             initWhenConnected(); //开始在线版本
@@ -545,6 +563,39 @@ public class MainService extends Service {
         }else{
             initWhenOffline(); //开始离线版本
         }
+    }
+
+    /**
+     * 检查最上层界面
+     * */
+    private void initCheckTopActivity(){
+        if(activityTimer!=null){
+            activityTimer.cancel();
+            activityTimer = null;
+        }
+        if(activityTimer == null){
+            activityTimer = new Timer();
+        }
+        activityTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if(activityManager != null){
+                    ComponentName cn = activityManager.getRunningTasks(1).get(0).topActivity;
+                    if(!cn.getPackageName().equals(MainService.this.getPackageName())){
+                        HttpApi.i("TopActivity_","不在当前程序");
+                        if(!isPullTime){
+                            HttpApi.i("TopActivity_","倒计时进入MainActivity");
+                            handler.postDelayed(startMain,30*1000);
+                            isPullTime = true;
+                        }
+                    }else{
+                        HttpApi.i("TopActivity_","处于当前程序");
+                        handler.removeCallbacks(startMain);
+                        isPullTime = false;
+                    }
+                }
+            }
+        },500,3000);
     }
 
     /**
@@ -1283,7 +1334,7 @@ public class MainService extends Service {
                     }
                 }
                 onRegisterCompleted();
-            } catch (JSONException e) {
+            } catch (Exception e) {
                 Message message = Message.obtain();
                 message.what = InitActivity.MSG_RTC_CANNOT_REGISTER;
                 try {
@@ -2433,6 +2484,11 @@ public class MainService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.v("MainService", "onDestroy()");
+        if(activityTimer!=null){
+            activityTimer.cancel();
+            activityTimer = null;
+        }
+
         if (callConnection != null) {
             callConnection.disconnect();
             callConnection = null;
