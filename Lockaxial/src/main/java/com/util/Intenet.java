@@ -1,5 +1,6 @@
 package com.util;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.provider.Settings;
@@ -49,12 +50,12 @@ public class Intenet {
     }
 
     /**
-     * 系统设置
+     * 系统设置，返回键设置
      */
-    public static void system_set(Context context) {
+    public static void system_set(Activity context, int code) {
         Intent intent =  new Intent(Settings.ACTION_SETTINGS);
         intent.putExtra("back", true);
-        context.startActivity(intent);
+        context.startActivityForResult(intent,code);
     }
 
     public static void wifiManger(Context ctx){

@@ -37,6 +37,8 @@ import java.util.List;
 
 import jni.util.Utils;
 
+import static com.tencent.devicedemo.MainActivity.INPUT_SYSTEMSET_REQUESTCODE;
+
 public class InitActivity extends AndroidExActivityBase {
     public static final int MSG_NO_MAC_ADDRESS = 30001;
     public static final int MSG_GET_MAC_ADDRESS = 30002;
@@ -101,7 +103,7 @@ public class InitActivity extends AndroidExActivityBase {
                     public boolean onMenuItemClick(MenuItem item) {
                         switch (item.getItemId()) {
                             case R.id.action_settings1:
-                                Intenet.system_set(InitActivity.this);
+                                Intenet.system_set(InitActivity.this,INPUT_SYSTEMSET_REQUESTCODE);
                                 break;
                             case R.id.action_catIP:
                                 Toast.makeText(InitActivity.this, "本机的IP：" + Intenet.getHostIP(), Toast.LENGTH_LONG).show();
