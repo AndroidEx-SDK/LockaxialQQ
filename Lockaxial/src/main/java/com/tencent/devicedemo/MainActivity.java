@@ -2521,9 +2521,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         device.openLock();
                         try {
                             Thread.sleep(5000);
-                            device.closeLock();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
+                        }finally {
+                            device.closeLock();
                         }
                     } else {
                         toast("蓝牙未连接");
