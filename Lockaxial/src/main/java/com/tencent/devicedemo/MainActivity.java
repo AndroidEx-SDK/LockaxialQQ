@@ -1438,7 +1438,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     if (currentStatus == CALL_MODE) {
                         callInput(key);
                     } else {
-                        passwordInput(key);
+                        passwordInput(key);//密码开门
                     }
                 } else if (keyCode == KeyEvent.KEYCODE_POUND || keyCode == DeviceConfig.DEVICE_KEYCODE_POUND) {
                     if (currentStatus == CALL_MODE) {//呼叫模式下，按确认键

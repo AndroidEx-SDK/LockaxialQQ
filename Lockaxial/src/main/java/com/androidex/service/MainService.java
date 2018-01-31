@@ -19,6 +19,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.KeyEvent;
+
 import com.androidex.DoorLock;
 import com.androidex.SoundPoolUtil;
 import com.androidex.aexlibs.hwService;
@@ -64,7 +65,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -1082,6 +1082,9 @@ public class MainService extends Service {
         }.start();
     }
 
+    /**
+     * 验证密码
+     */
     private void checkGuestPassword() {
         try {
             String url = DeviceConfig.SERVER_URL + "/app/device/openDoorByTempKey?from=";
@@ -1128,6 +1131,9 @@ public class MainService extends Service {
         }.start();
     }
 
+    /**
+     * 验证密码是上传图片
+     */
     private void checkGuestPasswordAppendImage() {
         try {
             String url = DeviceConfig.SERVER_URL + "/app/device/appendImage?";

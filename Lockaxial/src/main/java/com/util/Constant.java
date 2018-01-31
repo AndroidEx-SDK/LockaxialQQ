@@ -45,15 +45,15 @@ public class Constant {
     public static final int MSG_INSTALL_FAIL = 0x06;//安装失败
     public static final int MSG_DELAY_CALL = 10021;//延迟200ms接通
 
-    public static final int CALL_MODE = 1;
-    public static final int PASSWORD_MODE = 2;
-    public static final int CALLING_MODE = 3;
-    public static final int ONVIDEO_MODE = 4;
-    public static final int DIRECT_MODE = 5;
-    public static final int ERROR_MODE = 6;
-    public static final int DIRECT_CALLING_MODE = 7;
+    public static final int CALL_MODE = 1;    //呼叫模式
+    public static final int PASSWORD_MODE = 2;//密码验证模式
+    public static final int CALLING_MODE = 3; //正在呼叫模式
+    public static final int ONVIDEO_MODE = 4; //正在视频
+    public static final int DIRECT_MODE = 5;  //
+    public static final int ERROR_MODE = 6;   //出错
+    public static final int DIRECT_CALLING_MODE = 7; //
     public static final int DIRECT_CALLING_TRY_MODE = 8;
-    public static final int PASSWORD_CHECKING_MODE = 9;
+    public static final int PASSWORD_CHECKING_MODE = 9;//正在验证密码
     public static final int CALL_CANCEL_MODE = 10;
 
 }
