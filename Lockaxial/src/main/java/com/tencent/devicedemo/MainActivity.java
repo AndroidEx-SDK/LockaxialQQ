@@ -289,7 +289,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initAdvertiseHandler();//初始化广告
         initAutoCamera();//
         startClockRefresh();//
-        //initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
+        initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
         getRssi();//使用定时器,每隔5秒获得一次信号强度值
         setNetWork();
         setAutioVolume();//获取系统相关音量
@@ -361,6 +361,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         intentFilter.addAction(ACTION_GATT_CONNECTED);//连接成功
         intentFilter.addAction(ACTION_GATT_DISCONNECTED);//断开连接
         intentFilter.addAction(REFRESH_RSSI);//获取信号值
+        intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);//设备蓝牙状态监控
         registerReceiver(dataUpdateRecevice, intentFilter);
         // 初始化蓝牙adapter
         if (!mBtAdapter.isEnabled()) {
@@ -386,20 +387,24 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             if (!device.isRegisterReceiver) {
                 device.disconnectedDevice2();//注销服务
                 Log.d(TAG, "设备已注册，取消服务重新注册");
-                try {
-                    device.setBLEBroadcastDelegate();//设置连接，绑定服务
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                connectGatt();
             }
         } else {
             Log.d(TAG, "开始注册设备绑定服务");
             device = new BTTempDevice(MainActivity.this, bluetooth_dev);
-            device.setBLEBroadcastDelegate();
+            //device.setBLEBroadcastDelegate();
+            connectGatt();
         }
     }
 
+    private void connectGatt() {
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                device.setBLEBroadcastDelegate();//设置连接，绑定服务
+            }
+        }, 1000);
+    }
 
     @Override
     public void onClick(View v) {
@@ -2519,13 +2524,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     Log.e(TAG, "收到开门指令");
                     if (isConnectBLE) {
                         device.openLock();
-                        try {
-                            Thread.sleep(5000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }finally {
-                            device.closeLock();
-                        }
+                        new Timer().schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                device.closeLock();//关闭锁
+                            }
+                        }, 5000);
                     } else {
                         toast("蓝牙未连接");
                         if (!mScanning) {
@@ -2536,7 +2540,30 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 case DoorLock.DoorLockStatusChange://门锁状态发生变化
                     break;
 
-
+                case BluetoothAdapter.ACTION_STATE_CHANGED:
+                    int blueState = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, 0);
+                    switch (blueState) {
+                        case BluetoothAdapter.STATE_TURNING_ON:
+                            break;
+                        case BluetoothAdapter.STATE_ON:
+                            toast("蓝牙打开，自动开始连接");
+                            //开始扫描
+                            scanLeDevice(true);
+                            break;
+                        case BluetoothAdapter.STATE_TURNING_OFF:
+                            break;
+                        case BluetoothAdapter.STATE_OFF:
+                            scanLeDevice(false);
+                            bluetooth_image.setImageResource(R.mipmap.ble_button);
+                            isConnectBLE = false;
+                            Log.e(TAG, "蓝牙连接" + "isConnectBLE=" + isConnectBLE + "  mScanning=" + mScanning);
+                            if (mScanning) {
+                                scanLeDevice(false);//停止扫描
+                            }
+                            toast("蓝牙已关闭");
+                            break;
+                    }
+                    break;
             }
         }
     };

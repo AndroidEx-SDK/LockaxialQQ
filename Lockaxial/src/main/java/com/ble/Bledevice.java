@@ -102,8 +102,8 @@ public abstract class Bledevice {
 //            bleService.disconnect();
 //            //bleService.close();
 //            bleService.stopSelf();
-            bleService.initBluetoothDevice(device);//初始化BLE 如果已经连接就不用再次连
             Log.w(TAG, "gatt is init onServiceConnected ");
+            bleService.initBluetoothDevice(device);//初始化BLE 如果已经连接就不用再次连
         }
     };
 
