@@ -294,7 +294,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initAdvertiseHandler();//初始化广告
         initAutoCamera();//
         startClockRefresh();//
-        initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
+        //initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
         getRssi();//使用定时器,每隔5秒获得一次信号强度值
         setNetWork();
         setAutioVolume();//获取系统相关音量
@@ -2552,7 +2552,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
                 case ACTION_LOCK_BATTERY://电量
                     int battery = (int) (intent.getDoubleExtra("battery", 0) * 100);
-                    tv_battery.setText(battery+"%");
+                    tv_battery.setText(battery + "%");
                     break;
 
                 case ACTION_LOCK_STARTS_OPEN://常开
@@ -2612,7 +2612,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             };
         }
         if (timer_doorStarts == null) timer_doorStarts = new Timer();
-        timer_doorStarts.schedule(timerTask, 1000, 6000);
+        timer_doorStarts.schedule(timerTask, 1000, 1000 * 60 * 20);//20分钟
     }
 
     /**
