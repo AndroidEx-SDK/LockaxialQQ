@@ -120,6 +120,10 @@ import static com.androidex.service.MainService.lockId;
 import static com.androidex.utils.NfcReader.ACTION_NFC_CARDINFO;
 import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTED;
 import static com.ble.BTTempBLEService.ACTION_GATT_DISCONNECTED;
+import static com.ble.BTTempBLEService.ACTION_LOCK_BATTERY;
+import static com.ble.BTTempBLEService.ACTION_LOCK_STARTS_CLOSE;
+import static com.ble.BTTempBLEService.ACTION_LOCK_STARTS_CLOSE_BACK;
+import static com.ble.BTTempBLEService.ACTION_LOCK_STARTS_OPEN;
 import static com.util.Constant.CALLING_MODE;
 import static com.util.Constant.CALL_CANCEL_MODE;
 import static com.util.Constant.CALL_MODE;
@@ -263,6 +267,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             }
         }
     };
+    private TextView tv_battery;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -323,6 +328,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         tv_message = (TextView) findViewById(R.id.tv_message);
         viewPager = (AutoScrollViewPager) findViewById(R.id.vp_main);
         tv_input_text = (TextView) findViewById(R.id.tv_input_text);
+        tv_battery = (TextView) findViewById(R.id.tv_battery);//显示蓝牙锁的电量
         mGridView = (GridView) findViewById(R.id.gridView_binderlist);//getBgBanners();//网络获得轮播背景图片数据
         rl = (RelativeLayout) findViewById(R.id.net_view_rl);
         rl.setOnClickListener(this);
@@ -362,6 +368,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         intentFilter.addAction(ACTION_GATT_DISCONNECTED);//断开连接
         intentFilter.addAction(REFRESH_RSSI);//获取信号值
         intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);//设备蓝牙状态监控
+        intentFilter.addAction(ACTION_LOCK_BATTERY);//蓝牙锁的电量
+        intentFilter.addAction(ACTION_LOCK_STARTS_OPEN);//常开
+        intentFilter.addAction(ACTION_LOCK_STARTS_CLOSE);//锁着
+        intentFilter.addAction(ACTION_LOCK_STARTS_CLOSE_BACK);//反锁
+
         registerReceiver(dataUpdateRecevice, intentFilter);
         // 初始化蓝牙adapter
         if (!mBtAdapter.isEnabled()) {
@@ -372,6 +383,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             scanLeDevice(false);//停止扫描
         }
         scanLeDevice(true);//开始扫描
+        startGetDoorStarts();//启动定时器读取蓝牙锁状态
         Log.d(TAG, "开始扫描蓝牙");
     }
 
@@ -902,7 +914,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                             });
                         }
                     };
-                    timer.schedule(task, 5000, 5000);
+                    timer.schedule(task, 500, 5000);
                 } else if (msg.what == MSG_CALLMEMBER_ERROR) {
                     onCallMemberError(msg.what);
                 } else if (msg.what == MSG_CALLMEMBER_SERVER_ERROR) {
@@ -2194,9 +2206,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 iv_bind.setImageDrawable(getResources().getDrawable(R.mipmap.bind_offline));
             }
         }
-
-
-        //registering popup with OnMenuItemClickListener
     }
 
     protected void onPause() {
@@ -2209,6 +2218,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     protected void onDestroy() {
         try {
+            isConnectBLE = false;
+            stopGetDoorStarts();//停止定时获取蓝牙锁状态
             unbindService(connection);
             disableReaderMode();
             unregisterReceiver(receive);
@@ -2460,7 +2471,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 case 5:
                     wifi_image.setImageResource(R.mipmap.wifi05);
                     iv_bind.setImageDrawable(getResources().getDrawable(R.mipmap.bind_offline));
-
                     break;
                 case 6://无网络连接
                     rl.setVisibility(View.VISIBLE);
@@ -2474,7 +2484,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     wifi_image.setImageResource(R.mipmap.wifi_05);
                     rl.setVisibility(View.VISIBLE);
                     iv_bind.setImageDrawable(getResources().getDrawable(R.mipmap.bind_offline));
-
             }
         }
 
@@ -2499,6 +2508,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     break;
                 case ACTION_GATT_CONNECTED:
                     isConnectBLE = true;
+                    tv_battery.setVisibility(View.VISIBLE);
                     bluetooth_image.setImageResource(R.mipmap.ble_pressed);
                     toast("蓝牙连接");
                     Log.e(TAG, "蓝牙连接" + "isConnectBLE=" + isConnectBLE + "  mScanning=" + mScanning);
@@ -2509,6 +2519,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
                 case ACTION_GATT_DISCONNECTED://断开连接
                     isConnectBLE = false;
+                    tv_battery.setVisibility(View.GONE);
                     bluetooth_image.setImageResource(R.mipmap.ble_button);
                     toast("蓝牙断开，重新开始扫描");
                     Log.e(TAG, "蓝牙连接" + "isConnectBLE=" + isConnectBLE + "  mScanning=" + mScanning);
@@ -2519,7 +2530,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     break;
                 case REFRESH_RSSI://获取信号强度
                     break;
-
                 case DoorLock.DoorLockOpenDoor_BLE://开门指令
                     Log.e(TAG, "收到开门指令");
                     if (isConnectBLE) {
@@ -2538,6 +2548,22 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     }
                     break;
                 case DoorLock.DoorLockStatusChange://门锁状态发生变化
+                    break;
+
+                case ACTION_LOCK_BATTERY://电量
+                    int battery = (int) (intent.getDoubleExtra("battery", 0) * 100);
+                    tv_battery.setText(battery+"%");
+                    break;
+
+                case ACTION_LOCK_STARTS_OPEN://常开
+                    if (isConnectBLE && device != null) {
+                        device.closeLock();
+                    }
+                    break;
+
+                case ACTION_LOCK_STARTS_CLOSE://锁着
+                    break;
+                case ACTION_LOCK_STARTS_CLOSE_BACK://反锁
                     break;
 
                 case BluetoothAdapter.ACTION_STATE_CHANGED:
@@ -2567,6 +2593,39 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             }
         }
     };
+
+    private Timer timer_doorStarts = new Timer();// 设计定时器
+    private TimerTask timerTask;
+
+    /**
+     * 启动心跳获取蓝牙锁的状态
+     */
+    private void startGetDoorStarts() {
+        if (timerTask == null) {
+            timerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    if (isConnectBLE && device != null) {
+                        device.getLockStarts();
+                    }
+                }
+            };
+        }
+        if (timer_doorStarts == null) timer_doorStarts = new Timer();
+        timer_doorStarts.schedule(timerTask, 1000, 6000);
+    }
+
+    /**
+     * 停止获取蓝牙锁状态
+     */
+    private void stopGetDoorStarts() {
+        if (timerTask != null) {
+            timerTask.cancel();
+            timer_doorStarts.cancel();
+            timerTask = null;
+            timer_doorStarts = null;
+        }
+    }
 
     /**
      * 扫描蓝牙

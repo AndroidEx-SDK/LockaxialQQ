@@ -21,7 +21,6 @@ import static com.ble.BTTempBLEService.ACTION_DATA_AVAILABLE;
 import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTING;
 import static com.ble.BTTempBLEService.ACTION_GATT_SERVICES_DISCOVERED;
 import static com.ble.BTTempBLEService.ACTION_GAT_RSSI;
-import static com.ble.BTTempBLEService.ACTION_LOCK_STARTS;
 
 /*
  * 蓝牙设备的基类
@@ -262,7 +261,6 @@ public abstract class Bledevice {
         intentFilter.addAction(ACTION_GAT_RSSI);
         intentFilter.addAction(ACTION_BIND_MAC);
         intentFilter.addAction(ACTION_GATT_CONNECTING);
-        intentFilter.addAction(ACTION_LOCK_STARTS);
         //自定义连接
         return intentFilter;
     }
