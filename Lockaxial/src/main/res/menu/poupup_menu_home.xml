@@ -28,6 +28,7 @@
         android:id="@+id/action_settings2"
         android:orderInCategory="100"
         android:showAsAction="never"
+        android:visible="false"
         android:title="解除绑定"/>
     <item
         android:id="@+id/action_settings3"
@@ -35,6 +36,7 @@
         android:showAsAction="never"
         android:title="上传日志"/>
     <item
+        android:visible="false"
         android:id="@+id/action_settings4"
         android:orderInCategory="100"
         android:showAsAction="never"
@@ -49,11 +51,13 @@
         android:id="@+id/action_ble_open"
         android:orderInCategory="100"
         android:showAsAction="never"
+        android:visible="false"
         android:title="打开蓝牙"/>
     <item
         android:id="@+id/action_ble_close"
         android:orderInCategory="100"
         android:showAsAction="never"
+        android:visible="false"
         android:title="关闭蓝牙"/>
     <item
         android:id="@+id/action_settings6"
@@ -69,11 +73,13 @@
         android:id="@+id/action_settings8"
         android:orderInCategory="100"
         android:showAsAction="never"
+        android:visible="false"
         android:title="关机"/>
     <item
         android:id="@+id/action_settings9"
         android:orderInCategory="100"
         android:showAsAction="never"
+        android:visible="false"
         android:title="设置拔电关机"/>
     <item
         android:id="@+id/action_settings11"

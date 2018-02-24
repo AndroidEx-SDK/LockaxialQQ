@@ -465,15 +465,15 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         }
                         break;
 
-                    case R.id.action_settings2:
+                    case R.id.action_settings2://解除绑定
                         Toast.makeText(MainActivity.this, "该功能暂未开放", Toast.LENGTH_LONG).show();
                         break;
 
-                    case R.id.action_settings3:
+                    case R.id.action_settings3://上传日志
                         TXDeviceService.getInstance().uploadSDKLog();
                         break;
 
-                    case R.id.action_settings4:
+                    case R.id.action_settings4://打开主门
                         int status = 2;
                         Intent ds_intent = new Intent();
                         ds_intent.setAction(DoorLock.DoorLockOpenDoor);
@@ -486,7 +486,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         sendBroadcast(intent_ble);
                         break;
 
-                    case R.id.action_settings5:
+                    case R.id.action_settings5://打开副门
                         int status1 = 2;
                         Intent ds_intent1 = new Intent();
                         ds_intent1.setAction(DoorLock.DoorLockOpenDoor);
@@ -494,7 +494,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         ds_intent1.putExtra("status", status1);
                         sendBroadcast(ds_intent1);
                         break;
-                    case R.id.action_ble_open:
+                    case R.id.action_ble_open://打开蓝牙
                         if (!mBtAdapter.isEnabled()) {
                             mBtAdapter.enable();
                             Toast.makeText(MainActivity.this, "打开蓝牙", Toast.LENGTH_LONG).show();
@@ -506,7 +506,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         scanLeDevice(true);//开始扫描
                         Log.d(TAG, "开始扫描蓝牙");
                         break;
-                    case R.id.action_ble_close:
+                    case R.id.action_ble_close://关闭蓝牙
                         if (device != null) {
                             device.disconnectedDevice(address);
                         }
@@ -515,27 +515,27 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         }
                         Toast.makeText(MainActivity.this, "关闭蓝牙", Toast.LENGTH_LONG).show();
                         break;
-                    case R.id.action_settings6:
+                    case R.id.action_settings6://设置定时开机
                         long wakeupTime = SystemClock.elapsedRealtime() + 240000;       //唤醒时间,如果是关机唤醒时间不能低于3分钟,否则无法实现关机定时重启
                         DoorLock.getInstance().runSetAlarm(wakeupTime);
                         break;
 
-                    case R.id.action_settings7:
+                    case R.id.action_settings7://重启
                         DoorLock.getInstance().runReboot();
                         break;
 
-                    case R.id.action_settings8:
+                    case R.id.action_settings8://关机
                         DoorLock.getInstance().runShutdown();
                         break;
-                    case R.id.action_settings9:
+                    case R.id.action_settings9://设置拔电关机
                         DoorLock.getInstance().setPlugedShutdown();
                         break;
-                    case R.id.action_settings10:
+                    case R.id.action_settings10://退出
                         setResult(RESULT_OK);
                         finish();
                         sendBroadcast(new Intent("com.android.action.display_navigationbar"));
                         break;
-                    case R.id.action_settings11:
+                    case R.id.action_settings11://语音开门
                         //initSpeech(MainActivity.this);
                         break;
                 }
