@@ -1,1 +1,1 @@
-include ':Lockaxial'
+include ':Lockaxial', ':arcsoft'

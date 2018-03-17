@@ -20,6 +20,8 @@ import com.tencent.device.TXDeviceService;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
+
 
 /**
  * Created by yangjun on 16/6/6.
@@ -68,6 +70,8 @@ public class DoorLock extends Service implements OnBackCall {
         am.set(4, System.currentTimeMillis() + 480000,   //从现在起30s
                 PendingIntent.getBroadcast(getApplicationContext(), 100, new Intent(actionRunReboot), PendingIntent.FLAG_UPDATE_CURRENT));
         */
+
+        Log.v(FACE_TAG, "onCreate-->" + 85478);
     }
 
     public void runSetAlarm(long wakeupTime) {
@@ -138,6 +142,7 @@ public class DoorLock extends Service implements OnBackCall {
     @Override
     public void onBackCallEvent(int code, String args) {
         Log.v("onBackCallEvent", args);
+        Log.v(FACE_TAG, "onBackCallEvent-->" + code + "/" + args);
     }
 
     public class DoorLockServiceBinder extends IDoorLockInterface.Stub {
@@ -162,6 +167,9 @@ public class DoorLock extends Service implements OnBackCall {
             if (r > 0) {
                 SoundPoolUtil.getSoundPoolUtil().loadVoice(getBaseContext(), 011111);
             }
+
+            Log.v(FACE_TAG, "openDoor-->" + index + "/" + delay + "/" + r);
+
             return r > 0 ? 1 : 0;
         }
 
@@ -172,6 +180,9 @@ public class DoorLock extends Service implements OnBackCall {
             if (ident < 0 || ident > 0xFE) ident = 0;
             String cmd = String.format("FB%02X2503%02X000000FE", ident, index);
             int r = rkey.native_file_writeHex(rkeyDev, cmd);
+
+            Log.v(FACE_TAG, "closeDoor-->" + index + "/" + 5 + "/" + r);
+
             return r > 0 ? 1 : 0;
         }
     }
@@ -183,6 +194,8 @@ public class DoorLock extends Service implements OnBackCall {
                 String doorsensor = intent.getStringExtra("doorsensor");
                 UEventMap mds = new UEventMap(doorsensor);
                 Log.d(TAG, String.format("%s\t Door sensor=%s\n", mds.get("doorsensor"), mds.toString()));
+                Log.v(FACE_TAG, "onReceive852-->" + mds.get("doorsensor"));
+
                 Intent ds_intent = new Intent();
                 ds_intent.setAction(DoorLock.DoorLockStatusChange);
                 ds_intent.putExtra("doorsensor", mds.get("doorsensor"));

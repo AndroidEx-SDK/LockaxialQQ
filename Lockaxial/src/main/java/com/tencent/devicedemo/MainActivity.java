@@ -13,14 +13,20 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.hardware.Camera;
 import android.media.AudioManager;
@@ -40,8 +46,11 @@ import android.os.Messenger;
 import android.os.Parcelable;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.TextUtils;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MenuItem;
@@ -73,6 +82,29 @@ import com.androidex.utils.HttpApi;
 import com.androidex.utils.HttpUtils;
 import com.androidex.utils.NfcReader;
 import com.androidex.utils.UploadUtil;
+import com.arcsoft.ageestimation.ASAE_FSDKAge;
+import com.arcsoft.ageestimation.ASAE_FSDKEngine;
+import com.arcsoft.ageestimation.ASAE_FSDKError;
+import com.arcsoft.ageestimation.ASAE_FSDKVersion;
+import com.arcsoft.dysmart.ArcsoftManager;
+import com.arcsoft.dysmart.BitmapUtils;
+import com.arcsoft.dysmart.DetecterActivity;
+import com.arcsoft.dysmart.FaceDB;
+import com.arcsoft.dysmart.FaceRegisterActivity;
+import com.arcsoft.dysmart.PhotographActivity;
+import com.arcsoft.facerecognition.AFR_FSDKEngine;
+import com.arcsoft.facerecognition.AFR_FSDKError;
+import com.arcsoft.facerecognition.AFR_FSDKFace;
+import com.arcsoft.facerecognition.AFR_FSDKMatching;
+import com.arcsoft.facerecognition.AFR_FSDKVersion;
+import com.arcsoft.facetracking.AFT_FSDKEngine;
+import com.arcsoft.facetracking.AFT_FSDKError;
+import com.arcsoft.facetracking.AFT_FSDKFace;
+import com.arcsoft.facetracking.AFT_FSDKVersion;
+import com.arcsoft.genderestimation.ASGE_FSDKEngine;
+import com.arcsoft.genderestimation.ASGE_FSDKError;
+import com.arcsoft.genderestimation.ASGE_FSDKGender;
+import com.arcsoft.genderestimation.ASGE_FSDKVersion;
 import com.ble.BTTempDevice;
 import com.brocast.NotifyReceiverQQ;
 import com.entity.Banner;
@@ -81,6 +113,10 @@ import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.gson.Gson;
+import com.guo.android_extend.java.AbsLoop;
+import com.guo.android_extend.widget.CameraFrameData;
+import com.guo.android_extend.widget.CameraGLSurfaceView;
+import com.guo.android_extend.widget.CameraSurfaceView;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.tencent.device.TXBinderInfo;
 import com.tencent.device.TXDeviceService;
@@ -118,6 +154,12 @@ import static com.androidex.service.MainService.communityId;
 import static com.androidex.service.MainService.httpServerToken;
 import static com.androidex.service.MainService.lockId;
 import static com.androidex.utils.NfcReader.ACTION_NFC_CARDINFO;
+import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
+import static com.arcsoft.dysmart.FaceConstant.MSG_FACE_DETECT_CONTRAST;
+import static com.arcsoft.dysmart.FaceConstant.MSG_FACE_DETECT_INPUT;
+import static com.arcsoft.dysmart.FaceConstant.MSG_FACE_DETECT_PAUSE;
+import static com.arcsoft.dysmart.FaceConstant.REQUEST_CODE_IMAGE_CAMERA;
+import static com.arcsoft.dysmart.FaceConstant.REQUEST_CODE_IMAGE_PATH;
 import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTED;
 import static com.ble.BTTempBLEService.ACTION_GATT_DISCONNECTED;
 import static com.ble.BTTempBLEService.ACTION_LOCK_BATTERY;
@@ -169,7 +211,7 @@ import static com.util.Constant.ON_YUNTONGXUN_LOGIN_SUCCESS;
 import static com.util.Constant.PASSWORD_CHECKING_MODE;
 import static com.util.Constant.PASSWORD_MODE;
 
-public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener {
+public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener, CameraSurfaceView.OnCameraListener {
     private static final String TAG = "MainActivity";
     public static final int INPUT_CARDINFO_RESULTCODE = 0X01;
     public static final int INPUT_CARDINFO_REQUESTCODE = 0X02;
@@ -310,6 +352,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 10000, pendingIntent);
         }
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+
+        initFaceDetect();
     }
 
     /**
@@ -842,6 +886,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     protected void initAutoCamera() {
+        Log.v("MainActivity", "initAutoCamera-->");
         autoCameraSurfaceView = (SurfaceView) findViewById(R.id.autoCameraSurfaceview);
         autoCameraHolder = autoCameraSurfaceView.getHolder();
         autoCameraHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
@@ -898,6 +943,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     }, 2 * 1000);
                 } else if (msg.what == MSG_RTC_DISCONNECT) {
                     onRtcDisconnect();
+                    //人脸识别对比
+                    faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
                 } else if (msg.what == MSG_PASSWORD_CHECK) {
                     onPasswordCheck((Integer) msg.obj);
                 } else if (msg.what == MSG_LOCK_OPENED) {//门开了
@@ -923,6 +970,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     onCallMemberError(msg.what);
                 } else if (msg.what == MSG_CALLMEMBER_TIMEOUT) {
                     onCallMemberError(msg.what);
+                    //人脸识别对比
+                    faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
                 } else if (msg.what == MSG_CALLMEMBER_TIMEOUT_AND_TRY_DIRECT) {
                     Utils.DisplayToast(MainActivity.this, "可视对讲无法拨通，尝试直拨电话");
                     setCurrentStatus(DIRECT_CALLING_TRY_MODE);
@@ -1019,6 +1068,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     //开始读卡
                     enableReaderMode();
                     Log.i("xiao_", "收到消息MSG_REGISTER_ACTIVITY_DIAL -》开始MainActivity初始化-》》》可以读卡");
+                    //人脸识别对比
+                    faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
                 } else if (msg.what == MainService.MSG_LOADLOCAL_DATA) {
                     //加载本地数据显示到界面
                     setCommunityName(MainService.communityName);
@@ -1119,6 +1170,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             setCurrentStatus(CALL_MODE);
         }
         Utils.DisplayToast(MainActivity.this, "门开了");
+
+        identification = false;
+        faceHandler.sendEmptyMessageDelayed(-1, 10 * 1000);
     }
 
     protected void onCallMemberError(int reason) {
@@ -1235,12 +1289,23 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      * 开始呼叫
      */
     private void startDialing(String num) {
-        Log.i("xiao_", "开始呼叫" + num);
+        Log.v(FACE_TAG, "startDialing-->" + num);
+        if (num.equals("9999")) {
+            //人脸识别录入
+            faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_INPUT, 100);
+            return;
+        }
+
+        //呼叫前，确认摄像头不被占用
+        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 100);
+
+        Log.v(FACE_TAG, "开始呼叫1" + num);
         setCurrentStatus(CALLING_MODE);
         if (DeviceConfig.DEVICE_TYPE.equals("C")) {
             blockId = 0;
             setDialStatus("请输入楼栋编号");
         }
+        Log.v(FACE_TAG, "开始呼叫2" + num);
         takePicture(num, true, MainActivity.this);//开启拍照，并开始呼叫
     }
 
@@ -1479,8 +1544,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             } else if (currentStatus == ERROR_MODE) {
                 Utils.DisplayToast(MainActivity.this, "当前网络异常");
             } else if (currentStatus == CALLING_MODE) {
+                Log.v(TAG, "onKeyDown-->111");
                 if (keyCode == KeyEvent.KEYCODE_STAR || keyCode == DeviceConfig.DEVICE_KEYCODE_STAR) {
-                    startCancelCall();
+                    Log.v(TAG, "onKeyDown-->222");
+                    startCancelCall();//取消呼叫
                 }
             } else if (currentStatus == ONVIDEO_MODE) {
                 if (keyCode == KeyEvent.KEYCODE_STAR || keyCode == DeviceConfig.DEVICE_KEYCODE_STAR) {
@@ -1490,7 +1557,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 if (keyCode == KeyEvent.KEYCODE_STAR || keyCode == DeviceConfig.DEVICE_KEYCODE_STAR) {
                     resetDial();
                     startCancelDirectCall();
-
                 }
             } else if (currentStatus == DIRECT_CALLING_TRY_MODE) {
                 if (keyCode == KeyEvent.KEYCODE_STAR || keyCode == DeviceConfig.DEVICE_KEYCODE_STAR) {
@@ -1510,6 +1576,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        Log.v(FACE_TAG, "onActivityResult-->" + requestCode + "/" + resultCode);
         switch (requestCode) {
             case INPUT_CARDINFO_REQUESTCODE:
                 switch (resultCode) {
@@ -1535,6 +1602,22 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 break;
             case INPUT_SYSTEMSET_REQUESTCODE:
                 imageView.setVisibility(View.VISIBLE);
+                break;
+            case REQUEST_CODE_IMAGE_CAMERA:
+                if (resultCode == RESULT_OK) {
+//                    Uri mPath = ArcsoftManager.getInstance().getCaptureImage();
+//                    String file = getFacePath(mPath);
+                    String file = data.getStringExtra("imagePath");
+                    Bitmap bmp = BitmapUtils.decodeImage(file);
+                    startFaceRegister(bmp, file);
+                }
+                break;
+            case REQUEST_CODE_IMAGE_PATH:
+                if (data != null) {
+                    Bundle bundle = data.getExtras();
+                    String path = bundle.getString("imagePath");
+                    Log.v(FACE_TAG, "onActivityResult-->" + path);
+                }
                 break;
         }
     }
@@ -2180,6 +2263,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     protected void onResume() {
         super.onResume();
+        Log.v(FACE_TAG, "MainActivity/onResume-->");
+        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 10);
+
         Intent intent = getIntent();
         String bindnum = intent.getStringExtra("bindnmu");
         if (!"".equals(bindnum) && "havenum".equals(bindnum)) {
@@ -2210,6 +2296,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     protected void onPause() {
         super.onPause();
+        Log.v(FACE_TAG, "MainActivity/onPause-->");
+        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 10);
+
         //unbindService(mConn);
         //advertiseHandler.onDestroy();
         //videoView.setVisibility(View.GONE);
@@ -2217,6 +2306,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     protected void onDestroy() {
+        Log.v(FACE_TAG, "MainActivity/onDestroy-->");
         try {
             isConnectBLE = false;
             stopGetDoorStarts();//停止定时获取蓝牙锁状态
@@ -2237,6 +2327,23 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        mFRAbsLoop.shutdown();
+        AFT_FSDKError err = engine.AFT_FSDK_UninitialFaceEngine();
+        Log.d(TAG, "AFT_FSDK_UninitialFaceEngine =" + err.getCode());
+
+        ASAE_FSDKError err1 = mAgeEngine.ASAE_FSDK_UninitAgeEngine();
+        Log.d(TAG, "ASAE_FSDK_UninitAgeEngine =" + err1.getCode());
+
+        ASGE_FSDKError err2 = mGenderEngine.ASGE_FSDK_UninitGenderEngine();
+        Log.d(TAG, "ASGE_FSDK_UninitGenderEngine =" + err2.getCode());
+        if (faceHandler != null) {
+            faceHandler.removeCallbacksAndMessages(null);
+        }
+//        if (faceThread != null) {
+//            faceThread.quit();
+//        }
+
         super.onDestroy();
     }
 
@@ -2321,6 +2428,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     @Override
     public void onStop() {
         super.onStop();
+        Log.v(FACE_TAG, "MainActivity/onStop-->");
         AppIndex.AppIndexApi.end(client, getIndexApiAction());
         client.disconnect();
     }
@@ -2548,6 +2656,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     }
                     break;
                 case DoorLock.DoorLockStatusChange://门锁状态发生变化
+                    Log.v(FACE_TAG, "onReceive-->" + 987);
                     break;
 
                 case ACTION_LOCK_BATTERY://电量
@@ -2678,6 +2787,518 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public void sendMessage(String action) {
         Intent intent = new Intent(action);
         sendBroadcast(intent);
+    }
+
+    //人脸识别
+    AFT_FSDKFace mAFT_FSDKFace = null;
+    private int mWidth, mHeight, mFormat;
+    private CameraSurfaceView mSurfaceView;
+    private CameraGLSurfaceView mGLSurfaceView;
+    private Camera mCamera;
+
+    AFT_FSDKVersion version = new AFT_FSDKVersion();
+    AFT_FSDKEngine engine = new AFT_FSDKEngine();
+    ASAE_FSDKVersion mAgeVersion = new ASAE_FSDKVersion();
+    ASAE_FSDKEngine mAgeEngine = new ASAE_FSDKEngine();
+    ASGE_FSDKVersion mGenderVersion = new ASGE_FSDKVersion();
+    ASGE_FSDKEngine mGenderEngine = new ASGE_FSDKEngine();
+    List<AFT_FSDKFace> result = new ArrayList<>();
+    List<ASAE_FSDKAge> ages = new ArrayList<>();
+    List<ASGE_FSDKGender> genders = new ArrayList<>();
+
+    byte[] mImageNV21 = null;
+    FRAbsLoop mFRAbsLoop = null;
+
+    private boolean identification = false;
+
+    //    private HandlerThread faceThread;
+    private Handler faceHandler;
+
+    private void initFaceDetect() {
+        Resources resources = this.getResources();
+        DisplayMetrics dm = resources.getDisplayMetrics();
+        float density = dm.density;
+        mWidth = dm.widthPixels;
+        mHeight = dm.heightPixels;
+        Log.v(FACE_TAG, "initFaceDetect-->" + mWidth + "/" + mHeight + "/" + density);
+
+        mFormat = ImageFormat.NV21;
+
+        mGLSurfaceView = (CameraGLSurfaceView) findViewById(R.id.glsurfaceView);
+        mSurfaceView = (CameraSurfaceView) findViewById(R.id.surfaceView);
+        mSurfaceView.setOnCameraListener(this);
+        mSurfaceView.setupGLSurafceView(mGLSurfaceView, true, true, 0);
+        mSurfaceView.debug_print_fps(true, false);
+
+        AFT_FSDKError err = engine.AFT_FSDK_InitialFaceEngine(FaceDB.appid, FaceDB.ft_key, AFT_FSDKEngine.AFT_OPF_0_HIGHER_EXT, 16, 5);
+        Log.d(TAG, "AFT_FSDK_InitialFaceEngine =" + err.getCode());
+        err = engine.AFT_FSDK_GetVersion(version);
+        Log.d(TAG, "AFT_FSDK_GetVersion:" + version.toString() + "," + err.getCode());
+
+        ASAE_FSDKError error = mAgeEngine.ASAE_FSDK_InitAgeEngine(FaceDB.appid, FaceDB.age_key);
+        Log.d(TAG, "ASAE_FSDK_InitAgeEngine =" + error.getCode());
+        error = mAgeEngine.ASAE_FSDK_GetVersion(mAgeVersion);
+        Log.d(TAG, "ASAE_FSDK_GetVersion:" + mAgeVersion.toString() + "," + error.getCode());
+
+        ASGE_FSDKError error1 = mGenderEngine.ASGE_FSDK_InitgGenderEngine(FaceDB.appid, FaceDB.gender_key);
+        Log.d(TAG, "ASGE_FSDK_InitgGenderEngine =" + error1.getCode());
+        error1 = mGenderEngine.ASGE_FSDK_GetVersion(mGenderVersion);
+        Log.d(TAG, "ASGE_FSDK_GetVersion:" + mGenderVersion.toString() + "," + error1.getCode());
+
+//        //创建一个线程,线程名字：faceHandlerThread
+//        faceThread = new HandlerThread("faceHandlerThread");
+//        //开启一个线程
+//        faceThread.start();
+//        //在这个线程中创建一个handler对象
+//        faceHandler = new Handler(faceThread.getLooper()) {
+//            @Override
+//            public void handleMessage(Message msg) {
+//                super.handleMessage(msg);
+//                Log.v(FACE_TAG, "handleMessage-->" + msg.what + "/" + Thread.currentThread().getName());
+//            }
+//        };
+
+        faceHandler = new Handler(new Handler.Callback() {
+            @Override
+            public boolean handleMessage(Message msg) {
+                Log.v(FACE_TAG, "handleMessage-->" + msg.what + "/" + Thread.currentThread().getName());
+                switch (msg.what) {
+                    case -1:
+                        identification = true;
+                        break;
+                    case MSG_FACE_DETECT_INPUT:
+                        faceDetectInput();
+                        break;
+                    case MSG_FACE_DETECT_CONTRAST:
+//                        faceDetectContrast();
+                        identification = true;
+                        if (mSurfaceView.getVisibility() != View.VISIBLE) {
+                            mGLSurfaceView.setVisibility(View.VISIBLE);
+                            mSurfaceView.setVisibility(View.VISIBLE);
+                        }
+                        break;
+                    case MSG_FACE_DETECT_PAUSE:
+                        identification = false;
+                        if (mSurfaceView.getVisibility() != View.GONE) {
+                            mGLSurfaceView.setVisibility(View.GONE);
+                            mSurfaceView.setVisibility(View.GONE);
+                        }
+                        break;
+                }
+                return false;
+            }
+        });
+
+        mFRAbsLoop = new FRAbsLoop();
+        mFRAbsLoop.start();
+
+//        //在主线程给handler发送消息
+//        faceHandler.sendEmptyMessage(1);
+
+//        final ProgressDialog mProgressDialog = new ProgressDialog(this);
+//        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+//        mProgressDialog.setTitle("loading face data...");
+//        mProgressDialog.setCancelable(false);
+//        mProgressDialog.show();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Log.v(FACE_TAG, "initFaceDetect-->" + 111);
+                ArcsoftManager.getInstance().mFaceDB.loadFaces();
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+//                        //在子线程给handler发送数据
+//                        faceHandler.sendEmptyMessage(2);
+                        Log.v(FACE_TAG, "initFaceDetect-->" + 222);
+//                        mProgressDialog.cancel();
+                        if (ArcsoftManager.getInstance().mFaceDB.mRegister.isEmpty()) {
+                            Utils.DisplayToast(MainActivity.this, "没有注册人脸，请先注册");
+                            return;
+                        }
+                        identification = true;
+                        Utils.DisplayToast(MainActivity.this, "人脸数据加载完成");
+                    }
+                });
+            }
+        }).start();
+    }
+
+    @Override
+    public Camera setupCamera() {
+        // TODO Auto-generated method stub
+        mCamera = Camera.open();
+        try {
+            mHeight = 720;
+            Camera.Parameters parameters = mCamera.getParameters();
+//            parameters.setPreviewSize(mWidth, mHeight);
+            parameters.setPreviewSize(800, 600);
+            parameters.setPreviewFormat(mFormat);
+
+            for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
+                Log.v(FACE_TAG, "SIZE:" + size.width + "x" + size.height);
+            }
+            for (Integer format : parameters.getSupportedPreviewFormats()) {
+                Log.v(FACE_TAG, "FORMAT:" + format);
+            }
+
+            List<int[]> fps = parameters.getSupportedPreviewFpsRange();
+            for (int[] count : fps) {
+                Log.d(TAG, "T:");
+                for (int data : count) {
+                    Log.d(TAG, "V=" + data);
+                }
+            }
+            //parameters.setPreviewFpsRange(15000, 30000);
+            //parameters.setExposureCompensation(parameters.getMaxExposureCompensation());
+            //parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
+            //parameters.setAntibanding(Camera.Parameters.ANTIBANDING_AUTO);
+            //parmeters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+            //parameters.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
+            //parameters.setColorEffect(Camera.Parameters.EFFECT_NONE);
+            mCamera.setParameters(parameters);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.v(FACE_TAG, "setupCamera-->" + e.getMessage());
+        }
+        if (mCamera != null) {
+            mWidth = mCamera.getParameters().getPreviewSize().width;
+            mHeight = mCamera.getParameters().getPreviewSize().height;
+            mCamera.autoFocus(null);
+            Log.v(FACE_TAG, "SIZE:" + mWidth + "x" + mHeight);
+        }
+        return mCamera;
+    }
+
+    @Override
+    public void setupChanged(int format, int width, int height) {
+        Log.v(FACE_TAG, "setupChanged-->" + width + "/" + height);
+    }
+
+    @Override
+    public boolean startPreviewLater() {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public Object onPreview(byte[] data, int width, int height, int format, long timestamp) {
+        AFT_FSDKError err = engine.AFT_FSDK_FaceFeatureDetect(data, width, height, AFT_FSDKEngine.CP_PAF_NV21, result);
+        Log.d(TAG, "AFT_FSDK_FaceFeatureDetect =" + err.getCode());
+        Log.d(TAG, "Face=" + result.size());
+        for (AFT_FSDKFace face : result) {
+            Log.d(TAG, "Face:" + face.toString());
+        }
+        if (mImageNV21 == null) {
+            if (!result.isEmpty()) {
+                mAFT_FSDKFace = result.get(0).clone();
+                mImageNV21 = data.clone();
+            } else {
+//                mHandler.postDelayed(hide, 3000);
+            }
+        }
+        //copy rects
+        Rect[] rects = new Rect[result.size()];
+        for (int i = 0; i < result.size(); i++) {
+            rects[i] = new Rect(result.get(i).getRect());
+        }
+        //clear result.
+        result.clear();
+        //return the rects for render.
+        return rects;
+    }
+
+    @Override
+    public void onBeforeRender(CameraFrameData data) {
+
+    }
+
+    @Override
+    public void onAfterRender(CameraFrameData data) {
+        mGLSurfaceView.getGLES2Render().draw_rect((Rect[]) data.getParams(), Color.GREEN, 2);
+    }
+
+    private void faceDetectInput() {
+//        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
+//        ContentValues values = new ContentValues(1);
+//        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+//        Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+//        Log.v(FACE_TAG, "faceDetectInput:" + uri.toString());
+//        ArcsoftManager.getInstance().setCaptureImage(uri);
+//        intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+//        startActivityForResult(intent, REQUEST_CODE_IMAGE_CAMERA);
+
+        startActivityForResult(new Intent(this, PhotographActivity.class), REQUEST_CODE_IMAGE_CAMERA);
+    }
+
+    private void faceDetectContrast() {
+        if (!ArcsoftManager.getInstance().mFaceDB.mRegister.isEmpty()) {
+            startDetector(1);
+            return;
+        }
+        Utils.DisplayToast(MainActivity.this, "没有注册人脸，请先注册");
+    }
+
+    /**
+     * @param uri
+     * @return
+     */
+    private String getFacePath(Uri uri) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            if (DocumentsContract.isDocumentUri(this, uri)) {
+                // ExternalStorageProvider
+                if (isExternalStorageDocument(uri)) {
+                    final String docId = DocumentsContract.getDocumentId(uri);
+                    final String[] split = docId.split(":");
+                    final String type = split[0];
+
+                    if ("primary".equalsIgnoreCase(type)) {
+                        return Environment.getExternalStorageDirectory() + "/" + split[1];
+                    }
+
+                    // TODO handle non-primary volumes
+                } else if (isDownloadsDocument(uri)) {
+
+                    final String id = DocumentsContract.getDocumentId(uri);
+                    final Uri contentUri = ContentUris.withAppendedId(
+                            Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
+
+                    return getDataColumn(this, contentUri, null, null);
+                } else if (isMediaDocument(uri)) {
+                    final String docId = DocumentsContract.getDocumentId(uri);
+                    final String[] split = docId.split(":");
+                    final String type = split[0];
+
+                    Uri contentUri = null;
+                    if ("image".equals(type)) {
+                        contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+                    } else if ("video".equals(type)) {
+                        contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+                    } else if ("audio".equals(type)) {
+                        contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+                    }
+
+                    final String selection = "_id=?";
+                    final String[] selectionArgs = new String[]{
+                            split[1]
+                    };
+
+                    return getDataColumn(this, contentUri, selection, selectionArgs);
+                }
+            }
+        }
+        String[] proj = {MediaStore.Images.Media.DATA};
+        Cursor actualimagecursor = this.getContentResolver().query(uri, proj, null, null, null);
+        int actual_image_column_index = actualimagecursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        actualimagecursor.moveToFirst();
+        String img_path = actualimagecursor.getString(actual_image_column_index);
+        String end = img_path.substring(img_path.length() - 4);
+        if (0 != end.compareToIgnoreCase(".jpg") && 0 != end.compareToIgnoreCase(".png")) {
+            return null;
+        }
+        return img_path;
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is ExternalStorageProvider.
+     */
+    public static boolean isExternalStorageDocument(Uri uri) {
+        return "com.android.externalstorage.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is DownloadsProvider.
+     */
+    public static boolean isDownloadsDocument(Uri uri) {
+        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is MediaProvider.
+     */
+    public static boolean isMediaDocument(Uri uri) {
+        return "com.android.providers.media.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * Get the value of the data column for this Uri. This is useful for
+     * MediaStore Uris, and other file-based ContentProviders.
+     *
+     * @param context       The context.
+     * @param uri           The Uri to query.
+     * @param selection     (Optional) Filter used in the query.
+     * @param selectionArgs (Optional) Selection arguments used in the query.
+     * @return The value of the _data column, which is typically a file path.
+     */
+    public static String getDataColumn(Context context, Uri uri, String selection,
+                                       String[] selectionArgs) {
+
+        Cursor cursor = null;
+        final String column = "_data";
+        final String[] projection = {
+                column
+        };
+
+        try {
+            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
+                    null);
+            if (cursor != null && cursor.moveToFirst()) {
+                final int index = cursor.getColumnIndexOrThrow(column);
+                return cursor.getString(index);
+            }
+        } finally {
+            if (cursor != null)
+                cursor.close();
+        }
+        return null;
+    }
+
+    /**
+     * @param mBitmap
+     */
+    private void startFaceRegister(Bitmap mBitmap, String file) {
+        Log.v(FACE_TAG, "startFaceRegister-->");
+        Intent it = new Intent(this, FaceRegisterActivity.class);
+        Bundle bundle = new Bundle();
+        bundle.putString("imagePath", file);
+        it.putExtras(bundle);
+        startActivityForResult(it, REQUEST_CODE_IMAGE_PATH);
+    }
+
+    private void startDetector(int camera) {
+        Log.v(FACE_TAG, "startDetector-->" + Camera.getNumberOfCameras());
+        Intent it = new Intent(this, DetecterActivity.class);
+        it.putExtra("Camera", camera);
+        startActivityForResult(it, REQUEST_CODE_IMAGE_PATH);
+    }
+
+    class FRAbsLoop extends AbsLoop {
+
+        AFR_FSDKVersion version = new AFR_FSDKVersion();
+        AFR_FSDKEngine engine = new AFR_FSDKEngine();
+        AFR_FSDKFace result = new AFR_FSDKFace();
+        List<FaceDB.FaceRegist> mResgist = ArcsoftManager.getInstance().mFaceDB.mRegister;
+//        List<ASAE_FSDKFace> face1 = new ArrayList<>();
+//        List<ASGE_FSDKFace> face2 = new ArrayList<>();
+
+        @Override
+        public void setup() {
+            AFR_FSDKError error = engine.AFR_FSDK_InitialEngine(FaceDB.appid, FaceDB.fr_key);
+            Log.v(FACE_TAG, "AFR_FSDK_InitialEngine = " + error.getCode());
+            error = engine.AFR_FSDK_GetVersion(version);
+            Log.v(FACE_TAG, "FR=" + version.toString() + "," + error.getCode()); //(210, 178 - 478, 446), degree = 1　780, 2208 - 1942, 3370
+        }
+
+        @Override
+        public void loop() {
+            if (mImageNV21 != null && identification) {
+                long time = System.currentTimeMillis();
+                AFR_FSDKError error = engine.AFR_FSDK_ExtractFRFeature(mImageNV21, mWidth, mHeight, AFR_FSDKEngine.CP_PAF_NV21, mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree(), result);
+                Log.d(TAG, "AFR_FSDK_ExtractFRFeature cost :" + (System.currentTimeMillis() - time) + "ms");
+                Log.d(TAG, "Face=" + result.getFeatureData()[0] + "," + result.getFeatureData()[1] + "," + result.getFeatureData()[2] + "," + error.getCode());
+                AFR_FSDKMatching score = new AFR_FSDKMatching();
+                float max = 0.0f;
+                String name = null;
+                for (FaceDB.FaceRegist fr : mResgist) {
+                    for (AFR_FSDKFace face : fr.mFaceList) {
+                        error = engine.AFR_FSDK_FacePairMatching(result, face, score);
+                        Log.d(TAG, "Score:" + score.getScore() + ", AFR_FSDK_FacePairMatching=" + error.getCode());
+                        if (max < score.getScore()) {
+                            max = score.getScore();
+                            name = fr.mName;
+                            if (max > 0.80f) {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+//                //age & gender
+//                face1.clear();
+//                face2.clear();
+//                face1.add(new ASAE_FSDKFace(mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree()));
+//                face2.add(new ASGE_FSDKFace(mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree()));
+//                ASAE_FSDKError error1 = mAgeEngine.ASAE_FSDK_AgeEstimation_Image(mImageNV21, mWidth, mHeight, AFT_FSDKEngine.CP_PAF_NV21, face1, ages);
+//                ASGE_FSDKError error2 = mGenderEngine.ASGE_FSDK_GenderEstimation_Image(mImageNV21, mWidth, mHeight, AFT_FSDKEngine.CP_PAF_NV21, face2, genders);
+//                Log.d(TAG, "ASAE_FSDK_AgeEstimation_Image:" + error1.getCode() + ",ASGE_FSDK_GenderEstimation_Image:" + error2.getCode());
+//                Log.d(TAG, "age:" + ages.get(0).getAge() + ",gender:" + genders.get(0).getGender());
+//                final String age = ages.get(0).getAge() == 0 ? "年龄未知" : ages.get(0).getAge() + "岁";
+//                final String gender = genders.get(0).getGender() == -1 ? "性别未知" : (genders.get(0).getGender() == 0 ? "男" : "女");
+//
+//                //crop
+//                byte[] data = mImageNV21;
+//                YuvImage yuv = new YuvImage(data, ImageFormat.NV21, mWidth, mHeight, null);
+//                ExtByteArrayOutputStream ops = new ExtByteArrayOutputStream();
+//                yuv.compressToJpeg(mAFT_FSDKFace.getRect(), 80, ops);
+//                final Bitmap bmp = BitmapFactory.decodeByteArray(ops.getByteArray(), 0, ops.getByteArray().length);
+//                try {
+//                    ops.close();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+
+                Log.v(FACE_TAG, "fit Score:" + max + ", NAME:" + name);
+                if (max > 0.80f) {
+                    //fr success.
+                    final float max_score = max;
+                    Log.v(FACE_TAG, "置信度：" + (float) ((int) (max_score * 1000)) / 1000.0);
+                    Message message = Message.obtain();
+                    message.what = MainService.MSG_FACE_OPENLOCK;
+                    try {
+                        serviceMessenger.send(message);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                }
+                mImageNV21 = null;
+            }
+            try {
+                Thread.sleep(5 * 1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void over() {
+            AFR_FSDKError error = engine.AFR_FSDK_UninitialEngine();
+            Log.v(FACE_TAG, "AFR_FSDK_UninitialEngine : " + error.getCode());
+        }
+    }
+
+    private boolean fileOperation(String name) {
+        boolean bool = false;
+        String path = getExternalCacheDir().getPath();
+        Log.v(FACE_TAG, "fileOperation-->" + path);
+        File file = new File(path);
+        if (file != null && file.exists()) {
+            File[] files = file.listFiles();// 读取文件夹下文件
+            if (files != null) {
+                for (File file1 : files) {
+                    if (file1.isDirectory()) {//检查此路径名的文件是否是一个目录(文件夹)
+                        continue;
+                    }
+                    String fileName = file1.getName();
+                    Log.v(FACE_TAG, "fileOperation-->" + fileName + "/" + file1.getPath());
+                    if (fileName.endsWith(".data")) {
+                        bool = fileName.contains(name);
+                    }
+//                    String str = "";
+//                    if (fileName.endsWith(".png")) {
+//                        str = fileName.substring(0, fileName.lastIndexOf(".")).toString();
+//                        Log.v(FACE_TAG, "fileOperation1-->" + str);
+//                    }
+//                    if (fileName.endsWith(".data")) {
+//                        str = fileName.substring(0, fileName.lastIndexOf(".")).toString();
+//                        Log.v(FACE_TAG, "fileOperation2-->" + str);
+//                    }
+                }
+            }
+        }
+        return bool;
     }
 }
 

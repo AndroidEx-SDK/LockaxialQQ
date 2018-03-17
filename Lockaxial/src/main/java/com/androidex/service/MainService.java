@@ -97,6 +97,7 @@ import rtc.sdk.iface.Device;
 import rtc.sdk.iface.DeviceListener;
 import rtc.sdk.iface.RtcClient;
 
+import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
 import static com.util.Constant.MSG_ADVERTISE_REFRESH;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_COMPLETE;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_DIALING;
@@ -155,6 +156,7 @@ public class MainService extends Service {
     public static final int MSG_WIFI_CONNECT = 20017;
     public static final int MSG_CHANGE_FINGER = 20018;
     public static final int MSG_CHANGE_CARD = 20019;
+    public static final int MSG_FACE_OPENLOCK = 40000;
     public static final int MSG_FINGER_OPENLOCK = 20020;
     public static final int MSG_CARD_OPENLOCK = 20021;
     public static final int MSG_ASSEMBLE_KEY = 99922;
@@ -268,7 +270,7 @@ public class MainService extends Service {
     private Runnable startMain = new Runnable() {
         @Override
         public void run() {
-            Intent i = new Intent(MainService.this,MainActivity.class);
+            Intent i = new Intent(MainService.this, MainActivity.class);
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             MainService.this.startActivity(i);
         }
@@ -280,7 +282,7 @@ public class MainService extends Service {
     @Override
     public void onCreate() {
         HttpApi.i("MainService开始初始化");
-        activityManager = (ActivityManager)getSystemService(ACTIVITY_SERVICE);
+        activityManager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
         hwservice = new hwService(MainService.this);
         wifiAdmin = new WifiAdmin(this);
         initHandler();
@@ -298,7 +300,7 @@ public class MainService extends Service {
             @Override
             public void handleMessage(Message msg) {
                 if (msg.what == REGISTER_ACTIVITY_INIT) { //InitActivity入口
-                    netWorkstate = (boolean)msg.obj;
+                    netWorkstate = (boolean) msg.obj;
                     initMessenger = msg.replyTo;
                     init();
                     HttpApi.i("MainServic开始初始化");
@@ -382,6 +384,9 @@ public class MainService extends Service {
                     JSONArray cardListSuccess = lists[0];
                     JSONArray cardListFailed = lists[1];
                     startChangeCardComplete(cardListSuccess, cardListFailed);
+                } else if (msg.what == MSG_FACE_OPENLOCK) {
+                    Log.v(FACE_TAG, "handleMessage-->" + "人脸识别开锁");
+                    openLock();
                 } else if (msg.what == MSG_FINGER_OPENLOCK) {
                     int index = (Integer) msg.obj;
                     // startFingerOpenLock(index);
@@ -417,12 +422,12 @@ public class MainService extends Service {
                 } else if (msg.what == MSG_UPDATE_VERSION) {
                     updateApp();
                     Log.i("UpdateService", "开启安装");
-                } else if(msg.what == MSG_UPDATE_NETWORKSTATE){
-                    netWorkstate = (boolean)msg.obj;
-                    HttpApi.i("网络波动"+netWorkstate);
-                    if(netWorkstate){
+                } else if (msg.what == MSG_UPDATE_NETWORKSTATE) {
+                    netWorkstate = (boolean) msg.obj;
+                    HttpApi.i("网络波动" + netWorkstate);
+                    if (netWorkstate) {
                         initWhenConnected(); //开始在线版本
-                    }else{
+                    } else {
                         initWhenOffline(); //开始离线版本
                     }
                 }
@@ -548,59 +553,59 @@ public class MainService extends Service {
         //xiaozd add
         initCheckTopActivity();
         /**if (isNetworkConnectedWithTimeout()) {//不做网络判断
-            Log.i("MainService", "Test Connected");
-            initWhenConnected(); //开始在线版本
-        } else {
-            Log.i("MainService", "Test NoNetwork");
-            //sendInitMessenger(InitActivity.MSG_NO_NETWORK);//检测到没有网络发送消息让用户选择
-            //xiaozd add
-            initWhenOffline();
-        }*/
+         Log.i("MainService", "Test Connected");
+         initWhenConnected(); //开始在线版本
+         } else {
+         Log.i("MainService", "Test NoNetwork");
+         //sendInitMessenger(InitActivity.MSG_NO_NETWORK);//检测到没有网络发送消息让用户选择
+         //xiaozd add
+         initWhenOffline();
+         }*/
 
         //xiaozd add
-        if(netWorkstate){
+        if (netWorkstate) {
             initWhenConnected(); //开始在线版本
-        }else{
+        } else {
             initWhenOffline(); //开始离线版本
         }
     }
 
     /**
      * 检查最上层界面
-     * */
-    private void initCheckTopActivity(){
-        if(activityTimer!=null){
+     */
+    private void initCheckTopActivity() {
+        if (activityTimer != null) {
             activityTimer.cancel();
             activityTimer = null;
         }
-        if(activityTimer == null){
+        if (activityTimer == null) {
             activityTimer = new Timer();
         }
         activityTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                if(activityManager != null){
+                if (activityManager != null) {
                     ComponentName cn = activityManager.getRunningTasks(1).get(0).topActivity;
-                    if(!cn.getPackageName().equals(MainService.this.getPackageName())){
-                        HttpApi.i("TopActivity_","不在当前程序");
-                        if(!isPullTime){
-                            HttpApi.i("TopActivity_","倒计时进入MainActivity");
-                            handler.postDelayed(startMain,30*1000);
+                    if (!cn.getPackageName().equals(MainService.this.getPackageName())) {
+                        HttpApi.i("TopActivity_", "不在当前程序");
+                        if (!isPullTime) {
+                            HttpApi.i("TopActivity_", "倒计时进入MainActivity");
+                            handler.postDelayed(startMain, 30 * 1000);
                             isPullTime = true;
                         }
-                    }else{
-                        HttpApi.i("TopActivity_","处于当前程序");
+                    } else {
+                        HttpApi.i("TopActivity_", "处于当前程序");
                         handler.removeCallbacks(startMain);
                         isPullTime = false;
                     }
                 }
             }
-        },500,3000);
+        }, 500, 3000);
     }
 
     /**
      * 进入在线版本
-     * */
+     */
     protected void initWhenConnected() {
         if (initMacAddress()) {
             Log.i("MainService", "INIT MAC Address");
@@ -634,8 +639,7 @@ public class MainService extends Service {
 
     /**
      * 每隔1S检查网络
-     *
-     * */
+     */
     public boolean isNetworkConnectedWithTimeout() {
         boolean result = false;
         for (int i = 0; i < 5; i++) {
@@ -788,13 +792,11 @@ public class MainService extends Service {
     }
 
     /**
-     *
      * 获取WIFI mac地址和密码
-     *
-     * */
+     */
     protected boolean initMacAddress() {
         String mac = getMac();
-        HttpApi.i("MAC地址："+mac);
+        HttpApi.i("MAC地址：" + mac);
         if (mac == null || mac.length() == 0) {
             Message message = Message.obtain();
             message.what = InitActivity.MSG_NO_MAC_ADDRESS;
@@ -869,9 +871,9 @@ public class MainService extends Service {
             JSONObject data = new JSONObject();
             data.put("username", mac);
             data.put("password", key);
-            String result = HttpApi.getInstance().loadHttpforPost(url,data,httpServerToken);
-            if(result!=null){
-                HttpApi.i("getClientInfo()->"+result);
+            String result = HttpApi.getInstance().loadHttpforPost(url, data, httpServerToken);
+            if (result != null) {
+                HttpApi.i("getClientInfo()->" + result);
                 JSONObject resultObj = Ajax.getJSONObject(result);
                 int code = resultObj.getInt("code");
                 if (code == 0) {
@@ -888,7 +890,7 @@ public class MainService extends Service {
                 resultObj.put("mac", this.mac);
                 message.obj = resultObj;
                 handler.sendMessage(message);
-            }else{
+            } else {
                 //服务器异常或没有网络
                 HttpApi.e("getClientInfo()->服务器无响应");
             }
@@ -1033,9 +1035,9 @@ public class MainService extends Service {
             String url = DeviceConfig.SERVER_URL + "/app/device/checkBlockNo?communityId=" + this.communityId;
             url = url + "&blockNo=" + blockNo.substring(0, 2);
             try {
-                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-                if(result!=null){
-                    HttpApi.i("onCheckBlockNo()->"+result);
+                String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+                if (result != null) {
+                    HttpApi.i("onCheckBlockNo()->" + result);
                     JSONObject resultObj = Ajax.getJSONObject(result);
                     int resultCode = resultObj.getInt("code");
                     if (resultCode == 0) {
@@ -1044,7 +1046,7 @@ public class MainService extends Service {
                         inputBlockId = 0;
                     }
                     sendDialMessenger(Constant.MSG_CHECK_BLOCKNO, inputBlockId);
-                }else{
+                } else {
                     HttpApi.e("onCheckBlockNo()->服务器异常");
                 }
             } catch (Exception e) {
@@ -1061,10 +1063,10 @@ public class MainService extends Service {
             url = url + "&lockId=" + this.lockId;
             url = url + "&cardNo=" + cardNo;
             try {
-                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-                if(result!=null){
-                    HttpApi.i("onCardAccessLog()->"+result);
-                }else{
+                String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+                if (result != null) {
+                    HttpApi.i("onCardAccessLog()->" + result);
+                } else {
                     HttpApi.i("onCardAccessLog()->服务器异常");
                 }
             } catch (Exception e) {
@@ -1099,14 +1101,14 @@ public class MainService extends Service {
                 url = url + "&imageUrl=" + URLEncoder.encode(this.imageUrl, "UTF-8");
             }
             try {
-                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-                if(result!=null){
-                    HttpApi.i("checkGuestPassword()->"+result);
+                String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+                if (result != null) {
+                    HttpApi.i("checkGuestPassword()->" + result);
                     Message message = handler.obtainMessage();
                     message.what = MSG_GUEST_PASSWORD_CHECK;
                     message.obj = Ajax.getJSONObject(result);
                     handler.sendMessage(message);
-                }else{
+                } else {
                     HttpApi.i("checkGuestPassword()->服务器异常");
                 }
             } catch (Exception e) {
@@ -1148,10 +1150,10 @@ public class MainService extends Service {
                 return;
             }
             try {
-                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-                if(result!=null){
-                    HttpApi.i("checkGuestPasswordAppendImage()->"+result);
-                }else{
+                String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+                if (result != null) {
+                    HttpApi.i("checkGuestPasswordAppendImage()->" + result);
+                } else {
                     HttpApi.i("checkGuestPasswordAppendImage()->服务器异常");
                 }
             } catch (Exception e) {
@@ -1219,7 +1221,7 @@ public class MainService extends Service {
                 Log.v("MainService", "获取token失败 [status:" + e.getMessage() + "]");
             }
         } else {
-            HttpApi.i("token----->"+(jsonrsp != null && jsonrsp.isNull("code") == false));
+            HttpApi.i("token----->" + (jsonrsp != null && jsonrsp.isNull("code") == false));
             onGetTokenError();
         }
     }
@@ -1731,9 +1733,9 @@ public class MainService extends Service {
             }
             url = url + "&unitNo=" + this.unitNo;
             try {
-                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-                if(result!=null && isCurrentCallWorking(callUuid)){
-                    HttpApi.i("callMember()->"+result);
+                String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+                if (result != null && isCurrentCallWorking(callUuid)) {
+                    HttpApi.i("callMember()->" + result);
                     Message message = handler.obtainMessage();
                     message.what = MSG_CALLMEMBER;
                     Object[] objects = new Object[2];
@@ -1741,7 +1743,7 @@ public class MainService extends Service {
                     objects[1] = Ajax.getJSONObject(result);
                     message.obj = objects;
                     handler.sendMessage(message);
-                }else{
+                } else {
                     HttpApi.e("callMember->服务器异常");
                 }
             } catch (Exception e) {
@@ -1776,7 +1778,7 @@ public class MainService extends Service {
             HttpApi.i("拨号中->网络请求在线列表");
             JSONArray userList = (JSONArray) result.get("userList");
             JSONArray unitDeviceList = (JSONArray) result.get("unitDeviceList");
-            HttpApi.i("拨号中->网络请求在线列表"+(result!=null?result.toString():""));
+            HttpApi.i("拨号中->网络请求在线列表" + (result != null ? result.toString() : ""));
             if ((userList != null && userList.length() > 0) || (unitDeviceList != null && unitDeviceList.length() > 0)) {
                 Log.v("MainService", "收到新的呼叫，清除呼叫数据，UUID=" + callUuid);
                 HttpApi.i("拨号中->清除呼叫数据");
@@ -1835,11 +1837,11 @@ public class MainService extends Service {
                         username = username.replaceAll(":", "");
                     }
                     String userUrl = RtcRules.UserToRemoteUri_new(username, RtcConst.UEType_Any);
-                    HttpApi.i("拨号中->准备拨号userUrl = "+userUrl);
-                    HttpApi.i("拨号中->准备拨号data = "+data.toString());
+                    HttpApi.i("拨号中->准备拨号userUrl = " + userUrl);
+                    HttpApi.i("拨号中->准备拨号data = " + data.toString());
                     int sendResult = device.sendIm(userUrl, "cmd/json", data.toString());
                     Log.v("MainService", "sendIm(): " + sendResult);
-                    HttpApi.i("拨号中->sendIm()"+sendResult);
+                    HttpApi.i("拨号中->sendIm()" + sendResult);
                     triedUserList.add(userObject);
                 } else {
                     HttpApi.i("拨号中->没有人在线");
@@ -1940,16 +1942,16 @@ public class MainService extends Service {
      * @throws JSONException
      * @throws IOException
      */
-    protected void onPushCallMessage(String pushList) throws Exception{
+    protected void onPushCallMessage(String pushList) throws Exception {
         JSONObject data = new JSONObject();
         data.put("pushList", pushList);
         data.put("from", key);
         data.put("unitName", communityName + unitNo);
         String dataStr = data.toString();
         String url = DeviceConfig.SERVER_URL + "/app/device/pushCallMessage";
-        String result = HttpApi.getInstance().loadHttpforPost(url,data,httpServerToken);
-        if(result!=null){
-            HttpApi.i("onPushCallMessage()->"+result);
+        String result = HttpApi.getInstance().loadHttpforPost(url, data, httpServerToken);
+        if (result != null) {
+            HttpApi.i("onPushCallMessage()->" + result);
             JSONObject resultObj = Ajax.getJSONObject(result);
             int code = resultObj.getInt("code");
             if (code == 0) {
@@ -1957,7 +1959,7 @@ public class MainService extends Service {
             } else {
 
             }
-        }else{
+        } else {
             HttpApi.e("onPushCallMessage()->服务器异常");
         }
     }
@@ -2057,6 +2059,7 @@ public class MainService extends Service {
                                 Log.v("MainService", "超时检查，取消当前呼叫");
                                 resetCallMode();
                                 sendDialMessenger(MSG_CALLMEMBER_TIMEOUT); //通知界面目前已经超时，并进入初始状态
+
                             }
                         }
                     }
@@ -2328,7 +2331,7 @@ public class MainService extends Service {
 
         @Override
         public void onVideo() {
-            Log.i("xiao","接通视频通话");
+            Log.i("xiao", "接通视频通话");
             Message message = Message.obtain();
             message.what = MSG_RTC_ONVIDEO;
             try {
@@ -2356,7 +2359,7 @@ public class MainService extends Service {
     }
 
     protected void onMessage(String from, String mime, String content) {
-        HttpApi.i("from = "+from+"    mime = "+mime+"     content = "+content);
+        HttpApi.i("from = " + from + "    mime = " + mime + "     content = " + content);
         if (content.equals("refresh card info")) {
             sendDialMessenger(MSG_REFRESH_DATA, "card");
             //retrieveChangedCardList();
@@ -2427,6 +2430,7 @@ public class MainService extends Service {
             SoundPoolUtil.getSoundPoolUtil().loadVoice(getBaseContext(), 011111);
         }
     }
+
     protected void openLock() {
         if (DeviceConfig.IS_RFID_AVAILABLE) {
             // openLedLock();//开继电器门锁,开普通门锁
@@ -2434,9 +2438,17 @@ public class MainService extends Service {
             openAssembleLock();
         } else if (DeviceConfig.IS_AEX_AVAILABLE) {
             openAexLock();
+
+            int status = 2;
             Intent ds_intent = new Intent();
-            ds_intent.setAction(DoorLock.DoorLockOpenDoor_BLE);
+            ds_intent.setAction(DoorLock.DoorLockOpenDoor);
+            ds_intent.putExtra("index", 0);
+            ds_intent.putExtra("status", status);
             sendBroadcast(ds_intent);
+
+            Intent intent = new Intent();
+            intent.setAction(DoorLock.DoorLockOpenDoor_BLE);
+            sendBroadcast(intent);
         }
     }
 
@@ -2461,14 +2473,14 @@ public class MainService extends Service {
             }
         }
         try {
-            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-            if(result!=null){
-                HttpApi.i("createAccessLog()->"+result);
+            String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+            if (result != null) {
+                HttpApi.i("createAccessLog()->" + result);
                 Message message = handler.obtainMessage();
                 message.what = MSG_CREATELOG;
                 message.obj = Ajax.getJSONObject(result);
                 handler.sendMessage(message);
-            }else{
+            } else {
                 HttpApi.e("createAccessLog()->服务器异常");
             }
         } catch (Exception e) {
@@ -2490,7 +2502,7 @@ public class MainService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.v("MainService", "onDestroy()");
-        if(activityTimer!=null){
+        if (activityTimer != null) {
             activityTimer.cancel();
             activityTimer = null;
         }
@@ -2528,7 +2540,7 @@ public class MainService extends Service {
 
     protected void initConnectReport() {
         //xiaozd add
-        if(connectReportThread!=null){
+        if (connectReportThread != null) {
             connectReportThread.interrupt();
         }
         connectReportThread = new Thread() {
@@ -2550,9 +2562,9 @@ public class MainService extends Service {
         String url = DeviceConfig.SERVER_URL + "/app/device/connectReport?communityId=" + this.communityId
                 + "&lockId=" + this.lockId;
         try {
-            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-            if(result!=null){
-                HttpApi.i("connectReport()->"+result);
+            String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+            if (result != null) {
+                HttpApi.i("connectReport()->" + result);
                 JSONObject resultObject = Ajax.getJSONObject(result);
                 int resultCode = resultObject.getInt("code");
                 if (resultCode == 0) {
@@ -2560,7 +2572,7 @@ public class MainService extends Service {
                 } else {
 
                 }
-            }else{
+            } else {
                 HttpApi.e("connectReport()->服务器异常");
             }
         } catch (Exception e) {
@@ -2574,9 +2586,9 @@ public class MainService extends Service {
             String url = DeviceConfig.SERVER_URL + "/app/device/retrieveDeviceData?communityId=" + this.communityId + "&blockId=" + this.blockId
                     + "&lockId=" + this.lockId;
             try {
-                String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-                if(result!=null){
-                    HttpApi.e("initDeviceData()->"+result);
+                String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+                if (result != null) {
+                    HttpApi.e("initDeviceData()->" + result);
                     JSONObject resultObject = Ajax.getJSONObject(result);
                     int resultCode = resultObject.getInt("code");
                     if (resultCode == 0) {
@@ -2588,7 +2600,7 @@ public class MainService extends Service {
                         }
                         completeInitDeviceData();
                     }
-                }else{
+                } else {
                     HttpApi.e("initDeviceData()->服务器异常");
                 }
             } catch (Exception e) {
@@ -2603,14 +2615,14 @@ public class MainService extends Service {
         url = url + "&blockId=" + this.blockId;
         url = url + "&lockId=" + this.lockId;
         try {
-            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-            if(result!=null){
-                HttpApi.i("completeInitDeviceData()->"+result);
+            String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+            if (result != null) {
+                HttpApi.i("completeInitDeviceData()->" + result);
                 JSONObject resultObject = Ajax.getJSONObject(result);
                 int resultCode = resultObject.getInt("code");
                 if (resultCode == 0) {
                 }
-            }else{
+            } else {
                 HttpApi.e("completeInitDeviceData()->服务器异常");
             }
         } catch (Exception e) {
@@ -2620,7 +2632,7 @@ public class MainService extends Service {
 
     protected void initAdvertisement() {
         //xiaozd add
-        if(advertisementThread!=null){
+        if (advertisementThread != null) {
             advertisementThread.interrupt();
         }
         advertisementThread = new Thread() {
@@ -2652,9 +2664,9 @@ public class MainService extends Service {
         String url = DeviceConfig.SERVER_URL + "/app/device/retrieveCardList?communityId=" + this.communityId
                 + "&blockId=" + this.blockId + "&lockId=" + this.lockId;
         try {
-            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-            if(result!=null){
-                HttpApi.i("retrieveCardList()->"+result);
+            String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+            if (result != null) {
+                HttpApi.i("retrieveCardList()->" + result);
                 JSONObject resultObject = Ajax.getJSONObject(result);
                 int resultCode = resultObject.getInt("code");
                 if (resultCode == 0) {
@@ -2667,7 +2679,7 @@ public class MainService extends Service {
                         sqlUtil.insertCard(cardNo, lockId);
                     }
                 }
-            }else{
+            } else {
                 HttpApi.i("retrieveCardList()->服务器无响应");
             }
         } catch (Exception e) {
@@ -2720,9 +2732,9 @@ public class MainService extends Service {
         url = url + "&blockId=" + this.blockId;
         url = url + "&lockId=" + this.lockId;
         try {
-            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-            if(result!=null){
-                HttpApi.i("retrieveChangedCardList()->"+result);
+            String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+            if (result != null) {
+                HttpApi.i("retrieveChangedCardList()->" + result);
                 JSONObject resultObject = Ajax.getJSONObject(result);
                 int resultCode = resultObject.getInt("code");
                 if (resultCode == 0) {
@@ -2740,7 +2752,7 @@ public class MainService extends Service {
                     }
                 }
 
-            }else{
+            } else {
                 HttpApi.e("retrieveChangedCardList()->服务器异常");
             }
         } catch (Exception e) {
@@ -2766,9 +2778,9 @@ public class MainService extends Service {
         data.put("communityId", communityId);
         data.put("lockIndex", index);
         String url = DeviceConfig.SERVER_URL + "/app/device/cardOpenLock";
-        String result = HttpApi.getInstance().loadHttpforPost(url,data,httpServerToken);
-        if(result!=null){
-            HttpApi.i("onCardOpenLock()->"+result);
+        String result = HttpApi.getInstance().loadHttpforPost(url, data, httpServerToken);
+        if (result != null) {
+            HttpApi.i("onCardOpenLock()->" + result);
             JSONObject resultObj = Ajax.getJSONObject(result);
             int code = resultObj.getInt("code");
             if (code == 0) {
@@ -2776,7 +2788,7 @@ public class MainService extends Service {
             } else {
 
             }
-        }else{
+        } else {
             HttpApi.e("onCardOpenLock()->服务器异常");
         }
     }
@@ -3034,16 +3046,16 @@ public class MainService extends Service {
         }
     }*/
 
-    protected void onChangeCardComplete(JSONArray cardListSuccess, JSONArray cardListFailed) throws Exception{
+    protected void onChangeCardComplete(JSONArray cardListSuccess, JSONArray cardListFailed) throws Exception {
         JSONObject data = new JSONObject();
         data.put("lockId", lockId);
         data.put("communityId", communityId);
         data.put("cardListSuccess", cardListSuccess);
         data.put("cardListFailed", cardListFailed);
         String url = DeviceConfig.SERVER_URL + "/app/device/changeCardComplete";
-        String result = HttpApi.getInstance().loadHttpforPost(url,data,httpServerToken);
-        if(result!=null){
-            HttpApi.i("onChangeCardComplete()->"+result);
+        String result = HttpApi.getInstance().loadHttpforPost(url, data, httpServerToken);
+        if (result != null) {
+            HttpApi.i("onChangeCardComplete()->" + result);
             JSONObject resultObj = Ajax.getJSONObject(result);
             int code = resultObj.getInt("code");
             if (code == 0) {
@@ -3051,7 +3063,7 @@ public class MainService extends Service {
             } else {
 
             }
-        }else{
+        } else {
             HttpApi.e("onChangeCardComplete()->服务器异常");
         }
     }
@@ -3074,16 +3086,15 @@ public class MainService extends Service {
 
     /**
      * 根据社区ID&锁ID
-     *
-     * */
+     */
     protected JSONArray checkAdvertiseList() {
         String url = DeviceConfig.SERVER_URL + "/app/advertisement/checkAdvertiseList?communityId=" + this.communityId;
         url = url + "&lockId=" + this.lockId;
         JSONArray rows = null;
         try {
-            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-            if(result!=null){
-                HttpApi.i("checkAdvertiseList()->"+result);
+            String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+            if (result != null) {
+                HttpApi.i("checkAdvertiseList()->" + result);
                 JSONObject obj = Ajax.getJSONObject(result);
                 int resultCode = obj.getInt("code");
                 if (resultCode == 0) {
@@ -3103,7 +3114,7 @@ public class MainService extends Service {
                     } catch (Exception e) {
                     }
                 }
-            }else{
+            } else {
                 HttpApi.e("checkAdvertiseList()->服务器异常");
             }
         } catch (Exception e) {
@@ -3267,9 +3278,9 @@ public class MainService extends Service {
         String url = DeviceConfig.UPDATE_SERVER_URL + DeviceConfig.UPDATE_RELEASE_FOLDER + DeviceConfig.UPDATE_RELEASE_PACKAGE;
         Log.v("UpdateService", "===url：" + url);
         try {
-            String result = HttpApi.getInstance().loadHttpforGet(url,httpServerToken);
-            if(result!=null){
-                HttpApi.i("checkNewVersion()->"+result);
+            String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+            if (result != null) {
+                HttpApi.i("checkNewVersion()->" + result);
                 JSONObject resultObj = Ajax.getJSONObject(result);
                 int lastVersion = resultObj.getInt("version");
                 if (lastVersion > DeviceConfig.RELEASE_VERSION) { //检查当前版本是否和服务器最新版本一致，如果不是最新版本则发出更新消息
@@ -3279,7 +3290,7 @@ public class MainService extends Service {
                     message.obj = packageName;
                     handler.sendMessage(message);
                 }
-            }else{
+            } else {
                 HttpApi.e("checkNewVersion()->服务器异常");
             }
         } catch (Exception e) {
@@ -3437,7 +3448,7 @@ public class MainService extends Service {
 
     protected void startUpdateThread() {
         //xiaozd add
-        if(updateThread!=null){
+        if (updateThread != null) {
             updateThread.interrupt();
         }
         updateThread = new Thread() {
@@ -3543,29 +3554,3 @@ public class MainService extends Service {
     }
 }
 
-class CardRecord {
-    public String card = null;
-    public Date creDate = null;
-
-    public CardRecord() {
-        this.card = "";
-        this.creDate = new Date();
-    }
-
-    public boolean checkLastCard(String card) {
-        boolean result = false;
-        if (this.card.equals(card)) {
-            long offset = new Date().getTime() - this.creDate.getTime();
-            if (offset > 1000) {
-                this.card = card;
-                this.creDate = new Date();
-            } else {
-                result = true;
-            }
-        } else {
-            this.card = card;
-            this.creDate = new Date();
-        }
-        return result;
-    }
-}

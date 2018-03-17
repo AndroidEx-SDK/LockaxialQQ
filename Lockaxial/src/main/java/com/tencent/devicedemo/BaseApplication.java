@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.StrictMode;
 
+import com.arcsoft.dysmart.ArcsoftManager;
 import com.lidroid.xutils.HttpUtils;
 import com.nostra13.universalimageloader.cache.disc.impl.UnlimitedDiskCache;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
@@ -22,17 +23,15 @@ import java.io.File;
 /**
  * Created by xinshuhao on 16/7/24.
  */
-public class BaseApplication extends Application  implements Thread.UncaughtExceptionHandler
-{
+public class BaseApplication extends Application implements Thread.UncaughtExceptionHandler {
     private ImageLoader imageLoader;
     private DisplayImageOptions options;
     private static BaseApplication application;
     private HttpUtils httpUtils;
 
     @Override
-    public void onCreate()
-    {
-       // setStrictMode();
+    public void onCreate() {
+        // setStrictMode();
 
         application = this;
 
@@ -40,16 +39,16 @@ public class BaseApplication extends Application  implements Thread.UncaughtExce
 
         initImageLoader();
 
+        ArcsoftManager.getInstance().initArcsoft(this);
+
         super.onCreate();
     }
 
-    public static BaseApplication getApplication()
-    {
+    public static BaseApplication getApplication() {
         return application;
     }
 
-    public void initHttp()
-    {
+    public void initHttp() {
         httpUtils = new HttpUtils("utf-8");
         httpUtils.configRequestThreadPoolSize(5);
         httpUtils.configSoTimeout(30000);
@@ -57,19 +56,16 @@ public class BaseApplication extends Application  implements Thread.UncaughtExce
         httpUtils.configRequestRetryCount(3);
     }
 
-    private void initImageLoader()
-    {
+    private void initImageLoader() {
         imageLoader = ImageLoader.getInstance();
 
         String cachePath = null;
 
-        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED))
-        {
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
             cachePath =
                     Environment.getExternalStorageDirectory().getPath()
                             + "/qqlock/cache";
-        } else
-        {
+        } else {
             cachePath = getCacheDir().getPath() + "/qqlock/cache";
         }
 
@@ -99,30 +95,25 @@ public class BaseApplication extends Application  implements Thread.UncaughtExce
 
     }
 
-    public HttpUtils getHttpUtils()
-    {
+    public HttpUtils getHttpUtils() {
         return this.httpUtils;
     }
 
-    public ImageLoader getImageLoader()
-    {
+    public ImageLoader getImageLoader() {
         return imageLoader;
     }
 
-    public DisplayImageOptions getDisplayOptions()
-    {
+    public DisplayImageOptions getDisplayOptions() {
         return options;
     }
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    private void setStrictMode()
-    {
-        if (Integer.valueOf(Build.VERSION.SDK) > 3)
-        {
+    private void setStrictMode() {
+        if (Integer.valueOf(Build.VERSION.SDK) > 3) {
             // Log.d(LOG_TAG, "Enabling StrictMode policy over Sample application");
             StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
                     .detectNetwork().penaltyLog()
-                            // .penaltyDeath()
+                    // .penaltyDeath()
                     .build());
             StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder().detectAll()
                     .penaltyLog().build());
@@ -137,11 +128,9 @@ public class BaseApplication extends Application  implements Thread.UncaughtExce
     }
 
 
-
     // 捕获系统运行停止错误
     @Override
-    public void uncaughtException(Thread thread, Throwable ex)
-    {
+    public void uncaughtException(Thread thread, Throwable ex) {
         // System.exit(0);
 
         Intent intent = getBaseContext().getPackageManager()

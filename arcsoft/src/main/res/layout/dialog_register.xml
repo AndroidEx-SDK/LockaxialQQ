@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.guo.android_extend.widget.ExtImageView
+        android:id="@+id/extimageview"
+        android:layout_width="128dp"
+        android:layout_height="128dp"
+        android:layout_centerHorizontal="true" />
+
+    <EditText
+        android:id="@+id/number_editview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/extimageview"
+        android:layout_alignRight="@+id/extimageview"
+        android:layout_below="@+id/extimageview"
+        android:layout_marginTop="16dp"
+        android:hint="请输入房屋编号"
+        android:inputType="number"
+        android:maxLength="4"
+        android:singleLine="true" />
+
+    <EditText
+        android:id="@+id/phone_editview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/extimageview"
+        android:layout_alignRight="@+id/extimageview"
+        android:layout_below="@+id/number_editview"
+        android:layout_marginTop="16dp"
+        android:hint="请输手机号码"
+        android:inputType="number"
+        android:maxLength="11"
+        android:singleLine="true" />
+</RelativeLayout>

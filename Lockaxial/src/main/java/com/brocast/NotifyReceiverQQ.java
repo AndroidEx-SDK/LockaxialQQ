@@ -18,12 +18,14 @@ import com.tencent.devicedemo.R;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
+
 /**
  * Created by cts on 17/4/27.
  * 是否进入引导页的广播接收器
  */
 
-public class NotifyReceiverQQ extends BroadcastReceiver{
+public class NotifyReceiverQQ extends BroadcastReceiver {
     private static final String TAG = "NotifyReceiverQQ";
     Parcelable[] listTemp1;
     public Context ctx;
@@ -51,7 +53,7 @@ public class NotifyReceiverQQ extends BroadcastReceiver{
         return listTemp1;
     }
 
-    public interface CallBack{
+    public interface CallBack {
         void callBackList(Parcelable[] list);
     }
 
@@ -75,12 +77,12 @@ public class NotifyReceiverQQ extends BroadcastReceiver{
             }
 
             if (binderList.size() > 0) {
-                if (iv_bind!=null){
+                if (iv_bind != null) {
                     Log.d(TAG, "" + ": +++++++");
                     iv_bind.setImageDrawable(ctx.getResources().getDrawable(R.mipmap.binder_default_head));
                 }
             } else {
-                if (iv_bind!=null){
+                if (iv_bind != null) {
                     Log.d(TAG, "onReceive: ----------");
                     iv_bind.setImageDrawable(ctx.getResources().getDrawable(R.mipmap.bind_offline));
                 }
@@ -91,7 +93,7 @@ public class NotifyReceiverQQ extends BroadcastReceiver{
                 showAlert("解除绑定失败", "解除绑定失败，错误码:" + resultCode);
             } else {
                 showAlert("解除绑定成功", "解除绑定成功!!!");
-                if (iv_bind!=null){
+                if (iv_bind != null) {
                     Log.d(TAG, "onReceive: ==========");
                     iv_bind.setImageDrawable(ctx.getResources().getDrawable(R.mipmap.bind_offline));
                 }
@@ -102,10 +104,11 @@ public class NotifyReceiverQQ extends BroadcastReceiver{
             //showAlert("门禁状态改变",intent.getStringExtra("doorsensor"));
             String doorsendor = String.format("doorsensor=%s", intent.getStringExtra("doorsensor"));
             Log.d("NotifyReceiverQQ", doorsendor);
+            Log.v(FACE_TAG, "onReceive147-->" + 9872);
 
         } else if (intent.getAction() == TXDeviceService.wifisetting) {
-           // if (!NetWork.isNetworkAvailable(ctx))
-               // ctx.startActivity(new Intent(ctx, WifiConnActivity.class));
+            // if (!NetWork.isNetworkAvailable(ctx))
+            // ctx.startActivity(new Intent(ctx, WifiConnActivity.class));
         } else if (intent.getAction().equals(DoorLock.DoorLockOpenDoor)) {
             if (dialog != null && dialog.isShowing()) {
                 try {
