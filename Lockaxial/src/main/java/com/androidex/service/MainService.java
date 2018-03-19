@@ -75,7 +75,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -97,7 +96,6 @@ import rtc.sdk.iface.Device;
 import rtc.sdk.iface.DeviceListener;
 import rtc.sdk.iface.RtcClient;
 
-import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
 import static com.util.Constant.MSG_ADVERTISE_REFRESH;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_COMPLETE;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_DIALING;
@@ -385,7 +383,6 @@ public class MainService extends Service {
                     JSONArray cardListFailed = lists[1];
                     startChangeCardComplete(cardListSuccess, cardListFailed);
                 } else if (msg.what == MSG_FACE_OPENLOCK) {
-                    Log.v(FACE_TAG, "handleMessage-->" + "人脸识别开锁");
                     openLock();
                 } else if (msg.what == MSG_FINGER_OPENLOCK) {
                     int index = (Integer) msg.obj;

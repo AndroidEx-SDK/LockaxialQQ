@@ -18,8 +18,6 @@ import com.tencent.devicedemo.R;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
-
 /**
  * Created by cts on 17/4/27.
  * 是否进入引导页的广播接收器
@@ -104,8 +102,6 @@ public class NotifyReceiverQQ extends BroadcastReceiver {
             //showAlert("门禁状态改变",intent.getStringExtra("doorsensor"));
             String doorsendor = String.format("doorsensor=%s", intent.getStringExtra("doorsensor"));
             Log.d("NotifyReceiverQQ", doorsendor);
-            Log.v(FACE_TAG, "onReceive147-->" + 9872);
-
         } else if (intent.getAction() == TXDeviceService.wifisetting) {
             // if (!NetWork.isNetworkAvailable(ctx))
             // ctx.startActivity(new Intent(ctx, WifiConnActivity.class));

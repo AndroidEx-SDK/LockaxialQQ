@@ -91,7 +91,7 @@ import com.arcsoft.dysmart.BitmapUtils;
 import com.arcsoft.dysmart.DetecterActivity;
 import com.arcsoft.dysmart.FaceDB;
 import com.arcsoft.dysmart.FaceRegisterActivity;
-import com.arcsoft.dysmart.PhotographActivity;
+import com.arcsoft.dysmart.PhotographActivity2;
 import com.arcsoft.facerecognition.AFR_FSDKEngine;
 import com.arcsoft.facerecognition.AFR_FSDKError;
 import com.arcsoft.facerecognition.AFR_FSDKFace;
@@ -2328,6 +2328,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             e.printStackTrace();
         }
 
+        identification = false;
         mFRAbsLoop.shutdown();
         AFT_FSDKError err = engine.AFT_FSDK_UninitialFaceEngine();
         Log.d(TAG, "AFT_FSDK_UninitialFaceEngine =" + err.getCode());
@@ -3028,7 +3029,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 //        intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
 //        startActivityForResult(intent, REQUEST_CODE_IMAGE_CAMERA);
 
-        startActivityForResult(new Intent(this, PhotographActivity.class), REQUEST_CODE_IMAGE_CAMERA);
+        startActivityForResult(new Intent(this, PhotographActivity2.class), REQUEST_CODE_IMAGE_CAMERA);
     }
 
     private void faceDetectContrast() {
@@ -3254,11 +3255,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     }
                 }
                 mImageNV21 = null;
-            }
-            try {
-                Thread.sleep(5 * 1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         }
 

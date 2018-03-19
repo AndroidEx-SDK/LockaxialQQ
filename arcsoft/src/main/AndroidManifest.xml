@@ -33,6 +33,9 @@
         <activity
             android:name=".PhotographActivity"
             android:theme="@style/Theme.AppCompat.Light.DarkActionBar" />
+        <activity
+            android:name=".PhotographActivity2"
+            android:theme="@style/FullscreenTheme" />
     </application>
 
 </manifest>

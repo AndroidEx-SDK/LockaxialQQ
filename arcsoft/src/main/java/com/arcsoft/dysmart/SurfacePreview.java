@@ -1,18 +1,14 @@
 package com.arcsoft.dysmart;
 
-import android.content.ContentUris;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
-import android.media.FaceDetector;
 import android.os.Build;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.LinearLayout;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.List;
 

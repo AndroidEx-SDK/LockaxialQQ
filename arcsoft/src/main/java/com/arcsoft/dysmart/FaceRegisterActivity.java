@@ -65,8 +65,8 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
     private Rect src = new Rect();
     private Rect dst = new Rect();
     private Thread view;
-    private HListView mHListView;
-    private RegisterViewAdapter mRegisterViewAdapter;
+    //    private HListView mHListView;
+//    private RegisterViewAdapter mRegisterViewAdapter;
     private AFR_FSDKFace mAFR_FSDKFace;
     private String houseNumber, phoneNumber;
     private Bitmap faceBitmap;
@@ -95,10 +95,10 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
 //            actionBar.setDisplayHomeAsUpEnabled(false);
         }
 
-        mRegisterViewAdapter = new RegisterViewAdapter(this);
-        mHListView = (HListView) findViewById(R.id.hlistView);
-        mHListView.setAdapter(mRegisterViewAdapter);
-        mHListView.setOnItemClickListener(mRegisterViewAdapter);
+//        mRegisterViewAdapter = new RegisterViewAdapter(this);
+//        mHListView = (HListView) findViewById(R.id.hlistView);
+//        mHListView.setAdapter(mRegisterViewAdapter);
+//        mHListView.setOnItemClickListener(mRegisterViewAdapter);
 
         mUIHandler = new UIHandler();
         mBitmap = BitmapUtils.decodeImage(mFilePath);
@@ -235,14 +235,15 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
                 Log.v(FACE_TAG, "handleMessage1-->" + msg.what + "/" + Thread.currentThread().getName());
-                boolean bool1 = ArcsoftManager.getInstance().mFaceDB.saveBitmap(phoneNumber, faceBitmap);
+//                boolean bool1 = ArcsoftManager.getInstance().mFaceDB.saveBitmap(phoneNumber, faceBitmap);
                 boolean bool2 = ArcsoftManager.getInstance().mFaceDB.addFace(phoneNumber, mAFR_FSDKFace);
-                Log.v(FACE_TAG, "handleMessage2-->" + bool1 + "/" + bool2);
-                if (msg.what == 0) {
-                    Toast.makeText(FaceRegisterActivity.this, bool2 ? "注册成功" : "注册失败", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(FaceRegisterActivity.this, bool2 ? "更新成功" : "更新失败", Toast.LENGTH_SHORT).show();
-                }
+                Log.v(FACE_TAG, "handleMessage2-->" + true + "/" + bool2);
+                deletePicture();
+
+                Message message = new Message();
+                message.what = -1;
+                message.obj = new Object[]{msg.what, bool2};
+                mUIHandler.sendMessageDelayed(message, 100);
             }
         };
     }
@@ -266,6 +267,16 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
             e.printStackTrace();
         }
         return false;
+    }
+
+    private void deletePicture() {
+        File file = new File(mFilePath);
+        if (file != null && !file.exists()) {
+            Log.v(FACE_TAG, "deletePicture1-->");
+        }
+        if (file.delete()) {
+            Log.v(FACE_TAG, "deletePicture2-->");
+        }
     }
 
     @Override
@@ -403,99 +414,110 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
                 } else if (msg.arg1 == MSG_EVENT_FR_ERROR) {
                     Toast.makeText(FaceRegisterActivity.this, "FR初始化失败，错误码：" + msg.arg2, Toast.LENGTH_SHORT).show();
                 }
-            }
-        }
-    }
-
-    class Holder {
-        ExtImageView siv;
-        TextView tv;
-    }
-
-    class RegisterViewAdapter extends BaseAdapter implements AdapterView.OnItemClickListener {
-        Context mContext;
-        LayoutInflater mLInflater;
-
-        public RegisterViewAdapter(Context c) {
-            // TODO Auto-generated constructor stub
-            mContext = c;
-            mLInflater = LayoutInflater.from(mContext);
-        }
-
-        @Override
-        public int getCount() {
-            // TODO Auto-generated method stub
-            return ArcsoftManager.getInstance().mFaceDB.mRegister.size();
-        }
-
-        @Override
-        public Object getItem(int arg0) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            // TODO Auto-generated method stub
-            return position;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            // TODO Auto-generated method stub
-            Holder holder = null;
-            if (convertView != null) {
-                holder = (Holder) convertView.getTag();
-            } else {
-                convertView = mLInflater.inflate(R.layout.item_sample, null);
-                holder = new Holder();
-                holder.siv = (ExtImageView) convertView.findViewById(R.id.imageView1);
-                holder.tv = (TextView) convertView.findViewById(R.id.textView1);
-                convertView.setTag(holder);
-            }
-
-            if (!ArcsoftManager.getInstance().mFaceDB.mRegister.isEmpty()) {
-                FaceDB.FaceRegist face = ArcsoftManager.getInstance().mFaceDB.mRegister.get(position);
-                holder.tv.setText(face.mName);
-                Bitmap bitmap = ArcsoftManager.getInstance().mFaceDB.getFaceBitmap(face.mName);
-                if (bitmap != null) {
-                    holder.siv.setImageBitmap(bitmap);
+            } else if (msg.what == -1) {
+                Object[] objects = (Object[]) msg.obj;
+                boolean bool = (boolean) objects[1];
+                if ((int) objects[0] == 0) {
+                    Toast.makeText(FaceRegisterActivity.this, bool ? "注册成功" : "注册失败", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(FaceRegisterActivity.this, bool ? "更新成功" : "更新失败", Toast.LENGTH_SHORT).show();
                 }
-                //holder.siv.setImageResource(R.mipmap.ic_launcher);
-                convertView.setWillNotDraw(false);
+                if (bool) {
+                    FaceRegisterActivity.this.finish();
+                }
             }
-
-            return convertView;
-        }
-
-        @Override
-        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            Log.d("onItemClick", "onItemClick = " + position + "pos=" + mHListView.getScroll());
-            final String name = ArcsoftManager.getInstance().mFaceDB.mRegister.get(position).mName;
-//            final int count = ArcsoftManager.getInstance().mFaceDB.mRegister.get(position).mFaceList.size();
-            new AlertDialog.Builder(FaceRegisterActivity.this)
-//                    .setMessage("包含:" + count + "个注册人脸特征信息")
-                    .setMessage("删除手机号码(" + name + ")的人脸信息")
-//                    .setPositiveButton("确定", null)
-//                    .setNegativeButton("取消", null)
-                    .setOnKeyListener(new DialogInterface.OnKeyListener() {
-                        @Override
-                        public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
-                            if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                                if (keyCode == KeyEvent.KEYCODE_ENTER) {
-                                    ArcsoftManager.getInstance().mFaceDB.delete(name);
-                                    mRegisterViewAdapter.notifyDataSetChanged();
-                                    dialog.dismiss();
-                                } else if (keyCode == KeyEvent.KEYCODE_DEL) {
-                                    dialog.dismiss();
-                                }
-                            }
-                            return false;
-                        }
-                    })
-                    .show();
         }
     }
+
+//    class Holder {
+//        ExtImageView siv;
+//        TextView tv;
+//    }
+//
+//    class RegisterViewAdapter extends BaseAdapter implements AdapterView.OnItemClickListener {
+//        Context mContext;
+//        LayoutInflater mLInflater;
+//
+//        public RegisterViewAdapter(Context c) {
+//            // TODO Auto-generated constructor stub
+//            mContext = c;
+//            mLInflater = LayoutInflater.from(mContext);
+//        }
+//
+//        @Override
+//        public int getCount() {
+//            // TODO Auto-generated method stub
+//            return ArcsoftManager.getInstance().mFaceDB.mRegister.size();
+//        }
+//
+//        @Override
+//        public Object getItem(int arg0) {
+//            // TODO Auto-generated method stub
+//            return null;
+//        }
+//
+//        @Override
+//        public long getItemId(int position) {
+//            // TODO Auto-generated method stub
+//            return position;
+//        }
+//
+//        @Override
+//        public View getView(int position, View convertView, ViewGroup parent) {
+//            // TODO Auto-generated method stub
+//            Holder holder = null;
+//            if (convertView != null) {
+//                holder = (Holder) convertView.getTag();
+//            } else {
+//                convertView = mLInflater.inflate(R.layout.item_sample, null);
+//                holder = new Holder();
+//                holder.siv = (ExtImageView) convertView.findViewById(R.id.imageView1);
+//                holder.tv = (TextView) convertView.findViewById(R.id.textView1);
+//                convertView.setTag(holder);
+//            }
+//
+//            if (!ArcsoftManager.getInstance().mFaceDB.mRegister.isEmpty()) {
+//                FaceDB.FaceRegist face = ArcsoftManager.getInstance().mFaceDB.mRegister.get(position);
+//                holder.tv.setText(face.mName);
+//                Bitmap bitmap = ArcsoftManager.getInstance().mFaceDB.getFaceBitmap(face.mName);
+//                if (bitmap != null) {
+//                    holder.siv.setImageBitmap(bitmap);
+//                }
+//                //holder.siv.setImageResource(R.mipmap.ic_launcher);
+//                convertView.setWillNotDraw(false);
+//            }
+//
+//            return convertView;
+//        }
+//
+//        @Override
+//        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+//            Log.d("onItemClick", "onItemClick = " + position + "pos=" + mHListView.getScroll());
+//            final String name = ArcsoftManager.getInstance().mFaceDB.mRegister.get(position).mName;
+////            final int count = ArcsoftManager.getInstance().mFaceDB.mRegister.get(position).mFaceList.size();
+//            new AlertDialog.Builder(FaceRegisterActivity.this)
+////                    .setMessage("包含:" + count + "个注册人脸特征信息")
+//                    .setMessage("删除手机号码(" + name + ")的人脸信息")
+////                    .setPositiveButton("确定", null)
+////                    .setNegativeButton("取消", null)
+//                    .setOnKeyListener(new DialogInterface.OnKeyListener() {
+//                        @Override
+//                        public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+//                            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+//                                if (keyCode == KeyEvent.KEYCODE_ENTER) {
+//                                    ArcsoftManager.getInstance().mFaceDB.delete(name);
+//                                    mRegisterViewAdapter.notifyDataSetChanged();
+//                                    dialog.dismiss();
+//                                } else if (keyCode == KeyEvent.KEYCODE_DEL) {
+//                                    dialog.dismiss();
+//                                }
+//                            }
+//                            return false;
+//                        }
+//                    })
+//                    .show();
+//        }
+//    }
 
 //    @Override
 //    public boolean onOptionsItemSelected(MenuItem item) {
@@ -545,7 +567,7 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
                             if (event.getAction() == KeyEvent.ACTION_DOWN) {
                                 if (keyCode == KeyEvent.KEYCODE_ENTER) {
                                     handler.sendEmptyMessageDelayed(1, 100);
-                                    mRegisterViewAdapter.notifyDataSetChanged();
+//                                    mRegisterViewAdapter.notifyDataSetChanged();
                                     dialog.dismiss();
                                 } else if (keyCode == KeyEvent.KEYCODE_DEL) {
                                     dialog.dismiss();
@@ -557,7 +579,7 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
                     .show();
         } else {
             handler.sendEmptyMessageDelayed(0, 100);
-            mRegisterViewAdapter.notifyDataSetChanged();
+//            mRegisterViewAdapter.notifyDataSetChanged();
         }
         return true;
     }

@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
+import static com.arcsoft.dysmart.FaceConstant.PIC_PREFIX;
 
 public class PhotographActivity extends AppCompatActivity implements Camera.PictureCallback, View.OnClickListener {
 
@@ -151,7 +152,7 @@ public class PhotographActivity extends AppCompatActivity implements Camera.Pict
         File picDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         //get the current time
         String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        String path = picDir.getPath() + File.separator + "arcsoft_" + timeStamp + ".jpg";
+        String path = picDir.getPath() + File.separator + PIC_PREFIX + timeStamp + ".jpg";
         ///storage/sdcard/Pictures/arcsoft_20180315154351.jpg
         Log.v(FACE_TAG, "getOutputMediaFile-->" + path);
         return new File(path);

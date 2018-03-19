@@ -8,6 +8,7 @@ public class FaceConstant {
 
     //Face detect
     public static final String FACE_TAG = "face";//
+    public static final String PIC_PREFIX = "arcsoft_";//
     public static final int MSG_FACE_DETECT_CONTRAST = 11100;//人脸识别对比
     public static final int MSG_FACE_DETECT_INPUT = 11101;//人脸识别录入
     public static final int MSG_FACE_DETECT_PAUSE = 11102;//人脸识别录入

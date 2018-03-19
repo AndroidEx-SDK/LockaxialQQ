@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:id="@+id/face_container_rel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <com.guo.android_extend.widget.CameraSurfaceView
+            android:id="@+id/surfaceView"
+            android:layout_width="1dp"
+            android:layout_height="1dp" />
+
+        <com.guo.android_extend.widget.CameraGLSurfaceView
+            android:id="@+id/glsurfaceView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerInParent="true" />
+    </RelativeLayout>
+
+    <ImageView
+        android:id="@+id/capture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_circle"
+        android:padding="16dp"
+        android:src="@android:drawable/ic_menu_camera" />
+
+    <!--  <ImageView
+          android:id="@+id/delete"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_alignParentBottom="true"
+          android:layout_centerHorizontal="true"
+          android:layout_marginBottom="16dp"
+          android:background="@drawable/bg_circle"
+          android:padding="16dp"
+          android:src="@android:drawable/ic_menu_delete"
+          android:visibility="gone" />-->
+</RelativeLayout>
