@@ -353,6 +353,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
 
+        //初始化人脸相关
         initFaceDetect();
     }
 
@@ -1292,6 +1293,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         Log.v(FACE_TAG, "startDialing-->" + num);
         if (num.equals("9999")) {
             //人脸识别录入
+            faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 100);
             faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_INPUT, 100);
             return;
         }
@@ -2297,7 +2299,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     protected void onPause() {
         super.onPause();
         Log.v(FACE_TAG, "MainActivity/onPause-->");
-        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 10);
 
         //unbindService(mConn);
         //advertiseHandler.onDestroy();
@@ -2430,6 +2431,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public void onStop() {
         super.onStop();
         Log.v(FACE_TAG, "MainActivity/onStop-->");
+        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 10);
+
         AppIndex.AppIndexApi.end(client, getIndexApiAction());
         client.disconnect();
     }
@@ -2779,7 +2782,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             switch (actionName) {
                 case ACTION_NFC_CARDINFO:
                     String cardInfo = intent.getStringExtra("cardinfo");
-                    Log.d(TAG, "onReceive: cardinfo=" + cardInfo);
+                    Log.i(TAG, "onReceive: cardinfo=" + cardInfo);
                     break;
             }
         }
