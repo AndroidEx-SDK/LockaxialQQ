@@ -89,7 +89,7 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setTitle("");
-            actionBar.setLogo(R.mipmap.ic_launcher);
+            actionBar.setLogo(R.mipmap.ic_diyu);
             actionBar.setDisplayUseLogoEnabled(true);
             actionBar.setDisplayShowHomeEnabled(true);
 //            actionBar.setDisplayHomeAsUpEnabled(false);
@@ -272,7 +272,7 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
     private void deletePicture() {
         File file = new File(mFilePath);
         if (file != null && !file.exists()) {
-            Log.v(FACE_TAG, "deletePicture1-->");
+            return;
         }
         if (file.delete()) {
             Log.v(FACE_TAG, "deletePicture2-->");
@@ -327,7 +327,7 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
 
                     new AlertDialog.Builder(FaceRegisterActivity.this)
                             .setTitle("注册人脸信息")
-                            .setIcon(R.mipmap.ic_launcher)
+                            .setIcon(R.mipmap.ic_diyu)
                             .setView(layout)
 //                            .setPositiveButton("确定", null)
 //                            .setNegativeButton("取消", null)
@@ -341,10 +341,8 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
                                         Log.v(FACE_TAG, "onKey1-->" + keyCode + "/" + houseNumber + "/" + phoneNumber + "/" + key + "/" + focus);
                                         if (key >= 0) {
                                             if (focus) {//输入账号
-                                                Log.v(FACE_TAG, "onKey8-->" + keyCode + "/" + houseNumber + "/" + phoneNumber + "/" + key + "/" + focus);
                                                 callInput(key, mEditText1);
                                             } else {//输入密码
-                                                Log.v(FACE_TAG, "onKey9-->" + keyCode + "/" + houseNumber + "/" + phoneNumber + "/" + key + "/" + focus);
                                                 callInput(key, mEditText2);
                                             }
                                         } else if (keyCode == KeyEvent.KEYCODE_DEL) {
@@ -354,7 +352,6 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
                                                 FaceRegisterActivity.this.finish();
                                                 return true;
                                             }
-                                            Log.v(FACE_TAG, "onKey71-->" + keyCode + "/" + houseNumber + "/" + phoneNumber + "/" + key + "/" + focus);
                                             if (focus) {
                                                 if (!TextUtils.isEmpty(houseNumber)) {
                                                     setTextValue(mEditText1, backKey(mEditText1.getText().toString().trim()));
@@ -483,7 +480,7 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
 //                if (bitmap != null) {
 //                    holder.siv.setImageBitmap(bitmap);
 //                }
-//                //holder.siv.setImageResource(R.mipmap.ic_launcher);
+//                //holder.siv.setImageResource(R.mipmap.ic_diyu);
 //                convertView.setWillNotDraw(false);
 //            }
 //
@@ -531,7 +528,6 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        Log.v(FACE_TAG, "onKeyDown-->" + keyCode);
         if (keyCode == KeyEvent.KEYCODE_DEL) {
             this.finish(); // back button
             return true;
@@ -555,7 +551,6 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
     }
 
     private boolean inputFaceInfo() {
-        Log.v(FACE_TAG, "inputFaceInfo-->" + phoneNumber);
         if (fileOperation(phoneNumber)) {
             new AlertDialog.Builder(this)
                     .setMessage("手机号码(" + phoneNumber + ")的人脸信息已注册，是否更新?")

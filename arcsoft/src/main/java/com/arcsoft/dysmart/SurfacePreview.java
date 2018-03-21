@@ -111,7 +111,6 @@ public class SurfacePreview extends SurfaceView implements SurfaceHolder.Callbac
             });
             Camera.Parameters parameters = mCamera.getParameters();
             if (parameters.getMaxNumDetectedFaces() > 0) {
-                Log.v(FACE_TAG, "surfaceChanged-->" + 852369);
 //                if (faceView != null) {
 //                    faceView.clearFaces();
 //                    faceView.setVisibility(View.VISIBLE);

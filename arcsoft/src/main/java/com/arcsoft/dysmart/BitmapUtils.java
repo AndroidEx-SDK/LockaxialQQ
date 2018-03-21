@@ -49,6 +49,7 @@ public class BitmapUtils {
             return temp;
         } catch (Exception e) {
             e.printStackTrace();
+            Log.v(FACE_TAG, "decodeImage/Exception-->" + e.getMessage());
         }
         return null;
     }

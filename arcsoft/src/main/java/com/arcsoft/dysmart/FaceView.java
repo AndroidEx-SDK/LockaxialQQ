@@ -47,7 +47,6 @@ public class FaceView extends View {
         if (mFaces == null || mFaces.length < 1) {
             return;
         }
-        Log.v(FACE_TAG, "onDraw1-->" + mFaces.length);
         if (mFaces != null && mFaces.length >= 1) {
             canvas.translate(getWidth() / 2, getHeight() / 2);
             canvas.rotate(-0);

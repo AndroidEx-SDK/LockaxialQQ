@@ -181,7 +181,6 @@ public class FaceDB {
                     } while (bos.readBytes(afr.getFeatureData()));
                     bos.close();
                     fs.close();
-                    Log.v(FACE_TAG, "load name: size = " + face.mFaceList.size());
                 }
                 return true;
             } catch (FileNotFoundException e) {

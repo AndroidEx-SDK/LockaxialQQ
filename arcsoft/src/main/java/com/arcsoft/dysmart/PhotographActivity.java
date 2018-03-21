@@ -53,7 +53,7 @@ public class PhotographActivity extends AppCompatActivity implements Camera.Pict
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setTitle("");
-            actionBar.setLogo(R.mipmap.ic_launcher);
+            actionBar.setLogo(R.mipmap.ic_diyu);
             actionBar.setDisplayUseLogoEnabled(true);
             actionBar.setDisplayShowHomeEnabled(true);
 //            actionBar.setDisplayHomeAsUpEnabled(false);

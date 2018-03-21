@@ -35,12 +35,14 @@ import java.util.Date;
 import java.util.List;
 
 import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
+import static com.arcsoft.dysmart.FaceConstant.PIC_PREFIX;
 
 public class PhotographActivity2 extends AppCompatActivity implements Camera.PictureCallback, View.OnClickListener, CameraSurfaceView.OnCameraListener {
 
     private static final String TAG = PhotographActivity.class.getSimpleName();
 
-    private ImageView mCaptureButton, mDeleteButton;
+    private ImageView mCaptureButton;
+//    private ImageView mDeleteButton;
 
     private File pictureFile;
     private HandlerThread handlerThread;
@@ -141,7 +143,7 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
         File picDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         //get the current time
         String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        String path = picDir.getPath() + File.separator + "arcsoft_" + timeStamp + ".jpg";
+        String path = picDir.getPath() + File.separator + PIC_PREFIX + timeStamp + ".jpg";
         ///storage/sdcard/Pictures/arcsoft_20180315154351.jpg
         Log.v(FACE_TAG, "getOutputMediaFile-->" + path);
         return new File(path);
@@ -157,30 +159,30 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
         } catch (FileNotFoundException e) {
             Log.v(FACE_TAG, "savePicture2-->" + e.getMessage());
         } catch (IOException e) {
-            Log.v(FACE_TAG, "savePicture1-->" + e.getMessage());
+            Log.v(FACE_TAG, "savePicture3-->" + e.getMessage());
         }
         return false;
     }
 
-    private void deletePicture() {
-        if (pictureFile != null && !pictureFile.exists()) {
-            Toast.makeText(this, "图片不存在", Toast.LENGTH_LONG).show();
-            Log.v(FACE_TAG, "deletePicture1-->");
-        }
-        if (pictureFile.delete()) {
-            Toast.makeText(this, "删除成功", Toast.LENGTH_LONG).show();
-            mDeleteButton.post(new Runnable() {
-                @Override
-                public void run() {
-                    mDeleteButton.setVisibility(View.GONE);
-                    mCaptureButton.setVisibility(View.VISIBLE);
-                }
-            });
-        } else {
-            Toast.makeText(this, "删除失败", Toast.LENGTH_LONG).show();
-        }
-        Log.v(FACE_TAG, "deletePicture2-->");
-    }
+//    private void deletePicture() {
+//        if (pictureFile != null && !pictureFile.exists()) {
+//            Toast.makeText(this, "图片不存在", Toast.LENGTH_LONG).show();
+//            Log.v(FACE_TAG, "deletePicture1-->");
+//        }
+//        if (pictureFile.delete()) {
+//            Toast.makeText(this, "删除成功", Toast.LENGTH_LONG).show();
+//            mDeleteButton.post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    mDeleteButton.setVisibility(View.GONE);
+//                    mCaptureButton.setVisibility(View.VISIBLE);
+//                }
+//            });
+//        } else {
+//            Toast.makeText(this, "删除失败", Toast.LENGTH_LONG).show();
+//        }
+//        Log.v(FACE_TAG, "deletePicture2-->");
+//    }
 
     @Override
     protected void onDestroy() {
@@ -231,9 +233,11 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
 
     private void finishActivity() {
         if (pictureFile != null) {
-            Intent intent = new Intent();
-            intent.putExtra("imagePath", pictureFile.getPath());
-            setResult(RESULT_OK, intent);
+            Intent intent = new Intent(this, FaceRegisterActivity.class);
+            Bundle bundle = new Bundle();
+            bundle.putString("imagePath", pictureFile.getPath());
+            intent.putExtras(bundle);
+            startActivity(intent);
         }
         this.finish();
     }
@@ -271,13 +275,15 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
             mCamera.setParameters(parameters);
 
             mCamera.autoFocus(null);
+
+            int width = mCamera.getParameters().getPreviewSize().width;
+            int height = mCamera.getParameters().getPreviewSize().height;
+            Log.v(FACE_TAG, "setupCamera-->SIZE:" + width + "x" + height);
         } catch (Exception e) {
             e.printStackTrace();
             Log.v(FACE_TAG, "setupCamera-->" + e.getMessage());
         }
-        int width = mCamera.getParameters().getPreviewSize().width;
-        int height = mCamera.getParameters().getPreviewSize().height;
-        Log.v(FACE_TAG, "setupCamera-->SIZE:" + width + "x" + height);
+
         return mCamera;
     }
 

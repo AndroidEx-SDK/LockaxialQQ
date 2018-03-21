@@ -87,10 +87,7 @@ import com.arcsoft.ageestimation.ASAE_FSDKEngine;
 import com.arcsoft.ageestimation.ASAE_FSDKError;
 import com.arcsoft.ageestimation.ASAE_FSDKVersion;
 import com.arcsoft.dysmart.ArcsoftManager;
-import com.arcsoft.dysmart.BitmapUtils;
-import com.arcsoft.dysmart.DetecterActivity;
 import com.arcsoft.dysmart.FaceDB;
-import com.arcsoft.dysmart.FaceRegisterActivity;
 import com.arcsoft.dysmart.PhotographActivity2;
 import com.arcsoft.facerecognition.AFR_FSDKEngine;
 import com.arcsoft.facerecognition.AFR_FSDKError;
@@ -158,8 +155,6 @@ import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
 import static com.arcsoft.dysmart.FaceConstant.MSG_FACE_DETECT_CONTRAST;
 import static com.arcsoft.dysmart.FaceConstant.MSG_FACE_DETECT_INPUT;
 import static com.arcsoft.dysmart.FaceConstant.MSG_FACE_DETECT_PAUSE;
-import static com.arcsoft.dysmart.FaceConstant.REQUEST_CODE_IMAGE_CAMERA;
-import static com.arcsoft.dysmart.FaceConstant.REQUEST_CODE_IMAGE_PATH;
 import static com.ble.BTTempBLEService.ACTION_GATT_CONNECTED;
 import static com.ble.BTTempBLEService.ACTION_GATT_DISCONNECTED;
 import static com.ble.BTTempBLEService.ACTION_LOCK_BATTERY;
@@ -945,7 +940,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 } else if (msg.what == MSG_RTC_DISCONNECT) {
                     onRtcDisconnect();
                     //人脸识别对比
-                    faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
+                    if (faceHandler != null) {
+                        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
+                    }
                 } else if (msg.what == MSG_PASSWORD_CHECK) {
                     onPasswordCheck((Integer) msg.obj);
                 } else if (msg.what == MSG_LOCK_OPENED) {//门开了
@@ -972,7 +969,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 } else if (msg.what == MSG_CALLMEMBER_TIMEOUT) {
                     onCallMemberError(msg.what);
                     //人脸识别对比
-                    faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
+                    if (faceHandler != null) {
+                        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
+                    }
                 } else if (msg.what == MSG_CALLMEMBER_TIMEOUT_AND_TRY_DIRECT) {
                     Utils.DisplayToast(MainActivity.this, "可视对讲无法拨通，尝试直拨电话");
                     setCurrentStatus(DIRECT_CALLING_TRY_MODE);
@@ -1070,7 +1069,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     enableReaderMode();
                     Log.i("xiao_", "收到消息MSG_REGISTER_ACTIVITY_DIAL -》开始MainActivity初始化-》》》可以读卡");
                     //人脸识别对比
-                    faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
+                    if (faceHandler != null) {
+                        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
+                    }
                 } else if (msg.what == MainService.MSG_LOADLOCAL_DATA) {
                     //加载本地数据显示到界面
                     setCommunityName(MainService.communityName);
@@ -1173,7 +1174,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         Utils.DisplayToast(MainActivity.this, "门开了");
 
         identification = false;
-        faceHandler.sendEmptyMessageDelayed(-1, 10 * 1000);
+        if (faceHandler != null) {
+            faceHandler.sendEmptyMessageDelayed(-1, 10 * 1000);
+        }
     }
 
     protected void onCallMemberError(int reason) {
@@ -1293,13 +1296,17 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         Log.v(FACE_TAG, "startDialing-->" + num);
         if (num.equals("9999")) {
             //人脸识别录入
-            faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 100);
-            faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_INPUT, 100);
+            if (faceHandler != null) {
+                faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 100);
+                faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_INPUT, 100);
+            }
             return;
         }
 
         //呼叫前，确认摄像头不被占用
-        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 100);
+        if (faceHandler != null) {
+            faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 100);
+        }
 
         Log.v(FACE_TAG, "开始呼叫1" + num);
         setCurrentStatus(CALLING_MODE);
@@ -1604,22 +1611,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 break;
             case INPUT_SYSTEMSET_REQUESTCODE:
                 imageView.setVisibility(View.VISIBLE);
-                break;
-            case REQUEST_CODE_IMAGE_CAMERA:
-                if (resultCode == RESULT_OK) {
-//                    Uri mPath = ArcsoftManager.getInstance().getCaptureImage();
-//                    String file = getFacePath(mPath);
-                    String file = data.getStringExtra("imagePath");
-                    Bitmap bmp = BitmapUtils.decodeImage(file);
-                    startFaceRegister(bmp, file);
-                }
-                break;
-            case REQUEST_CODE_IMAGE_PATH:
-                if (data != null) {
-                    Bundle bundle = data.getExtras();
-                    String path = bundle.getString("imagePath");
-                    Log.v(FACE_TAG, "onActivityResult-->" + path);
-                }
                 break;
         }
     }
@@ -2266,7 +2257,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     protected void onResume() {
         super.onResume();
         Log.v(FACE_TAG, "MainActivity/onResume-->");
-        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 10);
+        if (faceHandler != null) {
+            faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 10);
+        }
 
         Intent intent = getIntent();
         String bindnum = intent.getStringExtra("bindnmu");
@@ -2330,15 +2323,17 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
 
         identification = false;
-        mFRAbsLoop.shutdown();
+        if (mFRAbsLoop != null) {
+            mFRAbsLoop.shutdown();
+        }
         AFT_FSDKError err = engine.AFT_FSDK_UninitialFaceEngine();
         Log.d(TAG, "AFT_FSDK_UninitialFaceEngine =" + err.getCode());
 
-        ASAE_FSDKError err1 = mAgeEngine.ASAE_FSDK_UninitAgeEngine();
-        Log.d(TAG, "ASAE_FSDK_UninitAgeEngine =" + err1.getCode());
-
-        ASGE_FSDKError err2 = mGenderEngine.ASGE_FSDK_UninitGenderEngine();
-        Log.d(TAG, "ASGE_FSDK_UninitGenderEngine =" + err2.getCode());
+//        ASAE_FSDKError err1 = mAgeEngine.ASAE_FSDK_UninitAgeEngine();
+//        Log.d(TAG, "ASAE_FSDK_UninitAgeEngine =" + err1.getCode());
+//
+//        ASGE_FSDKError err2 = mGenderEngine.ASGE_FSDK_UninitGenderEngine();
+//        Log.d(TAG, "ASGE_FSDK_UninitGenderEngine =" + err2.getCode());
         if (faceHandler != null) {
             faceHandler.removeCallbacksAndMessages(null);
         }
@@ -2431,7 +2426,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public void onStop() {
         super.onStop();
         Log.v(FACE_TAG, "MainActivity/onStop-->");
-        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 10);
+        if (faceHandler != null) {
+            faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 10);
+        }
 
         AppIndex.AppIndexApi.end(client, getIndexApiAction());
         client.disconnect();
@@ -2795,20 +2792,20 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     //人脸识别
     AFT_FSDKFace mAFT_FSDKFace = null;
-    private int mWidth, mHeight, mFormat;
+    private int mWidth, mHeight;
     private CameraSurfaceView mSurfaceView;
     private CameraGLSurfaceView mGLSurfaceView;
     private Camera mCamera;
 
     AFT_FSDKVersion version = new AFT_FSDKVersion();
     AFT_FSDKEngine engine = new AFT_FSDKEngine();
-    ASAE_FSDKVersion mAgeVersion = new ASAE_FSDKVersion();
-    ASAE_FSDKEngine mAgeEngine = new ASAE_FSDKEngine();
-    ASGE_FSDKVersion mGenderVersion = new ASGE_FSDKVersion();
-    ASGE_FSDKEngine mGenderEngine = new ASGE_FSDKEngine();
+    //    ASAE_FSDKVersion mAgeVersion = new ASAE_FSDKVersion();
+//    ASAE_FSDKEngine mAgeEngine = new ASAE_FSDKEngine();
+//    ASGE_FSDKVersion mGenderVersion = new ASGE_FSDKVersion();
+//    ASGE_FSDKEngine mGenderEngine = new ASGE_FSDKEngine();
     List<AFT_FSDKFace> result = new ArrayList<>();
-    List<ASAE_FSDKAge> ages = new ArrayList<>();
-    List<ASGE_FSDKGender> genders = new ArrayList<>();
+//    List<ASAE_FSDKAge> ages = new ArrayList<>();
+//    List<ASGE_FSDKGender> genders = new ArrayList<>();
 
     byte[] mImageNV21 = null;
     FRAbsLoop mFRAbsLoop = null;
@@ -2826,8 +2823,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         mHeight = dm.heightPixels;
         Log.v(FACE_TAG, "initFaceDetect-->" + mWidth + "/" + mHeight + "/" + density);
 
-        mFormat = ImageFormat.NV21;
-
         mGLSurfaceView = (CameraGLSurfaceView) findViewById(R.id.glsurfaceView);
         mSurfaceView = (CameraSurfaceView) findViewById(R.id.surfaceView);
         mSurfaceView.setOnCameraListener(this);
@@ -2839,15 +2834,15 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         err = engine.AFT_FSDK_GetVersion(version);
         Log.d(TAG, "AFT_FSDK_GetVersion:" + version.toString() + "," + err.getCode());
 
-        ASAE_FSDKError error = mAgeEngine.ASAE_FSDK_InitAgeEngine(FaceDB.appid, FaceDB.age_key);
-        Log.d(TAG, "ASAE_FSDK_InitAgeEngine =" + error.getCode());
-        error = mAgeEngine.ASAE_FSDK_GetVersion(mAgeVersion);
-        Log.d(TAG, "ASAE_FSDK_GetVersion:" + mAgeVersion.toString() + "," + error.getCode());
-
-        ASGE_FSDKError error1 = mGenderEngine.ASGE_FSDK_InitgGenderEngine(FaceDB.appid, FaceDB.gender_key);
-        Log.d(TAG, "ASGE_FSDK_InitgGenderEngine =" + error1.getCode());
-        error1 = mGenderEngine.ASGE_FSDK_GetVersion(mGenderVersion);
-        Log.d(TAG, "ASGE_FSDK_GetVersion:" + mGenderVersion.toString() + "," + error1.getCode());
+//        ASAE_FSDKError error = mAgeEngine.ASAE_FSDK_InitAgeEngine(FaceDB.appid, FaceDB.age_key);
+//        Log.d(TAG, "ASAE_FSDK_InitAgeEngine =" + error.getCode());
+//        error = mAgeEngine.ASAE_FSDK_GetVersion(mAgeVersion);
+//        Log.d(TAG, "ASAE_FSDK_GetVersion:" + mAgeVersion.toString() + "," + error.getCode());
+//
+//        ASGE_FSDKError error1 = mGenderEngine.ASGE_FSDK_InitgGenderEngine(FaceDB.appid, FaceDB.gender_key);
+//        Log.d(TAG, "ASGE_FSDK_InitgGenderEngine =" + error1.getCode());
+//        error1 = mGenderEngine.ASGE_FSDK_GetVersion(mGenderVersion);
+//        Log.d(TAG, "ASGE_FSDK_GetVersion:" + mGenderVersion.toString() + "," + error1.getCode());
 
 //        //创建一个线程,线程名字：faceHandlerThread
 //        faceThread = new HandlerThread("faceHandlerThread");
@@ -2917,6 +2912,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         Log.v(FACE_TAG, "initFaceDetect-->" + 222);
 //                        mProgressDialog.cancel();
                         if (ArcsoftManager.getInstance().mFaceDB.mRegister.isEmpty()) {
+                            Log.v(FACE_TAG, "initFaceDetect-->" + 333);
                             Utils.DisplayToast(MainActivity.this, "没有注册人脸，请先注册");
                             return;
                         }
@@ -2933,11 +2929,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         // TODO Auto-generated method stub
         mCamera = Camera.open();
         try {
-            mHeight = 720;
             Camera.Parameters parameters = mCamera.getParameters();
 //            parameters.setPreviewSize(mWidth, mHeight);
             parameters.setPreviewSize(800, 600);
-            parameters.setPreviewFormat(mFormat);
+            parameters.setPreviewFormat(ImageFormat.NV21);
 
             for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
                 Log.v(FACE_TAG, "SIZE:" + size.width + "x" + size.height);
@@ -3032,15 +3027,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 //        intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
 //        startActivityForResult(intent, REQUEST_CODE_IMAGE_CAMERA);
 
-        startActivityForResult(new Intent(this, PhotographActivity2.class), REQUEST_CODE_IMAGE_CAMERA);
-    }
-
-    private void faceDetectContrast() {
-        if (!ArcsoftManager.getInstance().mFaceDB.mRegister.isEmpty()) {
-            startDetector(1);
-            return;
-        }
-        Utils.DisplayToast(MainActivity.this, "没有注册人脸，请先注册");
+        startActivity(new Intent(this, PhotographActivity2.class));
     }
 
     /**
@@ -3158,25 +3145,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 cursor.close();
         }
         return null;
-    }
-
-    /**
-     * @param mBitmap
-     */
-    private void startFaceRegister(Bitmap mBitmap, String file) {
-        Log.v(FACE_TAG, "startFaceRegister-->");
-        Intent it = new Intent(this, FaceRegisterActivity.class);
-        Bundle bundle = new Bundle();
-        bundle.putString("imagePath", file);
-        it.putExtras(bundle);
-        startActivityForResult(it, REQUEST_CODE_IMAGE_PATH);
-    }
-
-    private void startDetector(int camera) {
-        Log.v(FACE_TAG, "startDetector-->" + Camera.getNumberOfCameras());
-        Intent it = new Intent(this, DetecterActivity.class);
-        it.putExtra("Camera", camera);
-        startActivityForResult(it, REQUEST_CODE_IMAGE_PATH);
     }
 
     class FRAbsLoop extends AbsLoop {

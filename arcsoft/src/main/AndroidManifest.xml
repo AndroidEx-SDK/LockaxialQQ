@@ -36,6 +36,8 @@
         <activity
             android:name=".PhotographActivity2"
             android:theme="@style/FullscreenTheme" />
+
+        <service android:name="com.synjones.idcard.RemoteDecodeService" />
     </application>
 
 </manifest>
