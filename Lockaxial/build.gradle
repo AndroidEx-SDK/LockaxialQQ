@@ -53,9 +53,10 @@ android {
             dirs 'libs'
         }
     }
-    packagingOptions {
-        exclude 'lib/armeabi-v7a/libserial_port.so'//该so会qqDoorlock.jar下的冲突
-    }
+//    packagingOptions {
+//        exclude 'lib/armeabi/libserial_port.so'//该so会qqDoorlock.jar下的冲突
+//        exclude 'lib/armeabi-v7a/libserial_port.so'//该so会qqDoorlock.jar下的冲突
+//    }
 }
 
 dependencies {

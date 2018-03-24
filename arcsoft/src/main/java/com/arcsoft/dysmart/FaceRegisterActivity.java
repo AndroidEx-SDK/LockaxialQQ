@@ -1,6 +1,5 @@
 package com.arcsoft.dysmart;
 
-import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -22,11 +21,7 @@ import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.arcsoft.facedetection.AFD_FSDKEngine;
@@ -39,7 +34,6 @@ import com.arcsoft.facerecognition.AFR_FSDKFace;
 import com.arcsoft.facerecognition.AFR_FSDKVersion;
 import com.guo.android_extend.image.ImageConverter;
 import com.guo.android_extend.widget.ExtImageView;
-import com.guo.android_extend.widget.HListView;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -89,7 +83,8 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setTitle("");
-            actionBar.setLogo(R.mipmap.ic_diyu);
+//            actionBar.setLogo(R.mipmap.ic_diyu);
+            actionBar.setLogo(R.mipmap.ic_launcher);
             actionBar.setDisplayUseLogoEnabled(true);
             actionBar.setDisplayShowHomeEnabled(true);
 //            actionBar.setDisplayHomeAsUpEnabled(false);
@@ -99,6 +94,11 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
 //        mHListView = (HListView) findViewById(R.id.hlistView);
 //        mHListView.setAdapter(mRegisterViewAdapter);
 //        mHListView.setOnItemClickListener(mRegisterViewAdapter);
+
+        ///storage/sdcard/Pictures/arcsoft_20180322094710.jpg
+        ///data/data/com.tencent.devicedemo/files/photo.bmp
+        Log.v(FACE_TAG, "onCreate-->" + mFilePath);
+//        mFilePath = "/data/data/com.tencent.devicedemo/files/photo.bmp";
 
         mUIHandler = new UIHandler();
         mBitmap = BitmapUtils.decodeImage(mFilePath);
@@ -327,7 +327,8 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
 
                     new AlertDialog.Builder(FaceRegisterActivity.this)
                             .setTitle("注册人脸信息")
-                            .setIcon(R.mipmap.ic_diyu)
+//                            .setIcon(R.mipmap.ic_diyu)
+                            .setIcon(R.mipmap.ic_launcher)
                             .setView(layout)
 //                            .setPositiveButton("确定", null)
 //                            .setNegativeButton("取消", null)

@@ -29,15 +29,13 @@
             android:theme="@style/Theme.AppCompat.Light.DarkActionBar" />
         <activity
             android:name=".DetecterActivity"
-            android:theme="@style/Theme.AppCompat.Light.DarkActionBar" />
+            android:theme="@style/FullscreenTheme" />
         <activity
             android:name=".PhotographActivity"
             android:theme="@style/Theme.AppCompat.Light.DarkActionBar" />
         <activity
             android:name=".PhotographActivity2"
             android:theme="@style/FullscreenTheme" />
-
-        <service android:name="com.synjones.idcard.RemoteDecodeService" />
     </application>
 
 </manifest>

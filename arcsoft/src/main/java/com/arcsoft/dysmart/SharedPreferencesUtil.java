@@ -2,6 +2,8 @@ package com.arcsoft.dysmart;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -10,8 +12,19 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -246,5 +259,89 @@ public class SharedPreferencesUtil {
         }
         Log.e("SharedPreferencesUtil", obj.toString());
         return map;
+    }
+
+    /**
+     * 存储Map集合
+     *
+     * @param key 键
+     * @param map 存储的集合
+     */
+    public static void putMap(String key, Map<String, List<String>> map) {
+        try {
+            put(key, map);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Map<String, List<String>> getMap(String key) {
+        try {
+            return (Map<String, List<String>>) get(key);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * 存储对象
+     */
+    private static void put(String key, Object obj) throws IOException {
+        if (obj == null) {//判断对象是否为空
+            return;
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = null;
+        oos = new ObjectOutputStream(baos);
+        oos.writeObject(obj);
+        // 将对象放到OutputStream中
+        // 将对象转换成byte数组，并将其进行base64编码
+        String objectStr = new String(Base64.encode(baos.toByteArray(), Base64.DEFAULT));
+        baos.close();
+        oos.close();
+
+        putString(key, objectStr);
+    }
+
+    /**
+     * 获取对象
+     */
+    private static Object get(String key) throws IOException, ClassNotFoundException {
+        String wordBase64 = getString(key);
+        // 将base64格式字符串还原成byte数组
+        if (TextUtils.isEmpty(wordBase64)) { //不可少，否则在下面会报java.io.StreamCorruptedException
+            return null;
+        }
+        byte[] objBytes = Base64.decode(wordBase64.getBytes(), Base64.DEFAULT);
+        ByteArrayInputStream bais = new ByteArrayInputStream(objBytes);
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        // 将byte数组转换成product对象
+        Object obj = ois.readObject();
+        bais.close();
+        ois.close();
+        return obj;
+    }
+
+    /**
+     * 存入字符串
+     *
+     * @param key   字符串的键
+     * @param value 字符串的值
+     */
+    public static void putString(String key, String value) {
+        SharedPreferences.Editor editor = sp.edit();
+        editor.putString(key, value);
+        editor.commit();
+    }
+
+    /**
+     * 获取字符串
+     *
+     * @param key 字符串的键
+     * @return 得到的字符串
+     */
+    public static String getString(String key) {
+        return sp.getString(key, "");
     }
 }

@@ -10,6 +10,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.support.annotation.UiThread;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -90,8 +91,13 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
                 switch (msg.what) {
                     case 0:
                         if (savePicture((byte[]) msg.obj)) {
-//                            Toast.makeText(PhotographActivity2.this, "拍照成功", Toast.LENGTH_LONG).show();
-                            finishActivity();
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toast.makeText(PhotographActivity2.this, "拍照成功", Toast.LENGTH_LONG).show();
+                                    finishActivity();
+                                }
+                            });
                         }
                         break;
 //                    case 1:
@@ -199,16 +205,6 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
         }
     }
 
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        switch (item.getItemId()) {
-//            case android.R.id.home:
-//                finishActivity();
-//                return true;
-//        }
-//        return super.onOptionsItemSelected(item);
-//    }
-
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_ENTER) {
@@ -223,11 +219,10 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
 //                handler.sendEmptyMessageDelayed(1, 100);
 //            }
             return true;
+        } else if (keyCode == KeyEvent.KEYCODE_DEL) {
+            finishActivity();
+            return true;
         }
-//        else if (keyCode == KeyEvent.KEYCODE_DEL) {
-//            finishActivity();
-//            return true;
-//        }
         return super.onKeyDown(keyCode, event);
     }
 

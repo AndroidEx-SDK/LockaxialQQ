@@ -43,11 +43,12 @@ public class FaceDB {
 
     public class FaceRegist {
         public String mName;
-        public List<AFR_FSDKFace> mFaceList;
+        public List<AFR_FSDKFace> mFaceList, mIDFaceList;
 
         public FaceRegist(String name) {
             mName = name;
             mFaceList = new ArrayList<>();
+            mIDFaceList = new ArrayList<>();
         }
     }
 
@@ -175,7 +176,11 @@ public class FaceDB {
                             if (mUpgrade) {
                                 //upgrade data.
                             }
-                            face.mFaceList.add(afr);
+                            if (face.mName.length() > 11) {
+                                face.mIDFaceList.add(afr);
+                            } else {
+                                face.mFaceList.add(afr);
+                            }
                         }
                         afr = new AFR_FSDKFace();
                     } while (bos.readBytes(afr.getFeatureData()));
@@ -201,15 +206,24 @@ public class FaceDB {
             boolean add = true;
             for (FaceRegist frface : mRegister) {
                 if (frface.mName.equals(name)) {
-                    frface.mFaceList.add(face);
+                    if (name.length() > 11) {
+                        frface.mIDFaceList.add(face);
+                    } else {
+                        frface.mFaceList.add(face);
+                    }
                     add = false;
                     break;
                 }
             }
             if (add) { // not registered.
                 FaceRegist frface = new FaceRegist(name);
-                frface.mFaceList.add(face);
+                if (name.length() > 11) {
+                    frface.mIDFaceList.add(face);
+                } else {
+                    frface.mFaceList.add(face);
+                }
                 mRegister.add(frface);
+                Log.v(FACE_TAG, "addFace-->" + 333333);
             }
 
             Log.v(FACE_TAG, "addFace-->" + 111);

@@ -38,10 +38,13 @@ public class BitmapUtils {
                 matrix.postRotate(180);
             } else if (orientation == ExifInterface.ORIENTATION_ROTATE_270) {
                 matrix.postRotate(270);
+            } else {
+                matrix.postRotate(0);
             }
+            matrix.postScale(-1, 1); // 镜像水平翻转
 
             Bitmap temp = Bitmap.createBitmap(res, 0, 0, res.getWidth(), res.getHeight(), matrix, true);
-            Log.v(FACE_TAG, "decodeImage-->" + temp.getWidth() + "/" + temp.getHeight());
+            Log.v(FACE_TAG, "decodeImage-->" + temp.getWidth() + "/" + temp.getHeight() + "/" + orientation);
 
             if (!temp.equals(res)) {
                 res.recycle();

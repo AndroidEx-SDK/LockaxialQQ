@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory;
 import android.os.Looper;
 import android.util.Log;
 
+import com.example.seriport.SerialPort;
 import com.synjones.idcard.IDCard;
 import com.synjones.idcard.IDcardReader;
 import com.synjones.multireaderlib.MultiReader;
@@ -17,7 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import android_serialport_api.SerialPort;
+import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
 
 /**
  * Created by cts on 17/3/24.
@@ -25,6 +26,7 @@ import android_serialport_api.SerialPort;
  */
 
 public class IdCardUtil {
+
     private static final String TAG = "IdCardUtil";
 
     public static final int READ = 0x01;
@@ -47,6 +49,14 @@ public class IdCardUtil {
     private FileOutputStream fos;
 
     private boolean reading = false;
+
+    public void setReading(boolean reading) {
+        if (reading) {
+            ReadCardThreadhandler.resumeThread();
+        } else {
+            ReadCardThreadhandler.pauseThread();
+        }
+    }
 
     /**
      * 构造器初始化一些参数
@@ -82,6 +92,7 @@ public class IdCardUtil {
      * 关闭连接
      */
     public void close() {
+        closeReadThread();
         if (idreader != null) {
             idreader.close();
         }
@@ -123,11 +134,54 @@ public class IdCardUtil {
      * 读阅读器的线程
      */
     class ReadCardThread extends Thread {
+
+        private final Object lock = new Object();
+        private boolean pause = false;
+
+        /**
+         * 调用这个方法实现暂停线程
+         */
+        void pauseThread() {
+            pause = true;
+        }
+
+        /**
+         * 调用这个方法实现恢复线程的运行
+         */
+        void resumeThread() {
+            pause = false;
+            synchronized (lock) {
+                lock.notifyAll();
+            }
+        }
+
+        /**
+         * 注意：这个方法只能在run方法里调用，不然会阻塞主线程，导致页面无响应
+         */
+        void onPause() {
+            synchronized (lock) {
+                try {
+                    lock.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         @Override
         public void run() {
             super.run();
             Looper.prepare();
             while (reading) {
+                // 让线程处于暂停等待状态
+                while (pause) {
+                    onPause();
+                }
+                try {
+                    Thread.sleep(2 * 1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 //发送消息出去
                 idCard = idreader.getIDCardFp();
                 if (idCard != null) {
@@ -137,7 +191,6 @@ public class IdCardUtil {
                     try {
                         fos = new FileOutputStream(wltPath);
                         fos.write(idCard.getWlt());
-
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     } catch (IOException e) {
@@ -179,21 +232,10 @@ public class IdCardUtil {
     /**
      * 关闭读阅读器的线程
      */
-    public void closeReadThread() {
+    private void closeReadThread() {
         if (ReadCardThreadhandler != null) {
             ReadCardThreadhandler.stopRead();
             ReadCardThreadhandler = null;
         }
     }
-
-    /**
-     * 关闭阅读器
-     */
-    public void closeIdCard() {
-        if (idreader != null) {
-            idreader.close();
-            idreader = null;
-        }
-    }
-
 }

@@ -307,7 +307,7 @@
                 android:layout_height="45dp"
                 android:layout_marginLeft="5dp"
                 android:clickable="true"
-                android:src="@mipmap/ic_diyu" />
+                android:src="@mipmap/ic_launcher" />
 
 
             <ImageView

@@ -1,8 +1,16 @@
 package com.arcsoft.dysmart;
 
 import android.app.Application;
+import android.text.TextUtils;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static android.R.attr.name;
 import static com.arcsoft.dysmart.FaceConstant.FACE_TAG;
 
 /**
@@ -35,7 +43,7 @@ public class ArcsoftManager {
         mFaceDB = new FaceDB(path);
 //        mImage = null;
 
-//        SharedPreferencesUtil.getInstance(application, "face_detect");
+        SharedPreferencesUtil.getInstance(application, "share_dysmart");
     }
 
 //    public void setCaptureImage(Uri uri) {
@@ -45,25 +53,72 @@ public class ArcsoftManager {
 //    public Uri getCaptureImage() {
 //        return mImage;
 //    }
-//
-//    public void saveFaceModelData(String name, AFR_FSDKFace face) {
-//        Map<String, AFR_FSDKFace> faceMap = (Map<String, AFR_FSDKFace>) SharedPreferencesUtil.getHashMapData("face_map", AFR_FSDKFace.class);
-//        if (faceMap == null) {
-//            faceMap = new HashMap<>();
-//        }
-//        faceMap.put(name, face);
-//        SharedPreferencesUtil.putHashMapData("face_map", faceMap);
-//    }
-//
-//    public AFR_FSDKFace getFaceData(String name) {
-//        AFR_FSDKFace face = null;
-//        Map<String, AFR_FSDKFace> faceMap = (Map<String, AFR_FSDKFace>) SharedPreferencesUtil.getHashMapData("face_map", AFR_FSDKFace.class);
-//        if (faceMap == null) {
-//            faceMap = new HashMap<>();
-//        }
-//        if (faceMap.containsKey(name)) {
-//            face = faceMap.get(name);
-//        }
-//        return face;
-//    }
+
+    public void saveIDCardData(String id) {
+        List<String> list = getIDCardData();
+        if (list == null) {
+            list = new ArrayList<>();
+        }
+        if (!list.contains(id)) {
+            list.add(id);
+            SharedPreferencesUtil.putListData("ID_datas", list);
+        }
+    }
+
+    public List<String> getIDCardData() {
+        List<String> list = SharedPreferencesUtil.getListData("ID_datas", String.class);
+        if (list == null) {
+            list = new ArrayList<>();
+        }
+        return list;
+    }
+
+    public void saveIDCardData(String name, String id) {
+        HashMap<String, List<String>> faceMap = (HashMap<String, List<String>>) SharedPreferencesUtil.getMap("ID_data");
+        if (faceMap == null) {
+            faceMap = new HashMap<>();
+        }
+        List<String> list = faceMap.get(name);
+        if (list == null) {
+            list = new ArrayList<>();
+        }
+        if (!list.contains(id)) {
+            list.add(id);
+            faceMap.put(name, list);
+            SharedPreferencesUtil.putMap("ID_data", faceMap);
+        }
+    }
+
+    public List<String> getIDCardData(String name) {
+        HashMap<String, List<String>> faceMap = (HashMap<String, List<String>>) SharedPreferencesUtil.getMap("ID_data");
+        if (faceMap == null) {
+            faceMap = new HashMap<>();
+        }
+        List<String> list = faceMap.get(name);
+        if (list == null) {
+            list = new ArrayList<>();
+        }
+        return list;
+    }
+
+    //将list转换为带有 ， 的字符串
+    private String listToString(List<String> list) {
+        StringBuilder sb = new StringBuilder();
+        if (list != null && list.size() > 0) {
+            for (int i = 0; i < list.size(); i++) {
+                if (i < list.size() - 1) {
+                    sb.append(list.get(i) + ",");
+                } else {
+                    sb.append(list.get(i));
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    //将list转换为带有 ， 的字符串
+    private List<String> stringToList(String str) {
+        String[] arr = str.split(",");
+        return Arrays.asList(arr);
+    }
 }
