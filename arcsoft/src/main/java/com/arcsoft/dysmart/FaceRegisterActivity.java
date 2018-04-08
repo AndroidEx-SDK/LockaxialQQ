@@ -83,7 +83,7 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setTitle("");
-            actionBar.setLogo(R.mipmap.ic_diyu);
+            actionBar.setLogo(R.mipmap.ic_launcher);
 //            actionBar.setLogo(R.mipmap.ic_launcher);
             actionBar.setDisplayUseLogoEnabled(true);
             actionBar.setDisplayShowHomeEnabled(true);
@@ -327,7 +327,7 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
 
                     new AlertDialog.Builder(FaceRegisterActivity.this)
                             .setTitle("注册人脸信息")
-                            .setIcon(R.mipmap.ic_diyu)
+                            .setIcon(R.mipmap.ic_launcher)
 //                            .setIcon(R.mipmap.ic_launcher)
                             .setView(layout)
 //                            .setPositiveButton("确定", null)

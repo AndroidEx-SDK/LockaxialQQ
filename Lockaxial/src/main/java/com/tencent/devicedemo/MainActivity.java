@@ -1388,7 +1388,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     sleep(DeviceConfig.PASSWORD_WAIT_TIME); //等待指定的一个等待时间
                     if (!isInterrupted()) { //检查线程没有被停止
                         if (currentStatus == PASSWORD_MODE) { //如果现在是密码输入状态
-                            if (guestPassword.equals("")) { //如果密码一直是空白的
+                            if (TextUtils.isEmpty(guestPassword)) { //如果密码一直是空白的
                                 handler.post(new Runnable() {
                                     @Override
                                     public void run() {
@@ -1718,6 +1718,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 } catch (Exception e) {
                 }
                 doCancelCall();
+                if (faceHandler != null) {
+                    faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
+                }
                 try {
                     sleep(1000);
                 } catch (Exception e) {
