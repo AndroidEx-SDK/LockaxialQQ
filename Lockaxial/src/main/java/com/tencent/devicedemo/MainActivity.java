@@ -1035,10 +1035,17 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     tv_message.setText(obj);
                 } else if (msg.what == MSG_INSTALL_SUCCEED) {
                     String fileName = (String) msg.obj;
-                    String filePath = fileName.replace("/storage", "");
+                    final String filePath = fileName.replace("/storage", "");
                     Log.i(TAG, "UpdateService:" + filePath);
-                    ShellUtils shellUtils = new ShellUtils();
-                    shellUtils.run("pm -r install " + filePath, 5000);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            String cmd = "pm -r install " + filePath;
+                            ShellUtils.execCommand(cmd,false);
+                        }
+                    }).start();
+//                    ShellUtils shellUtils = new ShellUtils();
+//                    shellUtils.run("pm -r install " + filePath, 5000);
                     //hwservice.execRootCommand("pm -r install /sdcard/LockaxialQQ.a.2.apk");
                     Log.i(TAG, "UpdateService:" + filePath);
 

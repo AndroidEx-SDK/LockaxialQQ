@@ -8,6 +8,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.AudioManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -36,6 +37,7 @@ import com.tencent.devicedemo.InitActivity;
 import com.tencent.devicedemo.MainActivity;
 import com.util.Constant;
 import com.util.InstallUtil;
+import com.util.ShellUtils;
 import com.yuntongxun.ecsdk.ECDevice;
 import com.yuntongxun.ecsdk.ECError;
 import com.yuntongxun.ecsdk.ECInitParams;
@@ -65,6 +67,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -75,6 +78,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -261,6 +265,8 @@ public class MainService extends Service {
     Thread updateThread = null;
     private hwService hwservice;
 
+    private AudioManager audioManager;
+
     //xiaozd add
     private ActivityManager activityManager;
     private boolean isPullTime = false;
@@ -283,6 +289,7 @@ public class MainService extends Service {
         activityManager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
         hwservice = new hwService(MainService.this);
         wifiAdmin = new WifiAdmin(this);
+        audioManager = (AudioManager) getSystemService(Service.AUDIO_SERVICE);
         initHandler();
         initUpdateHandler();//开启版本检测更新，一个小时监测一次
     }
@@ -2328,7 +2335,8 @@ public class MainService extends Service {
 
         @Override
         public void onVideo() {
-            Log.i("xiao", "接通视频通话");
+            rtcClient.enableSpeaker(audioManager,true);
+            Log.i("xiao","接通视频通话,并默认为免提");
             Message message = Message.obtain();
             message.what = MSG_RTC_ONVIDEO;
             try {
@@ -3255,6 +3263,9 @@ public class MainService extends Service {
     //开启版本更新检测
     protected void startCheckThread() {
         Log.v("UpdateService", "start Check Thread");
+        if(checkThread != null){
+            checkThread.interrupt();
+        }
         checkThread = new Thread() {
             public void run() {
                 try {
@@ -3457,7 +3468,7 @@ public class MainService extends Service {
                         if (DeviceConfig.APPLICATION_MODEL == 0) {
                             if (lastVersionStatus.equals("P")) {
                                 lastVersionStatus = "I";
-                                //updateApp();
+                                updateApp();
                             } else {
                                 sleep(1000 * 60 * 3);
                             }
@@ -3465,7 +3476,7 @@ public class MainService extends Service {
                             if (hour == DeviceConfig.RELEASE_VERSION_UPDATE_TIME) {
                                 if (lastVersionStatus.equals("P")) {
                                     lastVersionStatus = "I";
-                                    //updateApp();
+                                    updateApp();
                                 }
                             } else {
                                 sleep(1000 * 60 * 30);
@@ -3504,7 +3515,7 @@ public class MainService extends Service {
         }
     }
 
-    protected void startInstallApp(String fileName) {
+    protected void startInstallApp(final String fileName) {
 //        Intent app = this.getPackageManager().getLaunchIntentForPackage(DeviceConfig.TARGET_PACKAGE_NAME);
 //        if (app != null) {
 //            Log.v("UpdateService", "fileName: "+fileName);
@@ -3513,18 +3524,28 @@ public class MainService extends Service {
 //        }
 //        Log.v("UpdateService", "app: "+app);
 
-        InstallUtil.installAPK(this, fileName, getPackageName() + ".fileProvider", new InstallUtil.InstallCallBack() {
+//        InstallUtil.installAPK(this, fileName, getPackageName() + ".fileProvider", new InstallUtil.InstallCallBack() {
+//            @Override
+//            public void onSuccess() {
+//                Log.v("UpdateService", "install succeed: ");
+//            }
+//
+//            @Override
+//            public void onFail(Exception e) {
+//                Log.v("UpdateService", "install fail");
+//            }
+//        });
+        new Thread(new Runnable() {
             @Override
-            public void onSuccess() {
-                Log.v("UpdateService", "install succeed: ");
+            public void run() {
+                String cmd = "pm install -r "+ fileName;
+                HttpApi.i("安装命令："+cmd);
+                ShellUtils.CommandResult result = InstallUtil.executeCmd(cmd);
+                HttpApi.i("安装结果："+result.toString());
             }
-
-            @Override
-            public void onFail(Exception e) {
-                Log.v("UpdateService", "install fail");
-            }
-        });
+        }).start();
     }
+
 
     protected void loadVersionFromLocal() {
         SharedPreferences sharedPreferences = getSharedPreferences("residential", Activity.MODE_PRIVATE);

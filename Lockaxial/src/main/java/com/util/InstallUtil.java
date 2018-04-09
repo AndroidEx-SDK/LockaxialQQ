@@ -45,6 +45,10 @@ public class InstallUtil {
         }
     }
 
+    public static ShellUtils.CommandResult executeCmd(String command) {
+        return ShellUtils.execCommand(command,false);
+    }
+
 
     /**
      * 获取app缓存路径    SDCard/Android/data/你的应用的包名/cache

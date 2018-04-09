@@ -162,7 +162,6 @@ public class DoorLock extends Service implements OnBackCall {
             if (r > 0) {
                 SoundPoolUtil.getSoundPoolUtil().loadVoice(getBaseContext(), 011111);
             }
-
             return r > 0 ? 1 : 0;
         }
 
@@ -173,7 +172,6 @@ public class DoorLock extends Service implements OnBackCall {
             if (ident < 0 || ident > 0xFE) ident = 0;
             String cmd = String.format("FB%02X2503%02X000000FE", ident, index);
             int r = rkey.native_file_writeHex(rkeyDev, cmd);
-
             return r > 0 ? 1 : 0;
         }
     }

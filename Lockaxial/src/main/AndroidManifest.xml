@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.tencent.devicedemo"
-    android:installLocation="internalOnly"
-    android:versionCode="2"
-    android:versionName="1.0.1">
+          package="com.tencent.devicedemo"
+          android:installLocation="internalOnly"
+          android:sharedUserId="android.uid.system"
+          android:versionCode="2"
+          android:versionName="2.0.18.1.30">
     <!-- android:sharedUserId="android.uid.system" -->
 
     <uses-permission
@@ -11,12 +12,12 @@
         android:protectionLevel="signatureOrSystem" />
     <uses-permission
         android:name="android.permission.SHUTDOWN"
-        android:protectionLevel="signatureOrSystem" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-
+        android:protectionLevel="signatureOrSystem"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <uses-permission android:name="android.permission.INSTALL_PACKAGES"></uses-permission>
     <uses-feature
         android:name="android.hardware.nfc"
         android:required="true" />
@@ -131,46 +132,11 @@
                 android:name="android.nfc.action.TECH_DISCOVERED"
                 android:resource="@xml/nfc_tech_filter" />
         </activity>
-        <!--监听开机自启动-->
-        <receiver android:name=".BootBroadcastReceiver">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <category android:name="android.intent.category.HOME" />
-            </intent-filter>
-            <!--如果应用装到SD卡后需要加入如下设置开机广播才可以收到-->
-            <intent-filter>
-                <action android:name="android.intent.action.MEDIA_MOUNTED" />
-                <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
-
-                <data android:scheme="file"></data>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-
-            </intent-filter>
-        </receiver>
-
-        <!--监听app更新安装包-->
-        <receiver android:name="com.brocast.UpdateAPKReceiver">
-            <intent-filter>
-                <action android:name="android.intent.action.PACKAGE_REPLACED" />
-                <data android:scheme="package" />
-            </intent-filter>
-
-            <intent-filter>
-                <action android:name="android.intent.action.MEDIA_MOUNTED" />
-                <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
-
-                <data android:scheme="file"></data>
-                <action android:name="android.intent.action.PACKAGE_REPLACED" />
-
-            </intent-filter>
-        </receiver>
-
         <activity
             android:name=".InputCardInfoActivity"
             android:alwaysRetainTaskState="true"
             android:configChanges="keyboardHidden|orientation|locale|screenSize"
             android:screenOrientation="landscape">
-
         </activity>
 
         <activity
@@ -298,6 +264,19 @@
         <service
             android:name="com.ble.BTTempBLEService"
             android:enabled="true" />
+
+        <receiver android:name="eu.chainfire.supersu.NativeAccessReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <category android:name="android.intent.category.HOME" />
+            </intent-filter>
+            <intent-filter>
+                <data android:scheme="package"/>
+                <action android:name="android.intent.action.PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.PACKAGE_ADDED" />
+                <action android:name="android.intent.action.PACKAGE_REMOVED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 
