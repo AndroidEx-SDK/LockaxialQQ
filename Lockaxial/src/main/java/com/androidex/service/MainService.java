@@ -117,6 +117,7 @@ import static com.util.Constant.MSG_LOCK_OPENED;
 import static com.util.Constant.MSG_PASSWORD_CHECK;
 import static com.util.Constant.MSG_REFRESH_COMMUNITYNAME;
 import static com.util.Constant.MSG_REFRESH_DATA;
+import static com.util.Constant.MSG_RTC_MESSAGE;
 import static com.util.Constant.MSG_REFRESH_LOCKNAME;
 import static com.util.Constant.MSG_RTC_DISCONNECT;
 import static com.util.Constant.MSG_RTC_NEWCALL;
@@ -2328,7 +2329,7 @@ public class MainService extends Service {
 
         @Override
         public void onDisconnected(int code) {
-            Log.v("MainService", "onDisconnected timerDur" + callConnection.getCallDuration());
+            HttpApi.i("xiao_","结束通过->");
             callConnection = null;
             callingDisconnect();
         }
@@ -2357,6 +2358,7 @@ public class MainService extends Service {
         Message message = Message.obtain();
         message.what = MSG_RTC_DISCONNECT;
         try {
+            HttpApi.i("xiao_","发送结束通话通知");
             dialMessenger.send(message);
         } catch (RemoteException e) {
             e.printStackTrace();
@@ -2365,6 +2367,7 @@ public class MainService extends Service {
 
     protected void onMessage(String from, String mime, String content) {
         HttpApi.i("from = " + from + "    mime = " + mime + "     content = " + content);
+        sendDialMessenger(MSG_RTC_MESSAGE, null);
         if (content.equals("refresh card info")) {
             sendDialMessenger(MSG_REFRESH_DATA, "card");
             //retrieveChangedCardList();
@@ -3240,11 +3243,11 @@ public class MainService extends Service {
      * Update Service
      ********************/
     public void initUpdateHandler() {
-        Log.v("UpdateService", "------>init Update Handler<-------");
+        HttpApi.e("开启版本检测");
         loadVersionFromLocal();
         adjustVersionStatus();
         startCheckThread();
-//        startUpdateThread();
+        startUpdateThread();
     }
 
     protected void adjustVersionStatus() {
@@ -3252,11 +3255,13 @@ public class MainService extends Service {
             String SDCard = Environment.getExternalStorageDirectory() + "";
             String fileName = SDCard + "/" + lastVersionFile;
             File file = new File(fileName);
+            HttpApi.e("lastVersionStatus == P，and file = "+file.toString());
             if (!file.exists()) {
                 lastVersionFile = "";
                 lastVersionStatus = "L";
                 saveVersionFromLocal();
             }
+        }else {
         }
     }
 
@@ -3282,17 +3287,19 @@ public class MainService extends Service {
 
     //版本更新
     protected void checkNewVersion() {
-        Log.v("UpdateService", "check New Version");
         String url = DeviceConfig.UPDATE_SERVER_URL + DeviceConfig.UPDATE_RELEASE_FOLDER + DeviceConfig.UPDATE_RELEASE_PACKAGE;
-        Log.v("UpdateService", "===url：" + url);
         try {
             String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
             if (result != null) {
-                HttpApi.i("checkNewVersion()->" + result);
                 JSONObject resultObj = Ajax.getJSONObject(result);
                 int lastVersion = resultObj.getInt("version");
-                if (lastVersion > DeviceConfig.RELEASE_VERSION) { //检查当前版本是否和服务器最新版本一致，如果不是最新版本则发出更新消息
+                String userID = resultObj.getString("userID");
+                HttpApi.e("version = "+lastVersion);
+                HttpApi.e("userID = "+userID);
+                HttpApi.e("DeviceConfig.RELEASE_VERSION = "+DeviceConfig.RELEASE_VERSION);
+                if (lastVersion > DeviceConfig.RELEASE_VERSION && userID!=null && userID.equals(DeviceConfig.USER_ID)) { //检查当前版本是否和服务器最新版本一致，如果不是最新版本则发出更新消息
                     String packageName = resultObj.getString("name") + "." + DeviceConfig.DEVICE_MODE_FLAG + "." + lastVersion + ".apk";
+                    HttpApi.e("packageName = "+packageName);
                     Message message = handler.obtainMessage();
                     message.what = MSG_FIND_NEW_VERSION;
                     message.obj = packageName;
@@ -3307,19 +3314,18 @@ public class MainService extends Service {
     }
 
     protected void onNewVersion(String newFile) {
-        Log.v("UpdateService", "on new version :" + newFile);
         try {
+            HttpApi.e("onNewVersion -> newFile = "+newFile);
             String[] fileValues = newFile.split("\\.");
             String versionName = fileValues[fileValues.length - 2];
             int version = new Integer(versionName);
-            Log.v("UpdateService", "lastVersionStatus=" + lastVersionStatus + ",this.lastVersion=" + lastVersion);
+            HttpApi.e("onNewVersion -> lastVersion = "+lastVersion);
             if (version == this.lastVersion) {
                 if (lastVersionStatus.equals("L")) {
                     lastVersionStatus = "N";
                     lastVersion = version;
                     lastVersionFile = newFile;
                     saveVersionFromLocal();
-                    Log.v("UpdateService", "from L to N");
                     startDownloadThread();
                 } else if (lastVersionStatus.equals("N")) {
                     startDownloadThread();
@@ -3344,7 +3350,6 @@ public class MainService extends Service {
     protected void startDownloadThread() {
         final String url = DeviceConfig.UPDATE_SERVER_URL + DeviceConfig.UPDATE_RELEASE_FOLDER + lastVersionFile;
         final String fileName = lastVersionFile;
-        Log.v("UpdateService", "start download thread->" + url + "-->" + fileName);
         if (lastVersionStatus.equals("N")) {
             lastVersionStatus = "D";
             Log.v("UpdateService", "change version status to D");
@@ -3552,9 +3557,11 @@ public class MainService extends Service {
         lastVersion = sharedPreferences.getInt("lastVersion", 0);
         lastVersionFile = sharedPreferences.getString("lastVersionFile", "");
         lastVersionStatus = sharedPreferences.getString("lastVersionStatus", "L");
+        HttpApi.e("loadVersionFromLocal ->lastVersion = "+lastVersion);
     }
 
     protected void saveVersionFromLocal() {
+        HttpApi.e("saveVersionFromLocal ->lastVersion = "+lastVersion);
         SharedPreferences sharedPreferences = getSharedPreferences("residential", Activity.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putInt("lastVersion", lastVersion);

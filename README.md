@@ -2,9 +2,11 @@
 AndroidEx
 
 
-##给app签名##
+## 版本说明 ##
+- com.androidex.config.USER_ID定义了用户类型；
+- A00000X为格式针对蓝牙用户，单独定义的；A000000为通用用户类型；
+- 在module下的build 标记versionName，V.T为通用版本，V.X单独针对蓝牙用户；
 
-- 做了静默升级，使用到了系统权限，需要在安装前给app签上系统权限，才能安装；
-- 拷贝signapk目录下的文件到电脑
-- Android studio -> Build -> Build APK(s) -> 得到a.apk
-- 使用 **java -jar signapk.jar platform.x509.pem platform.pk8 a.apk b.apk**对app签名；b.apk为签名后带系统权限的app；
+## 签名文件 ##
+- 路径：LockaxialQQ\signapk\androidex.jks
+- 密码：123456，别名：androidex

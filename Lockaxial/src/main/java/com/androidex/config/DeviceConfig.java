@@ -9,7 +9,10 @@ public class DeviceConfig {
 	public static final String UPDATE_SERVER_URL="http://www.lockaxial.com";
     public static final String UPDATE_RELEASE_FOLDER="/release/doorAccessMachine/v1/";
     public static final String UPDATE_RELEASE_PACKAGE="package.json";
-    public static final int RELEASE_VERSION=4;
+    public static final int RELEASE_VERSION=5;
+    //public static final String USER_ID = "A000001";//北京马总
+    //public static final String USER_ID = "A000002";//西安安卓工控
+    public static final String USER_ID = "A000000";//通用
     public static int RELEASE_VERSION_WAIT_TIME=1000*60*1;
     public static int RELEASE_VERSION_UPDATE_TIME=3;
     public static final String TARGET_PACKAGE_NAME="com.tencent.devicedemo";

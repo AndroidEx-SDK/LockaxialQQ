@@ -37,6 +37,7 @@ public class Constant {
     public static final int MSG_REFRESH_DATA = 10018;
     public static final int MSG_REFRESH_COMMUNITYNAME = 10019;
     public static final int MSG_REFRESH_LOCKNAME = 10020;
+    public static final int MSG_RTC_MESSAGE = 10022;
     public static final int MSG_INPUT_CARDINFO_SUCCEED = 0x01;//录入卡信息成功
     public static final int MSG_INPUT_CARDINFO_FAIL = 0x02;//录入卡信息失败
     public static final int MSG_INPUT_CARDINFO_REPETITION = 0x03;//重复录入卡信息

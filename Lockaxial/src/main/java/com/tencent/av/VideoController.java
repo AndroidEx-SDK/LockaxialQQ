@@ -740,7 +740,7 @@ public class VideoController extends AbstractNetChannel implements IVideoEventLi
 	
 	@Override
 	public void onReceiveVideoFrame(byte[] buffer, int angle) {
-		Log.d(TAG, "ReceiveVideoFrame: len = " + buffer.length + " angle = " + angle);
+		//Log.d(TAG, "ReceiveVideoFrame: len = " + buffer.length + " angle = " + angle);
 		if (mContext != null) {
 		    Intent intent = new Intent(VideoController.ACTION_VIDEOFRAME_INCOME);
 		    intent.putExtra("angle", angle);
@@ -751,7 +751,7 @@ public class VideoController extends AbstractNetChannel implements IVideoEventLi
     
 	@Override
 	public  void onNotifyVideoQos(int width, int height, int bitrate, int fps) {
-		Log.d(TAG, "onNotifyVideoQos: width =" + width + " height =" + height + " bitrate = " + bitrate + " fps = " + fps);
+		//Log.d(TAG, "onNotifyVideoQos: width =" + width + " height =" + height + " bitrate = " + bitrate + " fps = " + fps);
 		if (mContext != null) {
 		    Intent intent = new Intent(VideoController.ACTION_VIDEO_QOS_NOTIFY);
 		    intent.putExtra("width", width);

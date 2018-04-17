@@ -593,8 +593,8 @@ public class DetecterActivity extends AppCompatActivity implements CameraSurface
 
                     new AlertDialog.Builder(DetecterActivity.this)
                             .setTitle("注册身份证信息")
-                            .setIcon(R.mipmap.ic_diyu)
-//                            .setIcon(R.mipmap.ic_launcher)
+                            //.setIcon(R.mipmap.ic_diyu)
+                           .setIcon(R.mipmap.ic_launcher)
                             .setView(layout)
                             .setOnKeyListener(new DialogInterface.OnKeyListener() {
                                 @Override
