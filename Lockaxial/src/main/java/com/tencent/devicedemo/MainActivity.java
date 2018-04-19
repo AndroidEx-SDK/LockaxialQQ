@@ -1615,7 +1615,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             case INPUT_CARDINFO_REQUESTCODE:
                 switch (resultCode) {
                     case INPUT_CARDINFO_RESULTCODE://从录卡登录页面返回回来
-                        imageView.setVisibility(View.VISIBLE);
+                        //imageView.setVisibility(View.VISIBLE);
                         rl_nfc.setVisibility(View.VISIBLE);
                         tv_message.setText(nfcMessage);
                         nfcFlag = true;
@@ -1628,7 +1628,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         et_unitno.setText("");
                         break;
                     default:
-                        imageView.setVisibility(View.VISIBLE);
+                        //imageView.setVisibility(View.VISIBLE);
                         cardId = null;
                         showToast("取消登录");
                         break;
