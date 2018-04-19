@@ -11,7 +11,7 @@ public class DeviceConfig {
     public static final String UPDATE_RELEASE_PACKAGE="package.json";
     public static final int RELEASE_VERSION=5;
     //public static final String USER_ID = "A000001";//北京马总
-    //public static final String USER_ID = "A000002";//西安安卓工控
+    //public static final String USER_ID = "A000002";//维拓智能（背景不一致）
     public static final String USER_ID = "A000000";//通用
     public static int RELEASE_VERSION_WAIT_TIME=1000*60*1;
     public static int RELEASE_VERSION_UPDATE_TIME=3;

@@ -226,8 +226,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private RelativeLayout rl_nfc, rl;
     private GridView mGridView;
     private ImageView iv_setting, bluetooth_image, iv_bind, imageView, wifi_image;
-    private TextView headPaneTextView, tv_message, tv_input_text;
-    private EditText tv_input, et_blackno, et_unitno;
+    private TextView headPaneTextView,tv_message;
+    private EditText tv_input, et_blackno, et_unitno,  tv_input_text;
     private BinderListAdapter mAdapter;
     private NotifyReceiverQQ mNotifyReceiver;
     private NfcReader nfcReader;
@@ -374,7 +374,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         bluetooth_image = (ImageView) findViewById(R.id.bluetooth_image);
         tv_message = (TextView) findViewById(R.id.tv_message);
         viewPager = (AutoScrollViewPager) findViewById(R.id.vp_main);
-        tv_input_text = (TextView) findViewById(R.id.tv_input_text);
+        tv_input_text = (EditText) findViewById(R.id.tv_input_text);
         tv_battery = (TextView) findViewById(R.id.tv_battery);//显示蓝牙锁的电量
         mGridView = (GridView) findViewById(R.id.gridView_binderlist);//getBgBanners();//网络获得轮播背景图片数据
         rl = (RelativeLayout) findViewById(R.id.net_view_rl);
@@ -2318,6 +2318,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     }
 
+
+    private boolean isRestartPlay = false;
+
+
+
     protected void onPause() {
         super.onPause();
         Log.v(FACE_TAG, "MainActivity/onPause-->");
@@ -2325,8 +2330,13 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         //unbindService(mConn);
         //advertiseHandler.onDestroy();
         //videoView.setVisibility(View.GONE);
-        advertiseHandler.onStop();
+        advertiseHandler.pause(adverErrorCallBack);
+        isRestartPlay = true;
     }
+
+
+
+
 
     protected void onDestroy() {
         Log.v(FACE_TAG, "MainActivity/onDestroy-->");
@@ -2460,6 +2470,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         super.onStart();
         client.connect();
         AppIndex.AppIndexApi.start(client, getIndexApiAction());
+        if(isRestartPlay){
+            isRestartPlay = false;
+            advertiseHandler.start(adverErrorCallBack);
+        }
     }
 
     @Override

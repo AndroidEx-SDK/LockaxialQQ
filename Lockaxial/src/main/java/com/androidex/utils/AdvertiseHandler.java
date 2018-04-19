@@ -2,6 +2,7 @@ package com.androidex.utils;
 
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
@@ -40,9 +41,28 @@ public class AdvertiseHandler implements SurfaceHolder.Callback {
     private JSONArray imageList = null;
     private int imageListIndex = 0;
     private int imagePeroid = 5000;
+    private boolean surfaceViewCreate = false;
 
     protected Messenger dialMessenger;
     private int position;
+    private Handler mHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case 0x01:
+                    Log.i("xiao_","检测SurfaceView是否被创建");
+                    if(surfaceViewCreate){
+                        Log.i("xiao_","检测到SurfaceView已经被创建");
+                        mHandler.removeMessages(0x01);
+                        handlerStart((AdverErrorCallBack) msg.obj);
+                    }else{
+                        Log.i("xiao_","检测到SurfaceView未被创建，延时200ms");
+                        sendHandlerMessage(0x01,msg.obj,200);
+                    }
+                    break;
+            }
+        }
+    };
 
     public AdvertiseHandler() {
 
@@ -80,17 +100,21 @@ public class AdvertiseHandler implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        //创建
+        Log.i("xiao_","SurfaceView 创建成功");
+        surfaceViewCreate = true;
         //必须在surface创建后才能初始化MediaPlayer,否则不会显示图像
         //startMediaPlay(mediaPlayerSource);
         // 当SurfaceView中的Surface被创建的时候被调用
         //在这里我们指定MediaPlayer在当前的Surface中进行播放setDisplay(holder)
         //在指定了MediaPlayer播放的容器后，我们就可以使用prepare或者prepareAsync来准备播放了player.prepareAsync()
-        Log.d("AdvertiseHandler", "UpdateAdvertise: surfaceCreated done");
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        Log.d("AdvertiseHandler", "UpdateAdvertise: surfaceDestroyed ");
+        //销毁
+        Log.i("xiao_","SurfaceView 销毁成功");
+        surfaceViewCreate = false;
     }
 
     public void initData(JSONArray rows, Messenger dialMessenger, boolean isOnVideo, AdverErrorCallBack errorCallBack) {
@@ -98,7 +122,6 @@ public class AdvertiseHandler implements SurfaceHolder.Callback {
         try {
             JSONObject row = rows.getJSONObject(0);
             list = row.getJSONArray("items");
-            Log.d("AdvertiseHandler", "UpdateAdvertise: list" + list);
             listIndex = 0;
             //initScreen();
             play();
@@ -256,13 +279,12 @@ public class AdvertiseHandler implements SurfaceHolder.Callback {
             mediaPlayer = new MediaPlayer();
         }
         mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        Log.d("AdvertiseHandler", "UpdateAdvertise: initMediaPlayer setAudioStreamType");
         mediaPlayer.setDisplay(surfaceHolder);
-        Log.d("AdvertiseHandler", "UpdateAdvertise: initMediaPlayer  setDisplay");
         //设置显示视频显示在SurfaceView上
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
+                Log.i("xiao_","视频播放完成，继续播放下一个视频文件");
                 onMediaPlayerComplete();
             }
         });
@@ -288,7 +310,7 @@ public class AdvertiseHandler implements SurfaceHolder.Callback {
     }
 
     protected void onMediaPlayerComplete() {
-        mediaPlayer.release();
+        //mediaPlayer.release();
         next();
     }
 
@@ -366,19 +388,44 @@ public class AdvertiseHandler implements SurfaceHolder.Callback {
     }
 
     public void start(AdverErrorCallBack errorCallBack) {
+        sendHandlerMessage(0x01,errorCallBack,0);
+    }
+
+    private void sendHandlerMessage(int what,Object msg,int delay){
+        Message message = new Message();
+        message.what = what;
+        if(msg!=null){
+            message.obj = msg;
+        }
+        if(delay>0){
+            mHandler.sendMessageDelayed(message,delay);
+        }else{
+           mHandler.sendMessage(message);
+        }
+
+    }
+
+    private void handlerStart(AdverErrorCallBack errorCallBack){
         try {
-            Log.d("AdvertiseHandler", "UpdateAdvertise: start");
+            Log.i("xiao_","handlerStart->");
             if (mediaPlayer != null) {
-                Log.d("AdvertiseHandler", "UpdateAdvertise: start");
                 if (!mediaPlayer.isPlaying()) {
+                    Log.i("xiao_","handlerStart->setDisplay");
+                    mediaPlayer.setDisplay(surfaceHolder);
+                    Log.i("xiao_","handlerStart->start");
+                    int vis = videoView.getVisibility();
+                    Log.i("xiao_","SurfaceView is show = "+ vis);
                     mediaPlayer.start();
                 }
+            }else{
+                Log.i("xiao_","mediaPlayer = null");
             }
             if (getCurrentAdType().equals("V")) {
             } else if (getCurrentAdType().equals("I")) {
                 voicePlayer.start();
             }
-        } catch (IllegalStateException e) {
+        } catch (Exception e) {
+            e.printStackTrace();
             Log.d("AdvertiseHandler", "UpdateAdvertise: start error");
             errorCallBack.ErrorAdver();
         }
@@ -386,7 +433,6 @@ public class AdvertiseHandler implements SurfaceHolder.Callback {
 
     public void pause(AdverErrorCallBack errorCallBack) {
         try {
-            Log.d("AdvertiseHandler", "UpdateAdvertise: pause");
             if (mediaPlayer != null) {
                 if (mediaPlayer.isPlaying()) {
                     mediaPlayer.pause();
@@ -398,7 +444,6 @@ public class AdvertiseHandler implements SurfaceHolder.Callback {
                 voicePlayer.pause();
             }
         } catch (IllegalStateException e) {
-            Log.d("AdvertiseHandler", "UpdateAdvertise: pause error");
             errorCallBack.ErrorAdver();
         }
     }

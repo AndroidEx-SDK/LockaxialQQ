@@ -63,11 +63,9 @@
             android:layout_centerHorizontal="true"
             android:layout_centerInParent="true"
             android:layout_centerVertical="true"
-            android:text=""
             android:textColor="#333333"
             android:textSize="20sp" />
     </RelativeLayout>
-
 
     <TextView
         android:id="@+id/header_pane"
@@ -97,18 +95,6 @@
                 android:layout_width="0.1dp"
                 android:layout_height="0.1dp"></SurfaceView>
         </RelativeLayout>
-
-        <TextView
-            android:id="@+id/tv_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentRight="true"
-            android:layout_marginBottom="60dp"
-            android:text="确认键切换输入房号和密码"
-            android:textColor="#333333"
-            android:textSize="30dp"
-            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_com"
@@ -188,14 +174,15 @@
                 android:textSize="30dp"
                 android:textStyle="bold" />
 
-            <TextView
+            <EditText
                 android:id="@+id/tv_input_text"
                 android:layout_width="wrap_content"
-                android:layout_height="fill_parent"
+                android:layout_height="match_parent"
                 android:layout_marginLeft="10dp"
                 android:layout_toRightOf="@+id/tv_input_label"
                 android:gravity="center_vertical"
-                android:text=""
+                android:hint="确认键切换房号/密码"
+                android:textColorHint="#878686"
                 android:textColor="#ffffff"
                 android:textSize="30dp"
                 android:textStyle="bold" />
@@ -268,7 +255,8 @@
     <com.viewpager.AutoScrollViewPager
         android:id="@+id/vp_main"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -468,7 +456,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|right"
         android:layout_marginBottom="10dp"
-        android:layout_marginRight="16dp">
+        android:layout_marginRight="5dp">
 
         <com.guo.android_extend.widget.CameraSurfaceView
             android:id="@+id/surfaceView"

@@ -313,6 +313,7 @@ public class MainService extends Service {
                 } else if (msg.what == REGISTER_ACTIVITY_DIAL) {  //MainActivity初始化入口
                     startRongyun(); //允许被多次调用
                     //retrieveCardList(); //注册门卡信息
+                    HttpApi.i("初始化广告");
                     initAdvertisement(); //初始化广告
                     initConnectReport();
                     dialMessenger = msg.replyTo;
@@ -3078,16 +3079,22 @@ public class MainService extends Service {
 
     protected void getLastAdvertisementList() {
         if (DeviceConfig.IS_AD_AVAILABLE) {
+            HttpApi.i("开始获取广告视频");
             if (advertisementStatus == ADVERTISEMENT_WAITING) {
+                HttpApi.i("getLastAdvertisementList---->视频标签为0，开始获取视频");
                 advertisementStatus = ADVERTISEMENT_REFRESHING;
+                HttpApi.i("getLastAdvertisementList---->设置视频标签为1");
                 currentAdvertisementFiles.clear();
-                JSONArray rows = checkAdvertiseList();
+                JSONArray rows = checkAdvertiseList(); //获取视频文件
+                HttpApi.i("网络请求广告列表："+rows.toString());
                 if (rows != null) {
                     adjustAdvertiseFiles();
                     restartAdvertise(rows);
                     removeAdvertiseFiles();
                 }
                 advertisementStatus = ADVERTISEMENT_WAITING;
+            }else{
+                HttpApi.i("getLastAdvertisementList---->视频标签不为0，不获取视频");
             }
         }
     }
@@ -3101,6 +3108,7 @@ public class MainService extends Service {
         JSONArray rows = null;
         try {
             String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+            HttpApi.i("网络请求广告列表："+result);
             if (result != null) {
                 HttpApi.i("checkAdvertiseList()->" + result);
                 JSONObject obj = Ajax.getJSONObject(result);
@@ -3109,6 +3117,7 @@ public class MainService extends Service {
                     try {
                         rows = obj.getJSONArray("data");
                         if (rows != null) {
+                            HttpApi.i("checkAdvertiseList->downloadAdvertisement");
                             downloadAdvertisement(rows);
                         }
                     } catch (Exception e) {
@@ -3128,6 +3137,7 @@ public class MainService extends Service {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        HttpApi.i("checkAdvertiseList->return");
         return rows;
     }
 
@@ -3135,6 +3145,7 @@ public class MainService extends Service {
         for (int i = 0; i < rows.length(); i++) {
             try {
                 JSONObject row = rows.getJSONObject(i);
+                HttpApi.i("downloadAdvertisement->"+row.toString());
                 downloadAdvertisementItem(row);
             } catch (JSONException e) {
             }
