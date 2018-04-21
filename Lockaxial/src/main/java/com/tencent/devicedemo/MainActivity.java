@@ -945,17 +945,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     onRtcConnected();
                 } else if (msg.what == MSG_RTC_ONVIDEO) {
                     //onRtcVideoOn();
-                    mHandler.postDelayed(new Runnable() {  //延时2s接听视频通话
-                        @Override
-                        public void run() {
-                            onRtcVideoOn();
-                        }
-                    }, 2 * 1000);
+                    onRtcVideoOn();
                 } else if (msg.what == MSG_RTC_DISCONNECT) {
                     onRtcDisconnect();
                     //人脸识别对比
                     if (faceHandler != null) {
-                        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
+                        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 3000);
                     }
                 } else if (msg.what == MSG_PASSWORD_CHECK) {
                     onPasswordCheck((Integer) msg.obj);
@@ -1154,23 +1149,27 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     public void onRtcVideoOn() {
+        setDialValue("正在和" + blockNo + "视频通话");
         initVideoViews();
-        MainService.callConnection.buildVideo(remoteView);//此处接听过快的会导致崩溃
+        HttpApi.i("remoteView = null?"+(remoteView == null));
+        HttpApi.i("MainService.callConnection = null?"+(MainService.callConnection == null));
+        if(MainService.callConnection!=null){
+            MainService.callConnection.buildVideo(remoteView);//此处接听过快的会导致崩溃
+        }
         // java.lang.RuntimeException: Fail to connect to camera service
         videoLayout.setVisibility(View.VISIBLE);
         setVideoSurfaceVisibility(View.VISIBLE);
-        setDialValue("正在和" + blockNo + "视频通话");
     }
 
     public void onRtcDisconnect() {
+        blockNo = "";
+        setDialValue(blockNo);
         setCurrentStatus(CALL_MODE);
         advertiseHandler.start(adverErrorCallBack);
         //callLayout.setVisibility(View.VISIBLE);
         //guestLayout.setVisibility(View.INVISIBLE);
         videoLayout.setVisibility(View.INVISIBLE);
         setVideoSurfaceVisibility(View.INVISIBLE);
-        blockNo = "";
-        setDialValue(blockNo);
     }
 
     private void onPasswordCheck(int code) {
@@ -1635,7 +1634,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 }
                 break;
             case INPUT_SYSTEMSET_REQUESTCODE:
-                imageView.setVisibility(View.VISIBLE);
+                //imageView.setVisibility(View.VISIBLE);
                 break;
         }
     }
@@ -1813,18 +1812,21 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (localView != null) return;
         if (MainService.callConnection != null)
             localView = (SurfaceView) MainService.callConnection.createVideoView(true, this, true);
-        localView.setVisibility(View.INVISIBLE);
-        videoLayout.addView(localView);
-        localView.setKeepScreenOn(true);
-        localView.setZOrderMediaOverlay(true);
-        localView.setZOrderOnTop(true);
-
+        if(localView!=null){
+            localView.setVisibility(View.INVISIBLE);
+            videoLayout.addView(localView);
+            localView.setKeepScreenOn(true);
+            localView.setZOrderMediaOverlay(true);
+            localView.setZOrderOnTop(true);
+        }
         if (MainService.callConnection != null)
             remoteView = (SurfaceView) MainService.callConnection.createVideoView(false, this, true);
-        remoteView.setVisibility(View.INVISIBLE);
-        remoteView.setKeepScreenOn(true);
-        remoteView.setZOrderMediaOverlay(true);
-        remoteView.setZOrderOnTop(true);
+        if(remoteView!=null){
+            remoteView.setVisibility(View.INVISIBLE);
+            remoteView.setKeepScreenOn(true);
+            remoteView.setZOrderMediaOverlay(true);
+            remoteView.setZOrderOnTop(true);
+        }
         //remoteLayout.addView(remoteView);
     }
 
