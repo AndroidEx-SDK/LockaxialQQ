@@ -1915,7 +1915,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         public void onServiceConnected(ComponentName name, IBinder service) {
             //获取Service端的Messenger
             serviceMessenger = new Messenger(service);
-            Log.i("xiao_", "连接MainService成功" + (serviceMessenger != null));
             netWorkFlag = NetWork.isNetworkAvailable(MainActivity.this) ? 1 : 0;
             if (netWorkFlag == 0) {
                 enableReaderMode();

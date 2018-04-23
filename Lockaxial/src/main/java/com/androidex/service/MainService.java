@@ -615,6 +615,7 @@ public class MainService extends Service {
     protected void initWhenConnected() {
         if (initMacAddress()) {
             Log.i("MainService", "INIT MAC Address");
+            rtcLogout();
             initRtcClient();
             try {
                 initClientInfo();
@@ -2109,35 +2110,51 @@ public class MainService extends Service {
     protected void onCreateLog(Message msg) {
     }
 
+    private void rtcLogout() {
+        if (rtcClient != null) {
+            rtcClient.release();
+            rtcClient = null;
+        }
+        if (device != null) {
+            device.release();
+            device = null;
+        }
+    }
+
     /**
      * The m a listener.
      */
     DeviceListener deviceListener = new DeviceListener() {
         @Override
         public void onDeviceStateChanged(int result) {
-            Log.v("MainService", "onDeviceStateChanged,result=" + result);
             if (result == RtcConst.CallCode_Success) { //注销也存在此处
+                HttpApi.i("20180423","RTC注册完成");
                 onConnectSuccess();
             } else if (result == RtcConst.NoNetwork || result == RtcConst.CallCode_Network) {
                 onNoNetWork();
+                HttpApi.i("20180423","网络断开，网络不可用或服务器错误，应限制呼叫");
             } else if (result == RtcConst.CallCode_Timeout) {
                 onConnectTimeout();
+                HttpApi.i("20180423","登录超时，应限制呼叫");
             } else if (result == RtcConst.ChangeNetwork) {
+                HttpApi.i("20180423","网络切换了，可以继续呼叫");
                 changeNetWork();
             } else if (result == RtcConst.PoorNetwork) {
+                HttpApi.i("20180423","网络闪断，可以忽略，不影响呼叫");
                 onPoorNetWork();
             } else if (result == RtcConst.ReLoginNetwork) {
+                HttpApi.i("20180423","重连失败应用可以选择重新登录，应限制呼叫");
                 // 网络原因导致多次登陆不成功，由用户选择是否继续，如想继续尝试，可以重建device
-                Log.v("MainService", "onDeviceStateChanged,ReLoginNetwork");
                 onConnectError();
             } else if (result == RtcConst.DeviceEvt_KickedOff) {
+                HttpApi.i("20180423","同一账号在另一同类型终端登录，应限制呼叫");
                 // 被另外一个终端踢下线，由用户选择是否继续，如果再次登录，需要重新获取token，重建device
-                Log.v("MainService", "onDeviceStateChanged,DeviceEvt_KickedOff");
                 onConnectError();
             } else if (result == RtcConst.DeviceEvt_MultiLogin) {
-                Log.v("MainService", "onDeviceStateChanged,DeviceEvt_MultiLogin");
+                HttpApi.i("20180423","同一账号在不同类型终端登录，不影响呼叫");
             } else {
                 //  CommFunc.DisplayToast(MyApplication.this, "注册失败:"+result);
+                HttpApi.i("20180423","未匹配到任何结果");
             }
         }
 
@@ -2176,17 +2193,6 @@ public class MainService extends Service {
             onConnectError();
             rtcLogout();
             rtcConnectTimeout();
-        }
-
-        private void rtcLogout() {
-            if (rtcClient != null) {
-                rtcClient.release();
-                rtcClient = null;
-            }
-            if (device != null) {
-                device.release();
-                device = null;
-            }
         }
 
         private void changeNetWork() {
@@ -3079,14 +3085,10 @@ public class MainService extends Service {
 
     protected void getLastAdvertisementList() {
         if (DeviceConfig.IS_AD_AVAILABLE) {
-            HttpApi.i("开始获取广告视频");
             if (advertisementStatus == ADVERTISEMENT_WAITING) {
-                HttpApi.i("getLastAdvertisementList---->视频标签为0，开始获取视频");
                 advertisementStatus = ADVERTISEMENT_REFRESHING;
-                HttpApi.i("getLastAdvertisementList---->设置视频标签为1");
                 currentAdvertisementFiles.clear();
                 JSONArray rows = checkAdvertiseList(); //获取视频文件
-                HttpApi.i("网络请求广告列表："+rows.toString());
                 if (rows != null) {
                     adjustAdvertiseFiles();
                     restartAdvertise(rows);
@@ -3094,7 +3096,7 @@ public class MainService extends Service {
                 }
                 advertisementStatus = ADVERTISEMENT_WAITING;
             }else{
-                HttpApi.i("getLastAdvertisementList---->视频标签不为0，不获取视频");
+
             }
         }
     }
