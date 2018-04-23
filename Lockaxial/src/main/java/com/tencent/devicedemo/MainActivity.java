@@ -1320,7 +1320,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     /**
      * 开始呼叫
      */
-    private void startDialing(String num) {
+    private void startDialing(final String num) {
         Log.v(FACE_TAG, "startDialing-->" + num);
         if (num.equals("9999") && faceHandler != null) {
             //人脸识别录入
@@ -1332,6 +1332,16 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (faceHandler != null) {
             faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 0);
         }
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+              delayDialing(num);
+            }
+        },1000);
+    }
+
+
+    private void delayDialing(String num){
         Log.v(FACE_TAG, "开始呼叫1" + num);
         setCurrentStatus(CALLING_MODE);
         if (DeviceConfig.DEVICE_TYPE.equals("C")) {
@@ -2128,11 +2138,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private synchronized void doTakePicture(final String thisValue, final boolean isCall, final String uuid, final TakePictureCallback callback) {
 
         try {
+            HttpApi.i("拍照获取相机");
             camera = Camera.open();
-
+            HttpApi.i("拍照获取相机成功");
         } catch (Exception e) {
+            HttpApi.i("拍照获取相机失败");
         }
-        Log.v("MainActivity", "打开相机");
         if (camera == null) {
             try {
                 camera = Camera.open(0);
