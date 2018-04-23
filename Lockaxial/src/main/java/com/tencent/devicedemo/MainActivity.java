@@ -294,7 +294,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             }
         }
     };
-
     //扫描回调
     private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
 
@@ -307,8 +306,21 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     };
     private TextView tv_battery;
-
     private TextView version_text;
+    private boolean mCamerarelease = true;
+    private Handler cameraHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            if(msg.what == 0x01){
+                if(mCamerarelease){
+                    cameraHandler.removeMessages(0x01);
+                    buildVideo();
+                }else{
+                    cameraHandler.sendEmptyMessageDelayed(0x01,200);
+                }
+            }
+        }
+    };
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -1151,8 +1163,14 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public void onRtcVideoOn() {
         setDialValue("正在和" + blockNo + "视频通话");
         initVideoViews();
-        HttpApi.i("remoteView = null?"+(remoteView == null));
-        HttpApi.i("MainService.callConnection = null?"+(MainService.callConnection == null));
+        if(mCamerarelease){
+            buildVideo();
+        }else{
+            cameraHandler.sendEmptyMessageDelayed(0x01,200);
+        }
+    }
+
+    private void buildVideo(){
         if(MainService.callConnection!=null){
             MainService.callConnection.buildVideo(remoteView);//此处接听过快的会导致崩溃
         }
@@ -1850,7 +1868,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     synchronized void setCurrentStatus(int status) {
         currentStatus = status;
     }
-
     //初始化桌面显示呼叫模式
     private void initDialStatus() {
         //callLayout.setVisibility(View.VISIBLE);
@@ -2135,13 +2152,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     private synchronized void doTakePicture(final String thisValue, final boolean isCall, final String uuid, final TakePictureCallback callback) {
-
+        mCamerarelease = false;
         try {
-            HttpApi.i("拍照获取相机");
             camera = Camera.open();
-            HttpApi.i("拍照获取相机成功");
         } catch (Exception e) {
-            HttpApi.i("拍照获取相机失败");
         }
         if (camera == null) {
             try {
@@ -2171,10 +2185,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                             FileOutputStream outputStream = new FileOutputStream(file);
                             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
                             outputStream.close();
-                            camera.stopPreview();
-                            camera.release();
-                            camera = null;
-                            Log.v("MainActivity", "释放照相机资源");
                             final String url = DeviceConfig.SERVER_URL + "/app/upload/image";
                             if (checkTakePictureAvailable(uuid)) {
                                 new Thread() {
@@ -2206,6 +2216,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
+                        }finally {
+                            camera.setPreviewCallback(null) ;
+                            camera.stopPreview();
+                            camera.release();
+                            camera = null;
+                            mCamerarelease = true;
                         }
                     }
                 });

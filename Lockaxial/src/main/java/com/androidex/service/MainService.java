@@ -3556,7 +3556,7 @@ public class MainService extends Service {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String cmd = "pm install -r "+ fileName;
+                String cmd = "pm install -r"+ fileName;
                 HttpApi.i("安装命令："+cmd);
                 ShellUtils.CommandResult result = InstallUtil.executeCmd(cmd);
                 HttpApi.i("安装结果："+result.toString());
