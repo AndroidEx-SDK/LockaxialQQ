@@ -2217,26 +2217,28 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         } catch (Exception e) {
                             e.printStackTrace();
                         }finally {
-                            camera.setPreviewCallback(null) ;
-                            camera.stopPreview();
-                            camera.release();
-                            camera = null;
-                            mCamerarelease = true;
+                            if(camera!=null){
+                                camera.setPreviewCallback(null) ;
+                                camera.stopPreview();
+                                camera.release();
+                                camera = null;
+                                mCamerarelease = true;
+                            }
                         }
                     }
                 });
             } catch (Exception e) {
-                try {
-                    camera.stopPreview();
-                } catch (Exception err) {
-                }
-                try {
-                    camera.release();
-                } catch (Exception err) {
-                }
                 callback.afterTakePickture(thisValue, null, isCall, uuid);
                 Log.v("MainActivity", "照相出异常清除UUID");
                 clearImageUuidAvaible(uuid);
+            }finally {
+                if(camera!=null){
+                    camera.setPreviewCallback(null) ;
+                    camera.stopPreview();
+                    camera.release();
+                    camera = null;
+                    mCamerarelease = true;
+                }
             }
         }
     }

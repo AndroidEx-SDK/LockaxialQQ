@@ -1846,7 +1846,7 @@ public class MainService extends Service {
                     String userUrl = RtcRules.UserToRemoteUri_new(username, RtcConst.UEType_Any);
                     HttpApi.i("拨号中->准备拨号userUrl = " + userUrl);
                     HttpApi.i("拨号中->准备拨号data = " + data.toString());
-                    int sendResult = device.sendIm(userUrl, "cmd/json", data.toString());
+                    int sendResult = device.sendIm(userUrl, "cmd/json", data.toString()); //有可能为null
                     Log.v("MainService", "sendIm(): " + sendResult);
                     HttpApi.i("拨号中->sendIm()" + sendResult);
                     triedUserList.add(userObject);

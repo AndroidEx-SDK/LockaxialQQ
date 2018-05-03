@@ -11,7 +11,7 @@ android {
         minSdkVersion 19
         targetSdkVersion 23
         versionCode 2
-        versionName "V.T.0.0.3"
+        versionName "V.T.0.0.4"
         ndk {
             moduleName "qqlib"
             ldLibs "log", "z", "m"
@@ -75,6 +75,15 @@ android {
 //        exclude 'lib/armeabi/libserial_port.so'//该so会qqDoorlock.jar下的冲突
 //        exclude 'lib/armeabi-v7a/libserial_port.so'//该so会qqDoorlock.jar下的冲突
 //    }
+    android.applicationVariants.all {
+        variant ->
+            variant.outputs.each {
+                output -> output.outputFile = new File(output.outputFile.parent, "LockaxialQQ.a.${appversion()}.apk");
+            }
+    }
+}
+def appversion(){
+    return 7
 }
 
 dependencies {
