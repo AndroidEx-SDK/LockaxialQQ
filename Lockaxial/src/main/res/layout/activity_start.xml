@@ -1,38 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                android:id="@+id/start_view"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent"
-                android:orientation="vertical">
+    android:id="@+id/start_view"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="20dp"
-        android:text="登录成功，再进行入卡操作"
-        android:textColor="#000000"
-        android:textSize="20sp"/>
+    <RelativeLayout
+        android:visibility="gone"
+        android:id="@+id/card_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="20dp"
+            android:text="登录成功，再进行入卡操作"
+            android:textColor="#000000"
+            android:textSize="20sp"/>
 
-    <EditText
-        android:id="@+id/et_admin"
-        android:layout_width="640dp"
-        android:layout_height="40dp"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="156dp"
-        android:background="@android:drawable/edit_text"
-        android:hint="请输入登录账号"/>
+        <EditText
+            android:id="@+id/et_admin"
+            android:layout_width="640dp"
+            android:layout_height="40dp"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="156dp"
+            android:background="@android:drawable/edit_text"
+            android:hint="请输入登录账号"/>
 
-    <EditText
-        android:id="@+id/et_password"
-        android:layout_width="640dp"
-        android:layout_height="40dp"
-        android:layout_below="@+id/et_admin"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="20dp"
-        android:background="@android:drawable/edit_text"
-        android:hint="请输入账号密码"/>
+        <EditText
+            android:id="@+id/et_password"
+            android:layout_width="640dp"
+            android:layout_height="40dp"
+            android:layout_below="@+id/et_admin"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="20dp"
+            android:background="@android:drawable/edit_text"
+            android:hint="请输入账号密码"/>
+    </RelativeLayout>
+
+    <LinearLayout
+        android:visibility="gone"
+        android:id="@+id/action_layout"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:text="请按对应功能序号的数字键选择需要的功能"
+            android:textColor="#000000"
+            android:textSize="20sp"/>
+
+        <TextView
+            android:layout_marginTop="156dp"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:text="1、录卡功能"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:layout_marginTop="30dp"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:text="2、录入人脸"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
 
 
 </RelativeLayout>

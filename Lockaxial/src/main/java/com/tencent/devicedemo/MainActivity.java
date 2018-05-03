@@ -213,6 +213,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public static final int INPUT_CARDINFO_RESULTCODE = 0X01;
     public static final int INPUT_CARDINFO_REQUESTCODE = 0X02;
     public static final int INPUT_SYSTEMSET_REQUESTCODE = 0X03;
+    public static final int INPUT_FACE_REQUESTCODE = 0X04;
     public static final String address = "67:C2:B2:2F:72:FC";//马总
     //public static final String address = "1F:1C:32:AF:66:23";//寄出去的mac=== 1F:1C:32:AF:66:23
     private static final long SCAN_PERIOD = 12000;//扫描时间
@@ -1340,12 +1341,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      */
     private void startDialing(final String num) {
         Log.v(FACE_TAG, "startDialing-->" + num);
-        if (num.equals("9999") && faceHandler != null) {
-            //人脸识别录入
-            faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 100);
-            faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_INPUT, 100);
-            return;
-        }
         //呼叫前，确认摄像头不被占用
         if (faceHandler != null) {
             faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 0);
@@ -1653,6 +1648,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         et_blackno.requestFocus();
                         et_blackno.setText("");
                         et_unitno.setText("");
+                        break;
+                    case INPUT_FACE_REQUESTCODE:
+                        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 100);
+                        faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_INPUT, 100);
                         break;
                     default:
                         //imageView.setVisibility(View.VISIBLE);

@@ -11,11 +11,14 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.androidex.config.DeviceConfig;
 import com.androidex.utils.Ajax;
+import com.androidex.utils.HttpApi;
 import com.androidex.utils.HttpUtils;
 
 import org.json.JSONObject;
@@ -37,6 +40,10 @@ public class InputCardInfoActivity extends Activity {
     public static int LOGIN_SUCCESS = 0X01;
     public static int LOGIN_FAIL = 0X02;
 
+
+    private RelativeLayout cardLayout;
+    private LinearLayout actionLayout;
+
     private Intent intent;
     private Handler handler = new Handler() {
         @Override
@@ -44,8 +51,11 @@ public class InputCardInfoActivity extends Activity {
             super.handleMessage(msg);
             int result = msg.what;
             if (result == LOGIN_SUCCESS) {//登录成功
-                setResult(MainActivity.INPUT_CARDINFO_RESULTCODE, intent);
-                finish();
+                Toast.makeText(InputCardInfoActivity.this, "登录成功", Toast.LENGTH_LONG).show();
+                //setResult(MainActivity.INPUT_CARDINFO_RESULTCODE, intent);
+                //finish();
+                cardLayout.setVisibility(View.GONE);
+                actionLayout.setVisibility(View.VISIBLE);
             } else if (result == LOGIN_FAIL) {//登录失败
                 Toast.makeText(InputCardInfoActivity.this, "登录失败", Toast.LENGTH_LONG).show();
             }
@@ -60,6 +70,9 @@ public class InputCardInfoActivity extends Activity {
         setContentView(R.layout.activity_start);
 
         intent = getIntent();
+        cardLayout = (RelativeLayout) findViewById(R.id.card_layout);
+        actionLayout = (LinearLayout) findViewById(R.id.action_layout);
+        cardLayout.setVisibility(View.VISIBLE);
         et_admin = (EditText) findViewById(R.id.et_admin);
         et_password = (EditText) findViewById(R.id.et_password);
         et_admin.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -118,55 +131,70 @@ public class InputCardInfoActivity extends Activity {
         password = et_password.getText().toString();
         Log.d(TAG, "onKeyDown: " + keyCode);
         int key = convertKeyCode(keyCode);
-        if (key >= 0) {
-            if (flag) {//输入账号
-                callInput(key, R.id.et_admin);
-            } else {//输入密码
-                callInput(key, R.id.et_password);
-            }
-        } else if (keyCode == KeyEvent.KEYCODE_STAR || keyCode == DeviceConfig.DEVICE_KEYCODE_STAR) {
-            if (!flag && (password == null || password.equals(""))) {//返回到账号输入框
-                et_admin.setFocusable(true);
-                et_admin.setFocusableInTouchMode(true);
-                et_admin.requestFocus();
-            }
-            Log.d(TAG, "onKeyDown: flag=" + flag);
-            if (flag && !(admin == null || admin.equals(""))) {//删除输入的账号数字
-                blockNo = backKey(blockNo);
-                setTextValue(R.id.et_admin, blockNo);
-            }
-            if (!flag && !(password == null || password.equals(""))) {//删除输入的密码数字
-                blockNo = backKey(blockNo);
-                setTextValue(R.id.et_password, blockNo);
-            }
-            if (flag && (admin == null || admin.equals(""))) {
-                finish();
-            }
-        } else if (keyCode == KeyEvent.KEYCODE_POUND || keyCode == DeviceConfig.DEVICE_KEYCODE_POUND) {//确认键
-            if (flag) {
-                if (!blockNo.equals("")) {
-                    blockNo = "";
+        if(cardLayout.getVisibility() == View.VISIBLE){
+            if (key >= 0) {
+                if (flag) {//输入账号
+                    callInput(key, R.id.et_admin);
+                } else {//输入密码
+                    callInput(key, R.id.et_password);
                 }
-                et_password.setFocusable(true);
-                et_password.setFocusableInTouchMode(true);
-                et_password.requestFocus();
-            } else {
-                //进行登录验证
-                if (TextUtils.isEmpty(admin) || TextUtils.isEmpty(password)) {
-                    Toast.makeText(this, "账号或者密码不能为空", Toast.LENGTH_LONG).show();
-                    return;
+            } else if (keyCode == KeyEvent.KEYCODE_STAR || keyCode == DeviceConfig.DEVICE_KEYCODE_STAR) {
+                if (!flag && (password == null || password.equals(""))) {//返回到账号输入框
+                    et_admin.setFocusable(true);
+                    et_admin.setFocusableInTouchMode(true);
+                    et_admin.requestFocus();
                 }
-                //请求网络
-                new Thread() {
-                    @Override
-                    public void run() {
-                        super.run();
-                        login();
+                Log.d(TAG, "onKeyDown: flag=" + flag);
+                if (flag && !(admin == null || admin.equals(""))) {//删除输入的账号数字
+                    blockNo = backKey(blockNo);
+                    setTextValue(R.id.et_admin, blockNo);
+                }
+                if (!flag && !(password == null || password.equals(""))) {//删除输入的密码数字
+                    blockNo = backKey(blockNo);
+                    setTextValue(R.id.et_password, blockNo);
+                }
+                if (flag && (admin == null || admin.equals(""))) {
+                    finish();
+                }
+            } else if (keyCode == KeyEvent.KEYCODE_POUND || keyCode == DeviceConfig.DEVICE_KEYCODE_POUND) {//确认键
+                if (flag) {
+                    if (!blockNo.equals("")) {
+                        blockNo = "";
                     }
-                }.start();
+                    et_password.setFocusable(true);
+                    et_password.setFocusableInTouchMode(true);
+                    et_password.requestFocus();
+                } else {
+                    //进行登录验证
+                    if (TextUtils.isEmpty(admin) || TextUtils.isEmpty(password)) {
+                        Toast.makeText(this, "账号或者密码不能为空", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    //请求网络
+                    new Thread() {
+                        @Override
+                        public void run() {
+                            super.run();
+                            login();
+                        }
+                    }.start();
+                }
+            } else {
+                Log.d(TAG, "按键无作用的时候触发这里 ：" + key);
             }
-        } else {
-            Log.d(TAG, "按键无作用的时候触发这里 ：" + key);
+        }else{
+             if(keyCode>KeyEvent.KEYCODE_0 && keyCode<=KeyEvent.KEYCODE_9){
+                if(keyCode == KeyEvent.KEYCODE_1){
+                    //录卡功能
+                    setResult(MainActivity.INPUT_CARDINFO_RESULTCODE, intent);
+                    finish();
+                }else if(keyCode == KeyEvent.KEYCODE_2){
+                    setResult(MainActivity.INPUT_FACE_REQUESTCODE, intent);
+                    finish();
+                }
+             }else{
+                 Toast.makeText(InputCardInfoActivity.this, "请输入1 - 9 数字按键", Toast.LENGTH_LONG).show();
+             }
         }
     }
 
