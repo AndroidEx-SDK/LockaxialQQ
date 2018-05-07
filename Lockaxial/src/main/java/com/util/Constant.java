@@ -38,6 +38,7 @@ public class Constant {
     public static final int MSG_REFRESH_COMMUNITYNAME = 10019;
     public static final int MSG_REFRESH_LOCKNAME = 10020;
     public static final int MSG_RTC_MESSAGE = 10022;
+    public static final int MSG_RTC_MESSAGE_DELAY = 1002201;
     public static final int MSG_INPUT_CARDINFO_SUCCEED = 0x01;//录入卡信息成功
     public static final int MSG_INPUT_CARDINFO_FAIL = 0x02;//录入卡信息失败
     public static final int MSG_INPUT_CARDINFO_REPETITION = 0x03;//重复录入卡信息
@@ -57,4 +58,6 @@ public class Constant {
     public static final int PASSWORD_CHECKING_MODE = 9;//正在验证密码
     public static final int CALL_CANCEL_MODE = 10;
 
+    public static final int START_FACE_CHECK = 3001;
+    public static final int RE_SYNC_SYSTEMTIME = 3002;
 }

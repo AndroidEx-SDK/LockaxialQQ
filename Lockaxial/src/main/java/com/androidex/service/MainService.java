@@ -125,6 +125,7 @@ import static com.util.Constant.MSG_RTC_ONVIDEO;
 import static com.util.Constant.ON_YUNTONGXUN_INIT_ERROR;
 import static com.util.Constant.ON_YUNTONGXUN_LOGIN_FAIL;
 import static com.util.Constant.ON_YUNTONGXUN_LOGIN_SUCCESS;
+import static com.util.Constant.START_FACE_CHECK;
 
 /**
  * 程序的主要后台服务
@@ -425,7 +426,7 @@ public class MainService extends Service {
                 } else if (msg.what == MSG_RESTART_ADVERT) {
                     //getLastAdvertisementList();
                     initAdvertisement();
-                } else if (msg.what == MSG_UPDATE_VERSION) {
+                } else if (msg.what == MSG_UPDATE_VERSION) { //右上角点击更新
                     updateApp();
                     Log.i("UpdateService", "开启安装");
                 } else if (msg.what == MSG_UPDATE_NETWORKSTATE) {
@@ -2374,7 +2375,9 @@ public class MainService extends Service {
 
     protected void onMessage(String from, String mime, String content) {
         HttpApi.i("from = " + from + "    mime = " + mime + "     content = " + content);
-        sendDialMessenger(MSG_RTC_MESSAGE, null);
+        if(!content.startsWith("reject call")){
+            sendDialMessenger(START_FACE_CHECK, null);
+        }
         if (content.equals("refresh card info")) {
             sendDialMessenger(MSG_REFRESH_DATA, "card");
             //retrieveChangedCardList();
@@ -3472,7 +3475,8 @@ public class MainService extends Service {
         return result;
     }
 
-    protected void startUpdateThread() {
+    protected void startUpdateThread() { //定时检测更新
+        HttpApi.i("install_","开启版本检测");
         //xiaozd add
         if (updateThread != null) {
             updateThread.interrupt();
@@ -3485,9 +3489,11 @@ public class MainService extends Service {
                         int hour = c.get(Calendar.HOUR_OF_DAY);
                         if (DeviceConfig.APPLICATION_MODEL == 0) {
                             if (lastVersionStatus.equals("P")) {
+                                HttpApi.i("install_","处于等待安装阶段，进行安装,修改lastVersionStatus = I");
                                 lastVersionStatus = "I";
                                 updateApp();
                             } else {
+                                HttpApi.i("install_","未处于等待安装阶段，lastVersionStatus = "+lastVersionStatus);
                                 sleep(1000 * 60 * 3);
                             }
                         } else {
@@ -3519,14 +3525,9 @@ public class MainService extends Service {
         String SDCard = Environment.getExternalStorageDirectory() + "";
         String fileName = SDCard + "/" + lastVersionFile;
         File file = new File(fileName);
-        Log.v("UpdateService", "------>start Update App<------");
         if (lastVersion > DeviceConfig.RELEASE_VERSION) {
             if (file.exists()) {
-                Log.v("UpdateService", "check update file OK");
                 startInstallApp(fileName);
-                Log.i(TAG, "UpdateService:" + fileName);
-                //sendMessenger(MSG_INSTALL_SUCCEED,fileName);//发送安装指令
-                //sendDialMessenger(MSG_INSTALL_SUCCEED,fileName);
             }
         } else {
             ToastUtils.getInstance().showToast(MainService.this, "版本已是最新");
@@ -3556,10 +3557,10 @@ public class MainService extends Service {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String cmd = "pm install -r"+ fileName;
-                HttpApi.i("安装命令："+cmd);
+                String cmd = "pm install -r "+ fileName;
+                HttpApi.i("install_","安装命令："+cmd);
                 ShellUtils.CommandResult result = InstallUtil.executeCmd(cmd);
-                HttpApi.i("安装结果："+result.toString());
+                HttpApi.i("install_","安装结果："+result.toString());
             }
         }).start();
     }
