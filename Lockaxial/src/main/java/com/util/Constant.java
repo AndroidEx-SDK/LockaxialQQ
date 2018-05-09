@@ -60,4 +60,6 @@ public class Constant {
 
     public static final int START_FACE_CHECK = 3001;
     public static final int RE_SYNC_SYSTEMTIME = 3002;
+    public static final int APP_OPENDOOR = 3003;
+    public static final int APP_OPENDOOR_ACCESS = 3004;
 }

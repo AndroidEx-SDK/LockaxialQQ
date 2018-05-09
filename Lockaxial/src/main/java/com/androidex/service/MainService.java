@@ -83,8 +83,10 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Pattern;
 
 import jni.http.HttpManager;
 import jni.http.HttpResult;
@@ -100,6 +102,8 @@ import rtc.sdk.iface.Device;
 import rtc.sdk.iface.DeviceListener;
 import rtc.sdk.iface.RtcClient;
 
+import static com.util.Constant.APP_OPENDOOR;
+import static com.util.Constant.APP_OPENDOOR_ACCESS;
 import static com.util.Constant.MSG_ADVERTISE_REFRESH;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_COMPLETE;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_DIALING;
@@ -345,6 +349,7 @@ public class MainService extends Service {
                     String[] parameters = (String[]) msg.obj;
                     if (parameters[2].equals(imageUuid)) {
                         imageUrl = parameters[1];
+                        checkStateCreateAccessLog(null,imageUrl);
                         startCallMemberAppendImage();
                     }
                 } else if (msg.what == MSG_CHECK_PASSWORD_PICTURE) {
@@ -436,6 +441,17 @@ public class MainService extends Service {
                         initWhenConnected(); //开始在线版本
                     } else {
                         initWhenOffline(); //开始离线版本
+                    }
+                }else if(msg.what == APP_OPENDOOR_ACCESS){
+                    Map<String,String> data = (Map<String, String>) msg.obj;
+                    final String from =  data.get("from");
+                    final String fileUrl = data.get("fileUrl");
+                    if(from!=null && from.length()>0){
+                        new Thread() {
+                            public void run() {
+                                createAccessLog(fileUrl,from);
+                            }
+                        }.start();
                     }
                 }
             }
@@ -1102,6 +1118,7 @@ public class MainService extends Service {
             url = url + "&communityId=" + this.communityId;
             url = url + "&blockId=" + this.blockId;
             url = url + "&tempKey=" + this.tempKey;
+            url = url + "&lockId=0";
             if (imageUuid != null) {
                 url = url + "&imageUuid=" + URLEncoder.encode(this.imageUuid, "UTF-8");
             }
@@ -1109,6 +1126,7 @@ public class MainService extends Service {
                 url = url + "&imageUrl=" + URLEncoder.encode(this.imageUrl, "UTF-8");
             }
             try {
+                HttpApi.i("密码验证地址："+url);
                 String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
                 if (result != null) {
                     HttpApi.i("checkGuestPassword()->" + result);
@@ -1783,13 +1801,9 @@ public class MainService extends Service {
             Object[] objects = (Object[]) msg.obj;
             final String callUuid = (String) objects[0];
             JSONObject result = (JSONObject) objects[1];
-            HttpApi.i("拨号中->网络请求在线列表");
             JSONArray userList = (JSONArray) result.get("userList");
             JSONArray unitDeviceList = (JSONArray) result.get("unitDeviceList");
-            HttpApi.i("拨号中->网络请求在线列表" + (result != null ? result.toString() : ""));
             if ((userList != null && userList.length() > 0) || (unitDeviceList != null && unitDeviceList.length() > 0)) {
-                Log.v("MainService", "收到新的呼叫，清除呼叫数据，UUID=" + callUuid);
-                HttpApi.i("拨号中->清除呼叫数据");
                 allUserList.clear();
                 triedUserList.clear();
                 onlineUserList.clear();
@@ -2375,7 +2389,7 @@ public class MainService extends Service {
 
     protected void onMessage(String from, String mime, String content) {
         HttpApi.i("from = " + from + "    mime = " + mime + "     content = " + content);
-        if(!content.startsWith("reject call")){
+        if(!content.startsWith("reject call") && !content.startsWith("open the door")){
             sendDialMessenger(START_FACE_CHECK, null);
         }
         if (content.equals("refresh card info")) {
@@ -2399,12 +2413,20 @@ public class MainService extends Service {
             int thisIndex = content.indexOf("-");
             if (thisIndex > 0) {
                 imageUrl = content.substring(thisIndex + 1);
+                if(isInteger(imageUrl)){ //直接通过app->小区门禁->开门
+                    sendDialMessenger(APP_OPENDOOR,from);
+                }else{
+                    //startCreateAccessLog(from, imageUrl);
+                    checkStateCreateAccessLog(from,null);
+                    sendDialMessenger(START_FACE_CHECK, null);
+                }
             } else {
                 imageUrl = null;
+                //startCreateAccessLog(from, imageUrl);
+                checkStateCreateAccessLog(from,null);
+                sendDialMessenger(START_FACE_CHECK, null);
             }
-            startCreateAccessLog(from, imageUrl);
             cancelOtherMembers(from);
-            Log.v("MainService", "用户直接开门，取消其他呼叫");
             resetCallMode();
             stopTimeoutCheckThread();
             openLock();
@@ -2456,7 +2478,6 @@ public class MainService extends Service {
             openAssembleLock();
         } else if (DeviceConfig.IS_AEX_AVAILABLE) {
             openAexLock();
-
             int status = 2;
             Intent ds_intent = new Intent();
             ds_intent.setAction(DoorLock.DoorLockOpenDoor);
@@ -2469,19 +2490,49 @@ public class MainService extends Service {
             sendBroadcast(intent);
         }
     }
+    Map<String,String> openState = new Hashtable<>();
+    Map<String,String> uploadState = new Hashtable<>();
+    private void checkStateCreateAccessLog(String from,String fileUrl){
+
+        if(openState.get(imageUuid)!=null){ //
+            HttpApi.e("文件上传完成，执行创建历史，且已经开门了"+imageUuid);
+            startCreateAccessLog(openState.get(imageUuid),fileUrl);
+            openState.clear();
+            uploadState.clear();
+        }else if(uploadState.get(imageUuid)!=null){
+            HttpApi.e("门开了，执行创建理事，且文件已经上传"+imageUuid);
+            startCreateAccessLog(from,uploadState.get(imageUuid));
+            openState.clear();
+            uploadState.clear();
+        }else{
+            HttpApi.e("门和文件都未完成");
+            if(from!=null){
+                HttpApi.e("添加门打开标记"+imageUuid);
+                openState.put(imageUuid,from);
+            }
+            if(fileUrl!=null){
+                HttpApi.e("添加文件上传标记"+imageUuid);
+                uploadState.put(imageUuid,fileUrl);
+            }
+        }
+    }
 
     protected void startCreateAccessLog(String from, final String imageUrl) {
         this.messageFrom = from;
         new Thread() {
             public void run() {
-                createAccessLog(imageUrl);
+                createAccessLog(imageUrl,null);
             }
         }.start();
     }
 
-    protected void createAccessLog(String imageUrl) {
+    protected void createAccessLog(String imageUrl,String from) {
         String url = DeviceConfig.SERVER_URL + "/app/device/createAccessLog?from=";
-        url = url + this.messageFrom;
+        if(from!=null){
+            url = url + from;
+        }else{
+            url = url + this.messageFrom;
+        }
         url = url + "&communityId=" + this.communityId;
         url = url + "&lockId=" + this.lockId;
         if (imageUrl != null) {
@@ -3532,6 +3583,11 @@ public class MainService extends Service {
         } else {
             ToastUtils.getInstance().showToast(MainService.this, "版本已是最新");
         }
+    }
+
+    public static boolean isInteger(String str) {
+        Pattern pattern = Pattern.compile("^[-\\+]?[\\d]*$");
+        return pattern.matcher(str).matches();
     }
 
     protected void startInstallApp(final String fileName) {

@@ -4,7 +4,7 @@ android {
     android.applicationVariants.all {
         variant ->
             variant.outputs.each {
-                output -> output.outputFile = new File(output.outputFile.parent, "LockaxialQQ.a.10.apk");
+                output -> output.outputFile = new File(output.outputFile.parent, "LockaxialQQ.a.11.apk");
             }
     }
 
@@ -17,8 +17,8 @@ android {
         applicationId "com.tencent.devicedemo"
         minSdkVersion 19
         targetSdkVersion 23
-        versionCode 10
-        versionName "V.T.0.0.7"
+        versionCode 11
+        versionName "V.T.0.0.8"
         ndk {
             moduleName "qqlib"
             ldLibs "log", "z", "m"
