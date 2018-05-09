@@ -9,7 +9,7 @@ public class DeviceConfig {
 	public static final String UPDATE_SERVER_URL="http://www.lockaxial.com";
     public static final String UPDATE_RELEASE_FOLDER="/release/doorAccessMachine/v1/";
     public static final String UPDATE_RELEASE_PACKAGE="package.json";
-    public static final int RELEASE_VERSION=10;
+    public static final int RELEASE_VERSION=11;
     //public static final String USER_ID = "A000001";//北京马总
     //public static final String USER_ID = "A000002";//维拓智能（背景不一致）
     public static final String USER_ID = "A000000";//通用
