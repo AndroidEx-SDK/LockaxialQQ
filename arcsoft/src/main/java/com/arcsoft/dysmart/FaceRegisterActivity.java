@@ -582,7 +582,8 @@ public class FaceRegisterActivity extends AppCompatActivity implements SurfaceHo
 
     private boolean fileOperation(String name) {
         boolean bool = false;
-        String path = getExternalCacheDir().getPath();
+        //String path = getExternalCacheDir().getPath();
+        String path = getFilesDir().getPath()+"/face";
 //        Log.v(FACE_TAG, "fileOperation-->" + path);
         File file = new File(path);
         if (file != null && file.exists()) {

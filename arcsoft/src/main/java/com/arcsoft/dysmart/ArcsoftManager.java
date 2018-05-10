@@ -38,7 +38,8 @@ public class ArcsoftManager {
 //    public Uri mImage;
 
     public void initArcsoft(Application application) {
-        String path = application.getExternalCacheDir().getPath();
+        //String path = application.getExternalCacheDir().getPath();
+        String path = application.getFilesDir().getPath()+"/face";
         Log.v(FACE_TAG, "initArcsoft-->" + path);
         mFaceDB = new FaceDB(path);
 //        mImage = null;

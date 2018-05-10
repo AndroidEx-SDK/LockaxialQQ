@@ -54,6 +54,20 @@ public class FaceDB {
 
     public FaceDB(String path) {
         mDBPath = path;
+        if(mDBPath!=null){
+            File fm = new File(mDBPath);
+            if(!fm.exists()){
+                fm.mkdirs();
+            }
+            File ff = new File(mDBPath+"/face.txt");
+            if(!ff.exists()){
+                try {
+                    ff.createNewFile();
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        }
         mRegister = new ArrayList<>();
         mFRVersion = new AFR_FSDKVersion();
         mUpgrade = false;
@@ -98,6 +112,9 @@ public class FaceDB {
             ExtInputStream bos = new ExtInputStream(fs);
             //load version
             String version_saved = bos.readString();
+            if(version_saved == null || version_saved.length()<=0){
+                return false;
+            }
             if (version_saved.equals(mFRVersion.toString() + "," + mFRVersion.getFeatureLevel())) {
                 mUpgrade = true;
             }

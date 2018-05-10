@@ -350,7 +350,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initTXD();
         initQQReceiver();//初始化QQ物联广播
         initVoiceHandler();//
-        initVoiceVolume();//
+        //initVoiceVolume();//
         initAdvertiseHandler();//初始化广告
         initAutoCamera();//
         startClockRefresh();//
@@ -780,26 +780,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
      */
     private void setAutioVolume() {
         AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        //通话音量
-        int max = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
-        int current = mAudioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL);
-        Log.d("VIOCE_CALL", "max : " + max + " current : " + current);
-        //系统音量
-        max = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_SYSTEM);
-        current = mAudioManager.getStreamVolume(AudioManager.STREAM_SYSTEM);
-        Log.d("SYSTEM", "max : " + max + " current : " + current);
-        //铃声音量
-        max = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_RING);
-        current = mAudioManager.getStreamVolume(AudioManager.STREAM_RING);
-        Log.d("RING", "max : " + max + " current : " + current);
-        //音乐音量
-        max = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-        current = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-        Log.d("MUSIC", "max : " + max + " current : " + current);
-        //提示声音音量
-        max = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
-        current = mAudioManager.getStreamVolume(AudioManager.STREAM_ALARM);
-        Log.d("ALARM", "max : " + max + " current : " + current);
+        mAudioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, mAudioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL ), AudioManager.FLAG_PLAY_SOUND);
+        mAudioManager.setStreamVolume(AudioManager.STREAM_SYSTEM, mAudioManager.getStreamMaxVolume(AudioManager.STREAM_SYSTEM ), AudioManager.FLAG_PLAY_SOUND);
+        mAudioManager.setStreamVolume(AudioManager.STREAM_RING, mAudioManager.getStreamMaxVolume(AudioManager.STREAM_RING ), AudioManager.FLAG_PLAY_SOUND);
+        mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC ), AudioManager.FLAG_PLAY_SOUND);
+        mAudioManager.setStreamVolume(AudioManager.STREAM_ALARM, mAudioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM ), AudioManager.FLAG_PLAY_SOUND);
     }
 
     /**
@@ -1095,7 +1080,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     sendMainMessager(MainService.REGISTER_ACTIVITY_DIAL, null);
                     //开始读卡
                     enableReaderMode();
-                    Log.i("xiao_", "收到消息MSG_REGISTER_ACTIVITY_DIAL -》开始MainActivity初始化-》》》可以读卡");
                     //人脸识别对比
                     handler.sendEmptyMessage(START_FACE_CHECK);
                 } else if (msg.what == MainService.MSG_LOADLOCAL_DATA) {
@@ -1103,12 +1087,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     setCommunityName(MainService.communityName);
                     setLockName(MainService.lockName);
                 }else if(msg.what == START_FACE_CHECK){
-                    if (faceHandler != null && mCamerarelease) {
-                        HttpApi.i("相机释放成功，开启人脸识别");
+                    if (faceHandler != null && mCamerarelease && mGLSurfaceView!=null && mSurfaceView!=null) {
+                        HttpApi.e("ppp","相机释放完成，启动人脸");
                         handler.removeMessages(START_FACE_CHECK);
                         faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
                     }else{
-                        HttpApi.i("相机未释放，继续等待");
+                        HttpApi.e("ppp","相机未释放，继续等待");
                         handler.sendEmptyMessageDelayed(START_FACE_CHECK,200);
                     }
                 }else if(msg.what == RE_SYNC_SYSTEMTIME){
@@ -1180,7 +1164,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                                     e.printStackTrace();
                                 }
                                 if(camera!=null){
-                                    camera.setPreviewCallback(null) ;
+                                    //camera.setPreviewCallback(null) ;
                                     camera.stopPreview();
                                     camera.release();
                                     camera = null;
@@ -1205,7 +1189,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     }catch (Exception e){
                         e.printStackTrace();
                         if(camera!=null){
-                            camera.setPreviewCallback(null) ;
+                            //camera.setPreviewCallback(null) ;
                             camera.stopPreview();
                             camera.release();
                             camera = null;
@@ -1310,6 +1294,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
         HttpApi.i("密码验证成功，启动人脸");
         //开启人脸
+        HttpApi.i("ppp","密码验证成功，启动人脸");
         handler.sendEmptyMessage(START_FACE_CHECK);
     }
 
@@ -1447,6 +1432,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         //呼叫前，确认摄像头不被占用
         if (faceHandler != null) {
             faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 0);
+            HttpApi.i("ppp","开始呼叫，暂停人脸识别");
         }
         delayDialing(num);
     }
@@ -1505,6 +1491,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (guestPassword.length() == 6) {
             if(faceHandler!=null){
                 faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE,0);
+                HttpApi.e("ppp","密码验证，停止人脸识别");
             }
             checkPassword();
         }
@@ -2250,7 +2237,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     private synchronized void doTakePicture(final String thisValue, final boolean isCall, final String uuid, final TakePictureCallback callback) {
-        HttpApi.i("开始拍照");
+        HttpApi.i("ppp","开始拍照"+isCall);
         mCamerarelease = false;
         try {
             Thread.sleep(500);
@@ -2259,22 +2246,22 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
         try {
             camera = Camera.open();
-            HttpApi.i("获取到相机open()");
+            HttpApi.i("ppp","获取到相机open()"+isCall);
         } catch (Exception e) {
-            HttpApi.i("拨号拍照照片获取异常open()");
+            HttpApi.i("ppp","拨号拍照照片获取异常open()"+isCall);
             e.printStackTrace();
         }
         if (camera == null) {
             try {
                 camera = Camera.open(0);
-                HttpApi.i("获取到相机open(0)");
+                HttpApi.i("ppp","获取到相机open(0)"+isCall);
             } catch (Exception e) {
-                HttpApi.i("拨号拍照照片获取异常open(0)");
+                HttpApi.i("ppp","拨号拍照照片获取异常open(0)"+isCall);
                 e.printStackTrace();
             }
         }
         if (camera != null) {
-            HttpApi.i("相机获取成功");
+            HttpApi.i("ppp","相机获取成功"+isCall);
             try {
                 Camera.Parameters parameters = camera.getParameters();
                 parameters.setPreviewSize(320, 240);
@@ -2286,18 +2273,18 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 camera.setPreviewDisplay(autoCameraHolder);
                 camera.startPreview();
                 camera.autoFocus(null);
-                HttpApi.i("开始拍照");
+                HttpApi.i("ppp","开始拍照"+isCall);
                 camera.takePicture(null, null, new Camera.PictureCallback() {
                     public void onPictureTaken(byte[] data, Camera camera) {
                         try {
-                            HttpApi.i("拍照成功");
+                            HttpApi.i("ppp","拍照成功"+isCall);
                             Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                             final File file = new File(Environment.getExternalStorageDirectory(), System.currentTimeMillis() + ".jpg");
                             FileOutputStream outputStream = new FileOutputStream(file);
                             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
                             outputStream.close();
                             if(camera!=null){
-                                camera.setPreviewCallback(null) ;
+                                //camera.setPreviewCallback(null) ;
                                 camera.stopPreview();
                                 camera.release();
                                 camera = null;
@@ -2309,9 +2296,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                                     public void run() {
                                         String fileUrl = null;
                                         try {
-                                            HttpApi.i("开始上传照片");
+                                            HttpApi.i("ppp","开始上传照片"+isCall);
                                             fileUrl = UploadUtil.uploadFile(file, url);
-                                            HttpApi.i("照片上传成功");
+                                            HttpApi.i("ppp","照片上传成功"+isCall);
                                         } catch (Exception e) {
                                         }
                                         if (checkTakePictureAvailable(uuid)) {
@@ -2335,7 +2322,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         } catch (Exception e) {
                             e.printStackTrace();
                             if(camera!=null){
-                                camera.setPreviewCallback(null) ;
+                                //camera.setPreviewCallback(null) ;
                                 camera.stopPreview();
                                 camera.release();
                                 camera = null;
@@ -2349,7 +2336,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 Log.v("MainActivity", "照相出异常清除UUID");
                 clearImageUuidAvaible(uuid);
                 if(camera!=null){
-                    camera.setPreviewCallback(null) ;
+                    //camera.setPreviewCallback(null) ;
                     camera.stopPreview();
                     camera.release();
                     camera = null;
@@ -3084,6 +3071,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         }
                         break;
                     case MSG_FACE_DETECT_PAUSE:
+                        faceHandler.removeMessages(MSG_FACE_DETECT_CONTRAST);
+                        handler.removeMessages(START_FACE_CHECK);
                         identification = false;
                         if (mFRAbsLoop != null) {
                             mFRAbsLoop.pauseThread();
@@ -3152,35 +3141,41 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     @Override
     public Camera setupCamera() {
         // TODO Auto-generated method stub
-        mCamera = Camera.open();
+        try{
+            mCamera = Camera.open();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
         try {
-            Camera.Parameters parameters = mCamera.getParameters();
+            if(mCamera!=null){
+                Camera.Parameters parameters = mCamera.getParameters();
 //            parameters.setPreviewSize(mWidth, mHeight);
-            parameters.setPreviewSize(800, 600);
-            parameters.setPreviewFormat(ImageFormat.NV21);
+                parameters.setPreviewSize(800, 600);
+                parameters.setPreviewFormat(ImageFormat.NV21);
 
-            for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
-                //Log.v(FACE_TAG, "SIZE:" + size.width + "x" + size.height);
-            }
-            for (Integer format : parameters.getSupportedPreviewFormats()) {
-                //Log.v(FACE_TAG, "FORMAT:" + format);
-            }
-
-            List<int[]> fps = parameters.getSupportedPreviewFpsRange();
-            for (int[] count : fps) {
-                //Log.d(TAG, "T:");
-                for (int data : count) {
-                    //Log.d(TAG, "V=" + data);
+                for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
+                    //Log.v(FACE_TAG, "SIZE:" + size.width + "x" + size.height);
                 }
+                for (Integer format : parameters.getSupportedPreviewFormats()) {
+                    //Log.v(FACE_TAG, "FORMAT:" + format);
+                }
+
+                List<int[]> fps = parameters.getSupportedPreviewFpsRange();
+                for (int[] count : fps) {
+                    //Log.d(TAG, "T:");
+                    for (int data : count) {
+                        //Log.d(TAG, "V=" + data);
+                    }
+                }
+                //parameters.setPreviewFpsRange(15000, 30000);
+                //parameters.setExposureCompensation(parameters.getMaxExposureCompensation());
+                //parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
+                //parameters.setAntibanding(Camera.Parameters.ANTIBANDING_AUTO);
+                //parmeters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                //parameters.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
+                //parameters.setColorEffect(Camera.Parameters.EFFECT_NONE);
+                mCamera.setParameters(parameters);
             }
-            //parameters.setPreviewFpsRange(15000, 30000);
-            //parameters.setExposureCompensation(parameters.getMaxExposureCompensation());
-            //parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
-            //parameters.setAntibanding(Camera.Parameters.ANTIBANDING_AUTO);
-            //parmeters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-            //parameters.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
-            //parameters.setColorEffect(Camera.Parameters.EFFECT_NONE);
-            mCamera.setParameters(parameters);
         } catch (Exception e) {
             e.printStackTrace();
             //Log.v(FACE_TAG, "setupCamera-->" + e.getMessage());
