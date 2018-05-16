@@ -169,7 +169,7 @@
                 android:layout_toRightOf="@+id/tv_lock"
                 android:gravity="center_vertical"
                 android:lines="1"
-                android:text="请输入房屋编号"
+                android:text="房屋编号或密码"
                 android:textColor="#ffffff"
                 android:textSize="30dp"
                 android:textStyle="bold" />
@@ -181,7 +181,7 @@
                 android:layout_marginLeft="10dp"
                 android:layout_toRightOf="@+id/tv_input_label"
                 android:gravity="center_vertical"
-                android:hint="确认键切换房号/密码"
+                android:hint="输入后请按确认键"
                 android:textColorHint="#878686"
                 android:textColor="#ffffff"
                 android:textSize="30dp"

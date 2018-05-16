@@ -168,11 +168,12 @@ import static com.util.Constant.APP_OPENDOOR;
 import static com.util.Constant.APP_OPENDOOR_ACCESS;
 import static com.util.Constant.CALLING_MODE;
 import static com.util.Constant.CALL_CANCEL_MODE;
-import static com.util.Constant.CALL_MODE;
+import static com.util.Constant.CARD_OPENDOOR_ACCESS;
 import static com.util.Constant.DIRECT_CALLING_MODE;
 import static com.util.Constant.DIRECT_CALLING_TRY_MODE;
 import static com.util.Constant.DIRECT_MODE;
 import static com.util.Constant.ERROR_MODE;
+import static com.util.Constant.INPUT_MODE;
 import static com.util.Constant.MSG_ADVERTISE_IMAGE;
 import static com.util.Constant.MSG_ADVERTISE_REFRESH;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_COMPLETE;
@@ -225,7 +226,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private static final String ACTION_SCAN_DEVICE = "ACTION_SCAN_DEVICE";//扫描到设备
     private static final String SCAN_DEVICE_FAIL = "SCAN_DEVICE_FAIL";//扫描失败
     private static final String REFRESH_RSSI = "REFRESH_RSSI";//获取蓝牙信号强度
-    public static int currentStatus = CALL_MODE;
+    public static int currentStatus = INPUT_MODE;
     public static int READER_FLAGS = NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK;
     private View container;
     private LinearLayout videoLayout;
@@ -259,13 +260,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private HashMap<String, String> uuidMaps = new HashMap<String, String>();
     private String lastImageUuid = "";
     private String blockNo = "";
-    private String guestPassword = "";
     private String cardId;
     private String nfcMessage = "请将卡片放到感应区域，按确认键\n确定录入卡片，按删除键取消录入卡片";
     private SurfaceView localView = null;
     private SurfaceView remoteView = null;
     private SurfaceHolder autoCameraHolder = null;
-    private Thread passwordTimeoutThread = null;
     private Thread clockRefreshThread = null;
     private SoundPool soundPool = null;
     private SurfaceView videoView = null;
@@ -926,20 +925,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         keyVoiceIndex = soundPool.load(this, R.raw.key, 1); //把你的声音素材放到res/raw里，第2个参数即为资源文件，第3个为音乐的优先级
     }
 
-    protected void initVoiceVolume() {
-        AudioManager audioManager = (AudioManager) getSystemService(this.AUDIO_SERVICE);
-        initVoiceVolume(audioManager, AudioManager.STREAM_MUSIC, DeviceConfig.VOLUME_STREAM_MUSIC);
-        initVoiceVolume(audioManager, AudioManager.STREAM_RING, DeviceConfig.VOLUME_STREAM_RING);
-        initVoiceVolume(audioManager, AudioManager.STREAM_SYSTEM, DeviceConfig.VOLUME_STREAM_SYSTEM);
-        initVoiceVolume(audioManager, AudioManager.STREAM_VOICE_CALL, DeviceConfig.VOLUME_STREAM_VOICE_CALL);
-    }
-
-    protected void initVoiceVolume(AudioManager audioManager, int type, int value) {
-        int thisValue = audioManager.getStreamMaxVolume(type);
-        thisValue = thisValue * value / 10;
-        audioManager.setStreamVolume(type, thisValue, AudioManager.FLAG_PLAY_SOUND);
-    }
-
     private void initHandler() {
         handler = new Handler() {
             @Override
@@ -1004,7 +989,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 } else if (msg.what == ON_YUNTONGXUN_LOGIN_FAIL) {
                     Utils.DisplayToast(MainActivity.this, "直拨电话服务器连接失败");
                 } else if (msg.what == MSG_CANCEL_CALL_COMPLETE) {
-                    setCurrentStatus(CALL_MODE);
+                    setCurrentStatus(INPUT_MODE);
                 } else if (msg.what == MSG_ADVERTISE_REFRESH) {
                     onAdvertiseRefresh(msg.obj);
                     Log.d(TAG, "UpdateAdvertise: 7");
@@ -1081,7 +1066,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     //开始读卡
                     enableReaderMode();
                     //人脸识别对比
-                    handler.sendEmptyMessage(START_FACE_CHECK);
                 } else if (msg.what == MainService.MSG_LOADLOCAL_DATA) {
                     //加载本地数据显示到界面
                     setCommunityName(MainService.communityName);
@@ -1098,109 +1082,13 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 }else if(msg.what == RE_SYNC_SYSTEMTIME){
                     initSystemtime();
                 }else if(msg.what == APP_OPENDOOR){ //app直接点击了开门
-                    appOpenDoorCreateAccessLog((String) msg.obj);
+                    doTakePicture(null, false, null, null,null,(String) msg.obj);
                 }
             }
         };
         dialMessenger = new Messenger(handler);
     }
 
-    private void appOpenDoorCreateAccessLog(final String from){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                //暂停人脸识别
-                if(faceHandler!=null){
-                    faceHandler.sendEmptyMessage(MSG_FACE_DETECT_PAUSE);
-                }
-                //抓取相机照片
-                mCamerarelease = false;
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    camera = Camera.open();
-                    HttpApi.i("获取到相机open()");
-                } catch (Exception e) {
-                    HttpApi.i("拨号拍照照片获取异常open()");
-                    e.printStackTrace();
-                }
-                if (camera == null) {
-                    try {
-                        camera = Camera.open(0);
-                        HttpApi.i("获取到相机open(0)");
-                    } catch (Exception e) {
-                        HttpApi.i("拨号拍照照片获取异常open(0)");
-                        e.printStackTrace();
-                    }
-                }
-                if (camera != null) {
-                    HttpApi.i("相机获取成功");
-                    try {
-                        Camera.Parameters parameters = camera.getParameters();
-                        parameters.setPreviewSize(320, 240);
-                        try {
-                            camera.setParameters(parameters);
-                        } catch (Exception err) {
-                            err.printStackTrace();
-                        }
-                        camera.setPreviewDisplay(autoCameraHolder);
-                        camera.startPreview();
-                        camera.autoFocus(null);
-                        HttpApi.i("开始拍照");
-                        camera.takePicture(null, null, new Camera.PictureCallback() {
-                            @Override
-                            public void onPictureTaken(byte[] bytes, Camera camera) {
-                                HttpApi.i("拍照成功");
-                                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                                final File file = new File(Environment.getExternalStorageDirectory(), System.currentTimeMillis() + ".jpg");
-                                try {
-                                    FileOutputStream outputStream = new FileOutputStream(file);
-                                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
-                                    outputStream.close();
-                                }catch (Exception e){
-                                    e.printStackTrace();
-                                }
-                                if(camera!=null){
-                                    //camera.setPreviewCallback(null) ;
-                                    camera.stopPreview();
-                                    camera.release();
-                                    camera = null;
-                                    mCamerarelease = true;
-                                    handler.sendEmptyMessage(START_FACE_CHECK);
-                                }
-                                final String url = DeviceConfig.SERVER_URL + "/app/upload/image";
-                                new Thread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        HttpApi.i("开始上传照片");
-                                        String fileUrl = UploadUtil.uploadFile(file, url);
-                                        HttpApi.i("照片上传成功");
-                                        Map<String,String> data = new HashMap<>();
-                                        data.put("from",from);
-                                        data.put("fileUrl",fileUrl);
-                                        sendMainMessager(APP_OPENDOOR_ACCESS,data);
-                                    }
-                                }).start();
-                            }
-                        });
-                    }catch (Exception e){
-                        e.printStackTrace();
-                        if(camera!=null){
-                            //camera.setPreviewCallback(null) ;
-                            camera.stopPreview();
-                            camera.release();
-                            camera = null;
-                            mCamerarelease = true;
-                            handler.sendEmptyMessage(START_FACE_CHECK);
-                        }
-                    }
-                }
-            }
-        }).start();
-    }
 
     private void onFreshLockName(String lockName) {
         if (lockName != null) {
@@ -1270,7 +1158,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public void onRtcDisconnect() {
         blockNo = "";
         setDialValue(blockNo);
-        setCurrentStatus(CALL_MODE);
+        setCurrentStatus(INPUT_MODE);
         advertiseHandler.start(adverErrorCallBack);
         //callLayout.setVisibility(View.VISIBLE);
         //guestLayout.setVisibility(View.INVISIBLE);
@@ -1279,7 +1167,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     private void onPasswordCheck(int code) {
-        setCurrentStatus(PASSWORD_MODE);
+        setCurrentStatus(INPUT_MODE);
         setTempkeyValue("");
         if (code == 0) {
             Utils.DisplayToast(MainActivity.this, "您输入的密码验证成功");
@@ -1302,11 +1190,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         blockNo = "";
         setDialValue("");
         setTempkeyValue("");
-        if (currentStatus != PASSWORD_MODE && currentStatus != PASSWORD_CHECKING_MODE) {
-            setCurrentStatus(CALL_MODE);
-        }
+        setCurrentStatus(INPUT_MODE);
         Utils.DisplayToast(MainActivity.this, "门开了");
-
         identification = false;
         if (faceHandler != null) {
             faceHandler.removeMessages(-1);
@@ -1317,7 +1202,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     protected void onCallMemberError(int reason) {
         blockNo = "";
         setDialValue("");
-        setCurrentStatus(CALL_MODE);
+        setCurrentStatus(INPUT_MODE);
         if (reason == MSG_CALLMEMBER_ERROR) {
             Utils.DisplayToast(MainActivity.this, "您呼叫的房间号错误或者无注册用户");
             Log.v("MainActivity", "无用户取消呼叫");
@@ -1340,7 +1225,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     public void onCallDirectlyComplete() {
-        setCurrentStatus(CALL_MODE);
+        setCurrentStatus(INPUT_MODE);
         blockNo = "";
         setDialValue(blockNo);
         advertiseHandler.start(adverErrorCallBack);
@@ -1378,52 +1263,22 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         Log.e("MainActivity", "===" + str);
     }
 
-    private void callInput(int key) {
-        if (DeviceConfig.DEVICE_TYPE.equals("C")) {
-            if (blockId == 0) {
-                if (blockNo.length() < DeviceConfig.BLOCK_LENGTH) {
-                    blockNo = blockNo + key;
-                    setDialValue(blockNo);
-                    Log.e("blockNo", "1===" + blockNo);
-                }
-                if (blockNo.length() == DeviceConfig.BLOCK_NO_LENGTH) {
-                    setDialValue(blockNo);
-                    Message message = Message.obtain();
-                    message.what = MainService.MSG_CHECK_BLOCKNO;
-                    message.obj = blockNo;
-                    Log.e("blockNo", "2===" + blockNo);
-                    try {
-                        serviceMessenger.send(message);
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } else {
-                unitNoInput(key);
-            }
-        } else {
-            unitNoInput(key);
-        }
+    private void inputKeyText(int key){
+        setDialValue(getInputTextValue()+key);
     }
 
-    /**
-     * 自动呼叫
-     *
-     * @param key
-     */
-    private void unitNoInput(int key) {
-        blockNo = blockNo + key;
-        setDialValue(blockNo);
-        if (DeviceConfig.DEVICE_TYPE.equals("C")) {
-            if (blockNo.length() == DeviceConfig.BLOCK_LENGTH) {
-                startDialing(blockNo);
-            }
-        } else {
-            if (blockNo.length() == DeviceConfig.UNIT_NO_LENGTH) {
-                startDialing(blockNo);
-            }
+    private void delInputKey(){
+        String value = getInputTextValue();
+        if(value.length()>0){
+            value = value.substring(0,value.length()-1);
         }
+        setDialValue(value);
     }
+
+    private String getInputTextValue(){
+        return tv_input_text.getText().toString().trim();
+    }
+
 
     /**
      * 开始呼叫
@@ -1485,95 +1340,16 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         return value;
     }
 
-    private void passwordInput(int key) {
-        guestPassword = guestPassword + key;
-        setTempkeyValue(guestPassword);
-        if (guestPassword.length() == 6) {
-            if(faceHandler!=null){
-                faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE,0);
-                HttpApi.e("ppp","密码验证，停止人脸识别");
-            }
-            checkPassword();
+    private void startCheckPassword(String value){
+        if(faceHandler!=null){
+            faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE,0);
         }
+        checkPassword(value);
     }
 
-    private void checkPassword() {
+    private void checkPassword(String value) {
         setCurrentStatus(PASSWORD_CHECKING_MODE);
-        String thisPassword = guestPassword;
-        guestPassword = "";
-        takePicture(thisPassword, false, this);
-    }
-
-    private void initPasswordStatus() {
-        stopPasswordTimeoutChecking();
-        setDialStatus("请输入访客密码");
-        //callLayout.setVisibility(View.INVISIBLE);
-        //guestLayout.setVisibility(View.VISIBLE);
-        videoLayout.setVisibility(View.INVISIBLE);
-        setCurrentStatus(PASSWORD_MODE);
-        guestPassword = "";
-        setTempkeyValue(guestPassword);
-        startTimeoutChecking();
-    }
-
-    private void startTimeoutChecking() {
-        passwordTimeoutThread = new Thread() {
-            public void run() {
-                try {
-                    sleep(DeviceConfig.PASSWORD_WAIT_TIME); //等待指定的一个等待时间
-                    if (!isInterrupted()) { //检查线程没有被停止
-                        if (currentStatus == PASSWORD_MODE) { //如果现在是密码输入状态
-                            if (TextUtils.isEmpty(guestPassword)) { //如果密码一直是空白的
-                                handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        initDialStatus();
-                                    }
-                                });
-                                stopPasswordTimeoutChecking();
-                            }
-                        }
-                    }
-                } catch (InterruptedException e) {
-                }
-                passwordTimeoutThread = null;
-            }
-        };
-        passwordTimeoutThread.start();
-    }
-
-    protected void stopPasswordTimeoutChecking() {
-        if (passwordTimeoutThread != null) {
-            passwordTimeoutThread.interrupt();
-            passwordTimeoutThread = null;
-        }
-    }
-
-    private void passwordInput() {
-        guestPassword = backKey(guestPassword);
-        setTempkeyValue(guestPassword);
-    }
-
-    private void callInput() {
-        if (DeviceConfig.DEVICE_TYPE.equals("C")) {
-            if (blockId > 0) {
-                if (blockNo.equals("")) {
-                    blockId = 0;
-                    blockNo = backKey(blockNo);
-                    setDialStatus("请输入楼栋编号");
-                    setDialValue(blockNo);
-                } else {
-                    blockNo = backKey(blockNo);
-                    setDialValue(blockNo);
-                }
-            } else {
-                blockNo = backKey(blockNo);
-                setDialValue(blockNo);
-            }
-        } else {
-            blockNo = backKey(blockNo);
-            setDialValue(blockNo);
-        }
+        takePicture(value, false, this);
     }
 
     private String backKey(String code) {
@@ -1659,26 +1435,31 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             inputCardInfo(keyCode);//录入卡片信息
         } else {
             int key = convertKeyCode(keyCode);
-            if (currentStatus == CALL_MODE || currentStatus == PASSWORD_MODE) {
+            if (currentStatus == INPUT_MODE) {  //输入拨号或者密码模式下
                 if (key >= 0) {
-                    if (currentStatus == CALL_MODE) {
-                        callInput(key);
-                    } else {
-                        passwordInput(key);//密码开门
+                    inputKeyText(key);
+                } else if (keyCode == KeyEvent.KEYCODE_POUND || keyCode == DeviceConfig.DEVICE_KEYCODE_POUND) {  //按下确认键切换密码和拨号模式
+                    String value = getInputTextValue();
+                    if(value.length() == 4 || value.length() == 6){
+                        if(DeviceConfig.DEVICE_TYPE.equals("C")){ //社区大门
+                            String id = value.substring(0,2);
+                        }else{
+                            if(value.length() == 4){
+                                //拨号
+                                startDialing(value);
+                            }else if(value.length() == 6){
+                                //密码
+                                startCheckPassword(value);
+                            }
+                        }
+                    }else{
+                        showToast("请输入正确的数字");
                     }
-                } else if (keyCode == KeyEvent.KEYCODE_POUND || keyCode == DeviceConfig.DEVICE_KEYCODE_POUND) {
-                    if (currentStatus == CALL_MODE) {//呼叫模式下，按确认键
-                        initPasswordStatus();
-                    } else {
-                        initDialStatus();
+                } else if (keyCode == KeyEvent.KEYCODE_STAR || keyCode == DeviceConfig.DEVICE_KEYCODE_STAR) { //删除密码和拨号模式下的输入
+                    if(currentStatus == INPUT_MODE){
+                        delInputKey();
                     }
-                } else if (keyCode == KeyEvent.KEYCODE_STAR || keyCode == DeviceConfig.DEVICE_KEYCODE_STAR) {
-                    if (currentStatus == CALL_MODE) {
-                        callInput();
-                    } else {
-                        passwordInput();
-                    }
-                    String str = tv_input_text.getText().toString();
+                    String str = tv_input_text.getText().toString(); //输入框无内容，跳转到登录界面
                     if (str == null || str.equals("")) {
                         //跳转到登录界面
                         Intent intent = new Intent(this, InputCardInfoActivity.class);
@@ -1886,7 +1667,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     protected void resetDial() {
         blockNo = "";
         setDialValue(blockNo);
-        setCurrentStatus(CALL_MODE);
+        setCurrentStatus(INPUT_MODE);
     }
 
     private void setImageUuidAvaibale(String uuid) {
@@ -1956,7 +1737,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         //callLayout.setVisibility(View.VISIBLE);
         //guestLayout.setVisibility(View.INVISIBLE);
         videoLayout.setVisibility(View.INVISIBLE);
-        setCurrentStatus(CALL_MODE);
+        setCurrentStatus(INPUT_MODE);
         blockNo = "";
         blockId = 0;
         if (DeviceConfig.DEVICE_TYPE.equals("C")) {
@@ -2227,7 +2008,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 public void run() {
                     final String thisUuid = uuid;
                     if (checkTakePictureAvailable(thisUuid)) {
-                        doTakePicture(thisValue, isCall, uuid, callback);
+                        doTakePicture(thisValue, isCall, uuid, callback,null,null);
                     } else {
                         Log.v("MainActivity", "取消拍照");
                     }
@@ -2236,123 +2017,143 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     }
 
-    private synchronized void doTakePicture(final String thisValue, final boolean isCall, final String uuid, final TakePictureCallback callback) {
-        HttpApi.i("ppp","开始拍照"+isCall);
-        mCamerarelease = false;
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        try {
-            camera = Camera.open();
-            HttpApi.i("ppp","获取到相机open()"+isCall);
-        } catch (Exception e) {
-            HttpApi.i("ppp","拨号拍照照片获取异常open()"+isCall);
-            e.printStackTrace();
-        }
-        if (camera == null) {
-            try {
-                camera = Camera.open(0);
-                HttpApi.i("ppp","获取到相机open(0)"+isCall);
-            } catch (Exception e) {
-                HttpApi.i("ppp","拨号拍照照片获取异常open(0)"+isCall);
-                e.printStackTrace();
-            }
-        }
-        if (camera != null) {
-            HttpApi.i("ppp","相机获取成功"+isCall);
-            try {
-                Camera.Parameters parameters = camera.getParameters();
-                parameters.setPreviewSize(320, 240);
+    private void doTakePicture(final String thisValue,
+                               final boolean isCall,
+                               final String uuid,
+                               final TakePictureCallback callback,
+                               final String cardUuid,
+                               final String from){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                //暂停人脸识别
+                if(faceHandler!=null){
+                    faceHandler.sendEmptyMessage(MSG_FACE_DETECT_PAUSE);
+                }
+                //抓取相机照片
+                mCamerarelease = false;
                 try {
-                    camera.setParameters(parameters);
-                } catch (Exception err) {
-                    err.printStackTrace();
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-                camera.setPreviewDisplay(autoCameraHolder);
-                camera.startPreview();
-                camera.autoFocus(null);
-                HttpApi.i("ppp","开始拍照"+isCall);
-                camera.takePicture(null, null, new Camera.PictureCallback() {
-                    public void onPictureTaken(byte[] data, Camera camera) {
-                        try {
-                            HttpApi.i("ppp","拍照成功"+isCall);
-                            Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-                            final File file = new File(Environment.getExternalStorageDirectory(), System.currentTimeMillis() + ".jpg");
-                            FileOutputStream outputStream = new FileOutputStream(file);
-                            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
-                            outputStream.close();
-                            if(camera!=null){
-                                //camera.setPreviewCallback(null) ;
-                                camera.stopPreview();
-                                camera.release();
-                                camera = null;
-                                mCamerarelease = true;
-                            }
-                            final String url = DeviceConfig.SERVER_URL + "/app/upload/image";
-                            if (checkTakePictureAvailable(uuid)) {
-                                new Thread() {
-                                    public void run() {
-                                        String fileUrl = null;
-                                        try {
-                                            HttpApi.i("ppp","开始上传照片"+isCall);
-                                            fileUrl = UploadUtil.uploadFile(file, url);
-                                            HttpApi.i("ppp","照片上传成功"+isCall);
-                                        } catch (Exception e) {
-                                        }
-                                        if (checkTakePictureAvailable(uuid)) {
-                                            callback.afterTakePickture(thisValue, fileUrl, isCall, uuid);
-                                        } else {
-                                            Log.v("MainActivity", "上传照片成功,但已取消");
-                                        }
-                                        clearImageUuidAvaible(uuid);
-                                        Log.v("MainActivity", "正常清除" + uuid);
-                                        try {
-                                            if (file != null) {
-                                                file.deleteOnExit();
-                                            }
-                                        } catch (Exception e) {
-                                        }
-                                    }
-                                }.start();
-                            } else {
-                                Log.v("MainActivity", "拍照成功，但已取消");
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            if(camera!=null){
-                                //camera.setPreviewCallback(null) ;
-                                camera.stopPreview();
-                                camera.release();
-                                camera = null;
-                                mCamerarelease = true;
-                            }
-                        }
+                try {
+                    camera = Camera.open();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    HttpApi.i("相机获取失败open()");
+                }
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if (camera == null) {
+                    try {
+                        camera = Camera.open(0);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        HttpApi.i("相机获取失败open(0)");
                     }
-                });
-            } catch (Exception e) {
-                callback.afterTakePickture(thisValue, null, isCall, uuid);
-                Log.v("MainActivity", "照相出异常清除UUID");
-                clearImageUuidAvaible(uuid);
-                if(camera!=null){
-                    //camera.setPreviewCallback(null) ;
-                    camera.stopPreview();
-                    camera.release();
-                    camera = null;
-                    mCamerarelease = true;
                 }
+                if (camera != null) {
+                    try{
+                        HttpApi.i("相机获取成功");
+                        Camera.Parameters parameters = camera.getParameters();
+                        parameters.setPreviewSize(320, 240);
+                        try {
+                            camera.setParameters(parameters);
+                        } catch (Exception err) {
+                            err.printStackTrace();
+                        }
+                        camera.setPreviewDisplay(autoCameraHolder);
+                        camera.startPreview();
+                        camera.autoFocus(null);
+                        camera.takePicture(null, null, new Camera.PictureCallback() {
+                            @Override
+                            public void onPictureTaken(byte[] bytes, Camera camera) {
+                                try{
+                                    HttpApi.i("拍照成功");
+                                    Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                                    final File file = new File(Environment.getExternalStorageDirectory(), System.currentTimeMillis() + ".jpg");
+                                    try {
+                                        FileOutputStream outputStream = new FileOutputStream(file);
+                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+                                        outputStream.close();
+                                    }catch (Exception e){
+                                        e.printStackTrace();
+                                    }
+                                    releaseCamera(isCall);
+                                    final String url = DeviceConfig.SERVER_URL + "/app/upload/image";
+                                    new Thread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            String fileUrl = UploadUtil.uploadFile(file, url);
+                                            if(thisValue!=null){  //拨号或者密码执行的拍照
+                                                HttpApi.i("拨号或密码追加访客图片");
+                                                if (checkTakePictureAvailable(uuid)) {
+                                                    callback.afterTakePickture(thisValue, fileUrl, isCall, uuid);
+                                                }
+                                                clearImageUuidAvaible(uuid);
+                                            }else if(cardUuid!=null){ //刷卡执行的拍照
+                                                HttpApi.i("刷卡追加访客图片");
+                                                Map<String,String> data = new HashMap<>();
+                                                data.put("imgUrl",fileUrl);
+                                                data.put("uuid",cardUuid);
+                                                sendMainMessager(CARD_OPENDOOR_ACCESS,data);
+                                            }else if(from!=null){
+                                                HttpApi.i("app开门追加访客图片");
+                                                Map<String,String> data = new HashMap<>();
+                                                data.put("from",from);
+                                                data.put("fileUrl",fileUrl);
+                                                sendMainMessager(APP_OPENDOOR_ACCESS,data);
+                                            }
+                                            try {
+                                                if (file != null) {
+                                                    file.deleteOnExit();
+                                                }
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                    }).start();
+                                }catch (Exception e){
+                                    e.printStackTrace();
+                                    releaseCamera(isCall);
+                                }
+                            }
+                        });
+                    }catch (Exception e){
+                        e.printStackTrace();
+                        if(thisValue!=null){
+                            callback.afterTakePickture(thisValue, null, isCall, uuid);
+                            clearImageUuidAvaible(uuid);
+                        }
+                        releaseCamera(isCall);
+                    }
+                }
+
+            }
+        }).start();
+    }
+
+    private void releaseCamera(boolean isCall){
+        if(camera!=null){
+            camera.stopPreview();
+            camera.release();
+            camera = null;
+            mCamerarelease = true;
+            if(!isCall){
+                handler.sendEmptyMessage(START_FACE_CHECK);
             }
         }
     }
-
     private boolean checkTakePictureAvailable(String uuid) {
         String thisValue = uuidMaps.get(uuid);
         boolean result = false;
         if (thisValue != null && thisValue.equals("Y")) {
             result = true;
         }
-        Log.v("MainActivity", "检查UUID" + uuid + result);
         return result;
     }
 
@@ -2414,7 +2215,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     @Override
     protected void onRestart() {
         super.onRestart();
-        setCurrentStatus(CALL_MODE);
+        setCurrentStatus(INPUT_MODE);
     }
 
     protected void onResume() {
@@ -2630,7 +2431,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (!nfcFlag) {
             Message message = Message.obtain();
             message.what = MainService.MSG_CARD_INCOME;
-            message.obj = account;
+            String uuid = getUUID();
+            Map<String,String> data = new HashMap<>();
+            data.put("account",account);
+            data.put("uuid",uuid);
+            message.obj = data;
+            doTakePicture(null, false, null, null,uuid,null);
             try {
                 serviceMessenger.send(message);
             } catch (RemoteException e) {
@@ -2643,7 +2449,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             handler.sendMessage(message);
         }
     }
-
 
     private void showAlert(String strTitle, String strMsg) {
         // TODO Auto-generated method stub
@@ -3424,7 +3229,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 onPause();
             }
             try {
-                Thread.sleep(1 * 1000);
+                Thread.sleep(200);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

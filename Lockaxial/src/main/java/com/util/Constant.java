@@ -57,9 +57,11 @@ public class Constant {
     public static final int DIRECT_CALLING_TRY_MODE = 8;
     public static final int PASSWORD_CHECKING_MODE = 9;//正在验证密码
     public static final int CALL_CANCEL_MODE = 10;
+    public static final int INPUT_MODE = 11; //输入模式
 
     public static final int START_FACE_CHECK = 3001;
     public static final int RE_SYNC_SYSTEMTIME = 3002;
     public static final int APP_OPENDOOR = 3003;
     public static final int APP_OPENDOOR_ACCESS = 3004;
+    public static final int CARD_OPENDOOR_ACCESS = 3005;
 }

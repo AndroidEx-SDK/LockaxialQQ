@@ -104,6 +104,7 @@ import rtc.sdk.iface.RtcClient;
 
 import static com.util.Constant.APP_OPENDOOR;
 import static com.util.Constant.APP_OPENDOOR_ACCESS;
+import static com.util.Constant.CARD_OPENDOOR_ACCESS;
 import static com.util.Constant.MSG_ADVERTISE_REFRESH;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_COMPLETE;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_DIALING;
@@ -361,7 +362,7 @@ public class MainService extends Service {
                 } else if (msg.what == MSG_GUEST_PASSWORD_CHECK) {
                     onCheckGuestPassword(msg.obj == null ? null : (JSONObject) msg.obj);
                 } else if (msg.what == MSG_CARD_INCOME) {
-                    onCardIncome((String) msg.obj);
+                    onCardIncome(msg.obj);
                 } else if (msg.what == MSG_DISCONNECT_VIEDO) {
                     disconnectCallingConnection();
                 } else if (msg.what == MSG_CANCEL_CALL) {
@@ -453,6 +454,15 @@ public class MainService extends Service {
                             }
                         }.start();
                     }
+                }else if(msg.what == CARD_OPENDOOR_ACCESS){
+                    Map<String,String> data = (Map<String, String>) msg.obj;
+                    final String imgUrl = data.get("imgUrl");
+                    final String uuid = data.get("uuid");
+                    new Thread() {
+                        public void run() {
+                            cardAppendImage(imgUrl,uuid);
+                        }
+                    }.start();
                 }
             }
         };
@@ -575,6 +585,7 @@ public class MainService extends Service {
         Log.i("MainService", "init SQL");
         //xiaozd add
         initCheckTopActivity();
+        sendDialMessenger(START_FACE_CHECK,null);
         /**if (isNetworkConnectedWithTimeout()) {//不做网络判断
          Log.i("MainService", "Test Connected");
          initWhenConnected(); //开始在线版本
@@ -1021,13 +1032,16 @@ public class MainService extends Service {
         }
     }
 
-    private void onCardIncome(String card) {
-        if (!this.cardRecord.checkLastCard(card)) {
-            Log.v("MainService", "onCard====卡信息：" + card);
-            if (checkCardAvailable(card)) {
+    private void onCardIncome(Object obj) {
+        Map<String,String> data = (Map<String, String>) obj;
+        String account = data.get("account");
+        String uuid = data.get("uuid");
+        if (!this.cardRecord.checkLastCard(account)) {
+            Log.v("MainService", "onCard====卡信息：" + account);
+            if (checkCardAvailable(account)) {
                 openLock();
-                Log.e(TAG, "onCard====:" + card);
-                startCardAccessLog(card);
+                Log.e(TAG, "onCard====:" + account);
+                startCardAccessLog(account,uuid);
             } else {
                 sendDialMessenger(MSG_INVALID_CARD);//无效房卡
             }
@@ -1038,10 +1052,10 @@ public class MainService extends Service {
         return sqlUtil.checkCardAvailable(cardNo);
     }
 
-    private void startCardAccessLog(final String cardNo) {
+    private void startCardAccessLog(final String cardNo,final String uuid) {
         new Thread() {
             public void run() {
-                onCardAccessLog(cardNo);
+                onCardAccessLog(cardNo,uuid);
             }
         }.start();
     }
@@ -1081,11 +1095,12 @@ public class MainService extends Service {
         }
     }
 
-    private void onCardAccessLog(String cardNo) {
+    private void onCardAccessLog(String cardNo,String uuid) {
         try {
             String url = DeviceConfig.SERVER_URL + "/app/device/createCardAccessLog?communityId=" + this.communityId;
             url = url + "&lockId=" + this.lockId;
             url = url + "&cardNo=" + cardNo;
+            url = url + "&imageUuid=" + uuid;
             try {
                 String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
                 if (result != null) {
@@ -1186,6 +1201,28 @@ public class MainService extends Service {
                 e.printStackTrace();
             }
         } catch (Exception e) {
+        }
+    }
+
+    /**
+     * 刷卡拍照追加
+     * */
+    private void cardAppendImage(String imgUrl,String uuid){
+        if(imgUrl == null || imgUrl.length()<=0 || uuid == null || uuid.length()<=0){
+            return;
+        }
+        try{
+            String url = DeviceConfig.SERVER_URL + "/app/device/appendImage?";
+            url = url + "imageUuid=" + URLEncoder.encode(uuid, "UTF-8");
+            url = url + "&imageUrl=" + URLEncoder.encode(imgUrl, "UTF-8");
+            String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+            if (result != null) {
+                HttpApi.i("刷卡拍照追加结果" + result);
+            } else {
+                HttpApi.i("刷卡拍照追加结果：服务器异常");
+            }
+        }catch (Exception e){
+            e.printStackTrace();
         }
     }
 
