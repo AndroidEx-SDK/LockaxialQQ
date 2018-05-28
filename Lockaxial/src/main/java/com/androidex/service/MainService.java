@@ -908,7 +908,7 @@ public class MainService extends Service {
             data.put("password", key);
             String result = HttpApi.getInstance().loadHttpforPost(url, data, httpServerToken);
             if (result != null) {
-                HttpApi.i("getClientInfo()->" + result);
+                HttpApi.i("xiao_","getClientInfo()->" + result);
                 JSONObject resultObj = Ajax.getJSONObject(result);
                 int code = resultObj.getInt("code");
                 if (code == 0) {
@@ -1330,6 +1330,7 @@ public class MainService extends Service {
 
     protected void onLogin(Message msg) {
         JSONObject result = (JSONObject) msg.obj;
+        Log.i("xiao_","设备登录结果："+result);
         try {
             int code = result.getInt("code");
             JSONObject user = null;

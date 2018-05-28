@@ -53,6 +53,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MenuItem;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -327,6 +328,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     };
 
+    private int defCameradirection = Camera.CameraInfo.CAMERA_FACING_BACK;
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //全屏设置，隐藏窗口所有装饰
@@ -346,7 +349,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initHandler();
         initAexNfcReader();//初始化本地广播
         initServer();//初始化服务类
-        initTXD();
+        //initTXD();
         initQQReceiver();//初始化QQ物联广播
         initVoiceHandler();//
         //initVoiceVolume();//
@@ -2038,10 +2041,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     e.printStackTrace();
                 }
                 try {
-                    camera = Camera.open();
+                    camera = Camera.open(defCameradirection);
+                    HttpApi.i("打开后置成功");
                 } catch (Exception e) {
+                    camera = null;
                     e.printStackTrace();
-                    HttpApi.i("相机获取失败open()");
+                    HttpApi.i("打开后置失败");
                 }
                 try {
                     Thread.sleep(500);
@@ -2050,17 +2055,21 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 }
                 if (camera == null) {
                     try {
-                        camera = Camera.open(0);
+                        camera = Camera.open(defCameradirection == 0?1:0);
+                        HttpApi.i("打开前置成功");
                     } catch (Exception e) {
                         e.printStackTrace();
-                        HttpApi.i("相机获取失败open(0)");
+                        HttpApi.i("打开前置失败");
                     }
                 }
                 if (camera != null) {
                     try{
                         HttpApi.i("相机获取成功");
                         Camera.Parameters parameters = camera.getParameters();
-                        parameters.setPreviewSize(320, 240);
+//                        Camera.Size size = getBestSize(800,600,parameters.getSupportedPreviewSizes());
+//                        parameters.setPreviewSize(size.width, size.height);
+//                        HttpApi.i("doTakePicture设置预览的宽高：width = "+size.width+",height = "+size.height);
+                        parameters.setPreviewSize(800, 500);
                         try {
                             camera.setParameters(parameters);
                         } catch (Exception err) {
@@ -2814,14 +2823,14 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         Resources resources = this.getResources();
         DisplayMetrics dm = resources.getDisplayMetrics();
         float density = dm.density;
-        mWidth = dm.widthPixels;
-        mHeight = dm.heightPixels;
+        mWidth = dm.widthPixels; //1280
+        mHeight = dm.heightPixels; //752
         Log.v(FACE_TAG, "initFaceDetect-->" + mWidth + "/" + mHeight + "/" + density);
-
         mGLSurfaceView = (CameraGLSurfaceView) findViewById(R.id.glsurfaceView);
         mSurfaceView = (CameraSurfaceView) findViewById(R.id.surfaceView);
         mSurfaceView.setOnCameraListener(this);
         mSurfaceView.setupGLSurafceView(mGLSurfaceView, true, true, 0);
+        //mSurfaceView.setupGLSurafceView(mGLSurfaceView, true, true, 0);
         mSurfaceView.debug_print_fps(true, false);
 
         AFT_FSDKError err = engine.AFT_FSDK_InitialFaceEngine(FaceDB.appid, FaceDB.ft_key, AFT_FSDKEngine.AFT_OPF_0_HIGHER_EXT, 16, 5);
@@ -2947,30 +2956,44 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public Camera setupCamera() {
         // TODO Auto-generated method stub
         try{
-            mCamera = Camera.open();
+            mCamera = Camera.open(defCameradirection);
+            HttpApi.i("打开后置成功");
         }catch (Exception e){
             e.printStackTrace();
+            mCamera = null;
+            HttpApi.i("打开后置失败");
+        }
+
+        if(mCamera == null){
+            try{
+                defCameradirection = defCameradirection == 0?1:0;
+                mCamera = Camera.open(defCameradirection);
+                HttpApi.i("打开前置成功");
+            }catch (Exception e){
+                e.printStackTrace();
+                HttpApi.i("打开前置失败");
+            }
         }
         try {
             if(mCamera!=null){
                 Camera.Parameters parameters = mCamera.getParameters();
-//            parameters.setPreviewSize(mWidth, mHeight);
-                parameters.setPreviewSize(800, 600);
+                //Camera.Size size = getBestSize(800,600,parameters.getSupportedPreviewSizes());
+                //HttpApi.i("setupCamera设置预览的宽高：width = "+size.width+",height = "+size.height);
+                //parameters.setPreviewSize(size.width, size.height);
+                parameters.setPreviewSize(800, 500);
                 parameters.setPreviewFormat(ImageFormat.NV21);
-
-                for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
-                    //Log.v(FACE_TAG, "SIZE:" + size.width + "x" + size.height);
-                }
-                for (Integer format : parameters.getSupportedPreviewFormats()) {
-                    //Log.v(FACE_TAG, "FORMAT:" + format);
-                }
-
                 List<int[]> fps = parameters.getSupportedPreviewFpsRange();
                 for (int[] count : fps) {
                     //Log.d(TAG, "T:");
                     for (int data : count) {
                         //Log.d(TAG, "V=" + data);
                     }
+                }
+                for(Camera.Size cSize: parameters.getSupportedPictureSizes()){
+                    HttpApi.i("图片比例：width = "+cSize.width+",height = "+cSize.height);
+                }
+                for(Camera.Size cSize: parameters.getSupportedPreviewSizes()){
+                    HttpApi.i("系统预览比例：width = "+cSize.width+",height = "+cSize.height);
                 }
                 //parameters.setPreviewFpsRange(15000, 30000);
                 //parameters.setExposureCompensation(parameters.getMaxExposureCompensation());
@@ -2980,6 +3003,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 //parameters.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
                 //parameters.setColorEffect(Camera.Parameters.EFFECT_NONE);
                 mCamera.setParameters(parameters);
+                //setCameraDisplayOrientation(defCameradirection,mCamera);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -2988,10 +3012,28 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (mCamera != null) {
             mWidth = mCamera.getParameters().getPreviewSize().width;
             mHeight = mCamera.getParameters().getPreviewSize().height;
-            mCamera.autoFocus(null);
+            //mCamera.autoFocus(null);
             //Log.v(FACE_TAG, "SIZE:" + mWidth + "x" + mHeight);
         }
         return mCamera;
+    }
+
+    private Camera.Size getBestSize(int width,int height,List<Camera.Size> list){
+        Camera.Size size = null;
+        double targetRatio = width*1.0/height*1.0;
+        double minDiff = targetRatio;
+        for(Camera.Size cSize : list){
+            if(cSize.width == width && cSize.height == height){
+                size = cSize;
+                break;
+            }
+            double ratio = (cSize.width*1.0)/cSize.height;
+            if(Math.abs(ratio - targetRatio) < minDiff){
+                minDiff = Math.abs(ratio - targetRatio);
+                size = cSize;
+            }
+        }
+        return size;
     }
 
     @Override
@@ -3236,8 +3278,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             if (mImageNV21 != null && identification) {
                 long time = System.currentTimeMillis();
                 AFR_FSDKError error = engine.AFR_FSDK_ExtractFRFeature(mImageNV21, mWidth, mHeight, AFR_FSDKEngine.CP_PAF_NV21, mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree(), result);
-                //Log.d(TAG, "AFR_FSDK_ExtractFRFeature cost :" + (System.currentTimeMillis() - time) + "ms");
-                //Log.d(TAG, "Face=" + result.getFeatureData()[0] + "," + result.getFeatureData()[1] + "," + result.getFeatureData()[2] + "," + error.getCode());
                 AFR_FSDKMatching score = new AFR_FSDKMatching();
                 float max = 0.0f;
                 String name = null;
@@ -3248,7 +3288,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     }
                     for (AFR_FSDKFace face : fr.mFaceList) {
                         error = engine.AFR_FSDK_FacePairMatching(result, face, score);
-                        //Log.d(TAG, "Score:" + score.getScore() + ", AFR_FSDK_FacePairMatching=" + error.getCode());
                         if (max < score.getScore()) {
                             max = score.getScore();
                             name = fr.mName;
@@ -3283,11 +3322,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 //                    e.printStackTrace();
 //                }
 
-                //Log.v(FACE_TAG, "fit Score:" + max + ", NAME:" + name);
                 if (max > 0.80f) {
                     //fr success.
                     final float max_score = max;
-                    //Log.v(FACE_TAG, "置信度：" + (float) ((int) (max_score * 1000)) / 1000.0);
                     Message message = Message.obtain();
                     message.what = MainService.MSG_FACE_OPENLOCK;
                     try {
@@ -3303,7 +3340,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         @Override
         public void over() {
             AFR_FSDKError error = engine.AFR_FSDK_UninitialEngine();
-            //Log.v(FACE_TAG, "AFR_FSDK_UninitialEngine : " + error.getCode());
         }
     }
 

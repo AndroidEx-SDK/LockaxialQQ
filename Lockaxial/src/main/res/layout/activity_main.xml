@@ -467,8 +467,8 @@
         <com.guo.android_extend.widget.CameraGLSurfaceView
             android:id="@+id/glsurfaceView"
             android:visibility="gone"
-            android:layout_width="352dp"
-            android:layout_height="200dp" />
+            android:layout_width="320dp"
+            android:layout_height="240dp" />
     </LinearLayout>
 
     <TextView

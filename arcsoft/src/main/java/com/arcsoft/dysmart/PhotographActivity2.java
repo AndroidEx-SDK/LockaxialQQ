@@ -1,6 +1,7 @@
 package com.arcsoft.dysmart;
 
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
@@ -12,6 +13,7 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.support.annotation.UiThread;
 import android.support.v7.app.AppCompatActivity;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -55,15 +57,23 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
     private AFT_FSDKVersion version = new AFT_FSDKVersion();
     private AFT_FSDKEngine engine = new AFT_FSDKEngine();
     private List<AFT_FSDKFace> result = new ArrayList<>();
+    private int mWidth;
+    private int mHeight;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photograph2);
 
+        Resources resources = this.getResources();
+        DisplayMetrics dm = resources.getDisplayMetrics();
+        float density = dm.density;
+        mWidth = dm.widthPixels/4;
+        mHeight = dm.heightPixels/4;
         mGLSurfaceView = (CameraGLSurfaceView) findViewById(R.id.glsurfaceView);
         mSurfaceView = (CameraSurfaceView) findViewById(R.id.surfaceView);
         mSurfaceView.setOnCameraListener(this);
+        //mSurfaceView.setupGLSurafceView(mGLSurfaceView, true, true, 0);
         mSurfaceView.setupGLSurafceView(mGLSurfaceView, true, true, 0);
         mSurfaceView.debug_print_fps(true, false);
 
@@ -243,15 +253,10 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
         mCamera = Camera.open();
         try {
             Camera.Parameters parameters = mCamera.getParameters();
-            parameters.setPreviewSize(800, 600);
+            parameters.setPreviewSize(800, 500);
+//            Camera.Size size = getBestSize(800,600,parameters.getSupportedPreviewSizes());
+//            parameters.setPreviewSize(size.width, size.height);
             parameters.setPreviewFormat(ImageFormat.NV21);
-
-            for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
-                Log.v(FACE_TAG, "SIZE:" + size.width + "x" + size.height);
-            }
-            for (Integer format : parameters.getSupportedPreviewFormats()) {
-                Log.v(FACE_TAG, "FORMAT:" + format);
-            }
 
             List<int[]> fps = parameters.getSupportedPreviewFpsRange();
             for (int[] count : fps) {
@@ -320,5 +325,23 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
     @Override
     public void onAfterRender(CameraFrameData data) {
         mGLSurfaceView.getGLES2Render().draw_rect((Rect[]) data.getParams(), Color.GREEN, 2);
+    }
+
+    private Camera.Size getBestSize(int width,int height,List<Camera.Size> list){
+        Camera.Size size = null;
+        double targetRatio = width*1.0/height*1.0;
+        double minDiff = targetRatio;
+        for(Camera.Size cSize : list){
+            if(cSize.width == width && cSize.height == height){
+                size = cSize;
+                break;
+            }
+            double ratio = (cSize.width*1.0)/cSize.height;
+            if(Math.abs(ratio - targetRatio) < minDiff){
+                minDiff = Math.abs(ratio - targetRatio);
+                size = cSize;
+            }
+        }
+        return size;
     }
 }
