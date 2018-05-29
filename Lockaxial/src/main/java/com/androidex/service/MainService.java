@@ -32,7 +32,6 @@ import com.androidex.utils.HttpApi;
 import com.androidex.utils.HttpUtils;
 import com.androidex.utils.SqlUtil;
 import com.androidex.utils.WifiAdmin;
-import com.androidex.utils.XRtcClientImpl;
 import com.tencent.device.barrage.ToastUtils;
 import com.tencent.devicedemo.InitActivity;
 import com.tencent.devicedemo.MainActivity;

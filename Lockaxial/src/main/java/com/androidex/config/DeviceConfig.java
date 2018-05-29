@@ -66,7 +66,7 @@ public class DeviceConfig {
     public static int VOLUME_STREAM_RING=5;
     public static int VOLUME_STREAM_SYSTEM=5;
 	
-	public static int VIDEO_STATUS=10; //0：标清；1：流畅；2：高清；3：720P；4：1080P 5：hd_land
+	public static int VIDEO_STATUS=0; //0：标清；1：流畅；2：高清；3：720P；4：1080P 5：hd_land
     public static int VIDEO_ADAPT=1;  //0:关闭，1:开启
     /*******************************/
 }
