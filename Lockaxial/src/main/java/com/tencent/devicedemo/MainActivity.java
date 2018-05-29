@@ -2977,33 +2977,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         try {
             if(mCamera!=null){
                 Camera.Parameters parameters = mCamera.getParameters();
-                //Camera.Size size = getBestSize(800,600,parameters.getSupportedPreviewSizes());
-                //HttpApi.i("setupCamera设置预览的宽高：width = "+size.width+",height = "+size.height);
-                //parameters.setPreviewSize(size.width, size.height);
-                parameters.setPreviewSize(800, 500);
+                int cWidht = 640;
+                int cHeight = 480;
+                parameters.setPreviewSize(cWidht, cHeight);
                 parameters.setPreviewFormat(ImageFormat.NV21);
-                List<int[]> fps = parameters.getSupportedPreviewFpsRange();
-                for (int[] count : fps) {
-                    //Log.d(TAG, "T:");
-                    for (int data : count) {
-                        //Log.d(TAG, "V=" + data);
-                    }
-                }
-                for(Camera.Size cSize: parameters.getSupportedPictureSizes()){
-                    HttpApi.i("图片比例：width = "+cSize.width+",height = "+cSize.height);
-                }
-                for(Camera.Size cSize: parameters.getSupportedPreviewSizes()){
-                    HttpApi.i("系统预览比例：width = "+cSize.width+",height = "+cSize.height);
-                }
-                //parameters.setPreviewFpsRange(15000, 30000);
-                //parameters.setExposureCompensation(parameters.getMaxExposureCompensation());
-                //parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
-                //parameters.setAntibanding(Camera.Parameters.ANTIBANDING_AUTO);
-                //parmeters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-                //parameters.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
-                //parameters.setColorEffect(Camera.Parameters.EFFECT_NONE);
                 mCamera.setParameters(parameters);
-                //setCameraDisplayOrientation(defCameradirection,mCamera);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -3012,6 +2990,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (mCamera != null) {
             mWidth = mCamera.getParameters().getPreviewSize().width;
             mHeight = mCamera.getParameters().getPreviewSize().height;
+            HttpApi.i("xiao_","默认宽："+mWidth+",默认高："+mHeight);
             //mCamera.autoFocus(null);
             //Log.v(FACE_TAG, "SIZE:" + mWidth + "x" + mHeight);
         }
@@ -3270,11 +3249,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             while (pause) {
                 onPause();
             }
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+//            try {
+//                Thread.sleep(200);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
             if (mImageNV21 != null && identification) {
                 long time = System.currentTimeMillis();
                 AFR_FSDKError error = engine.AFR_FSDK_ExtractFRFeature(mImageNV21, mWidth, mHeight, AFR_FSDKEngine.CP_PAF_NV21, mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree(), result);
@@ -3291,7 +3270,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         if (max < score.getScore()) {
                             max = score.getScore();
                             name = fr.mName;
-                            if (max > 0.80f) {
+                            if (max > 0.70f) {
                                 break;
                             }
                         }
@@ -3322,7 +3301,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 //                    e.printStackTrace();
 //                }
 
-                if (max > 0.80f) {
+                if (max > 0.70f) {
                     //fr success.
                     final float max_score = max;
                     Message message = Message.obtain();

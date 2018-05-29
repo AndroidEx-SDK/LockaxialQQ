@@ -32,6 +32,7 @@ import com.androidex.utils.HttpApi;
 import com.androidex.utils.HttpUtils;
 import com.androidex.utils.SqlUtil;
 import com.androidex.utils.WifiAdmin;
+import com.androidex.utils.XRtcClientImpl;
 import com.tencent.device.barrage.ToastUtils;
 import com.tencent.devicedemo.InitActivity;
 import com.tencent.devicedemo.MainActivity;
@@ -862,20 +863,22 @@ public class MainService extends Service {
             @Override   //初始化结果回调
             public void onInit(int result) {
                 Log.v("MainService", "onInit,result=" + result);//常见错误9003:网络异常或系统时间差的太多
+                HttpApi.i("视频清晰度："+DeviceConfig.VIDEO_STATUS+"");
                 if (result == 0) {
                     rtcClient.setAudioCodec(RtcConst.ACodec_OPUS);
                     rtcClient.setVideoCodec(RtcConst.VCodec_VP8);
-                    if (DeviceConfig.VIDEO_STATUS == 0) {
-                        rtcClient.setVideoAttr(RtcConst.Video_SD);
-                    } else if (DeviceConfig.VIDEO_STATUS == 1) {
-                        rtcClient.setVideoAttr(RtcConst.Video_FL);
-                    } else if (DeviceConfig.VIDEO_STATUS == 2) {
-                        rtcClient.setVideoAttr(RtcConst.Video_HD);
-                    } else if (DeviceConfig.VIDEO_STATUS == 3) {
-                        rtcClient.setVideoAttr(RtcConst.Video_720P);
-                    } else if (DeviceConfig.VIDEO_STATUS == 4) {
-                        rtcClient.setVideoAttr(RtcConst.Video_1080P);
-                    }
+                    rtcClient.setVideoAttr(100);
+//                    if (DeviceConfig.VIDEO_STATUS == 0) {
+//                        rtcClient.setVideoAttr(RtcConst.Video_SD);
+//                    } else if (DeviceConfig.VIDEO_STATUS == 1) {
+//                        rtcClient.setVideoAttr(RtcConst.Video_FL);
+//                    } else if (DeviceConfig.VIDEO_STATUS == 2) {
+//                        rtcClient.setVideoAttr(RtcConst.Video_HD);
+//                    } else if (DeviceConfig.VIDEO_STATUS == 3) {
+//                        rtcClient.setVideoAttr(RtcConst.Video_720P);
+//                    } else if (DeviceConfig.VIDEO_STATUS == 4) {
+//                        rtcClient.setVideoAttr(RtcConst.Video_1080P);
+//                    }
                     rtcClient.setVideoAdapt(DeviceConfig.VIDEO_ADAPT);
                     if (isReconnectingRtc) {
                         startGetToken();
