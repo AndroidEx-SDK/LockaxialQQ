@@ -253,7 +253,7 @@ public class PhotographActivity2 extends AppCompatActivity implements Camera.Pic
         mCamera = Camera.open();
         try {
             Camera.Parameters parameters = mCamera.getParameters();
-            parameters.setPreviewSize(800, 500);
+            parameters.setPreviewSize(1280, 720);
 //            Camera.Size size = getBestSize(800,600,parameters.getSupportedPreviewSizes());
 //            parameters.setPreviewSize(size.width, size.height);
             parameters.setPreviewFormat(ImageFormat.NV21);

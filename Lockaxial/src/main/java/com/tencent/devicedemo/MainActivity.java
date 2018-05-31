@@ -3249,11 +3249,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             while (pause) {
                 onPause();
             }
-//            try {
-//                Thread.sleep(200);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
             if (mImageNV21 != null && identification) {
                 long time = System.currentTimeMillis();
                 AFR_FSDKError error = engine.AFR_FSDK_ExtractFRFeature(mImageNV21, mWidth, mHeight, AFR_FSDKEngine.CP_PAF_NV21, mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree(), result);
@@ -3261,7 +3256,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 float max = 0.0f;
                 String name = null;
                 for (FaceDB.FaceRegist fr : mResgist) {
-                    Log.v(FACE_TAG, "loop:" + mResgist.size() + "/" + fr.mFaceList.size());
                     if (fr.mName.length() > 11) {
                         continue;
                     }
@@ -3300,17 +3294,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 //                } catch (IOException e) {
 //                    e.printStackTrace();
 //                }
-
                 if (max > 0.70f) {
-                    //fr success.
-                    final float max_score = max;
-                    Message message = Message.obtain();
-                    message.what = MainService.MSG_FACE_OPENLOCK;
-                    try {
-                        serviceMessenger.send(message);
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
+                    handler.removeCallbacks(openLockRunable);
+                    handler.postDelayed(openLockRunable,200);
                 }
                 mImageNV21 = null;
             }
@@ -3321,6 +3307,19 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             AFR_FSDKError error = engine.AFR_FSDK_UninitialEngine();
         }
     }
+
+    private Runnable openLockRunable = new Runnable() {
+        @Override
+        public void run() {
+            Message message = Message.obtain();
+            message.what = MainService.MSG_FACE_OPENLOCK;
+            try {
+                serviceMessenger.send(message);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+    };
 
     private boolean fileOperation(String name) {
         boolean bool = false;
