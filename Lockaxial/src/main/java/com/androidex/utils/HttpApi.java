@@ -91,7 +91,9 @@ public class HttpApi {
             conn.setConnectTimeout(5000);
             long ld=conn.getDate();
             Calendar c = Calendar.getInstance();
-            c.setTimeInMillis(ld);
+            if(ld!=0){
+                c.setTimeInMillis(ld);
+            }
             return c;
         }catch(Exception e){
             return null;

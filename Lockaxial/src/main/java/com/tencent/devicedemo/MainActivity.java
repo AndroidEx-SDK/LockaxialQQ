@@ -2069,7 +2069,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 //                        Camera.Size size = getBestSize(800,600,parameters.getSupportedPreviewSizes());
 //                        parameters.setPreviewSize(size.width, size.height);
 //                        HttpApi.i("doTakePicture设置预览的宽高：width = "+size.width+",height = "+size.height);
-                        parameters.setPreviewSize(800, 500);
+                        parameters.setPreviewSize(640, 480);
+                        parameters.setPictureSize(1280, 720);
                         try {
                             camera.setParameters(parameters);
                         } catch (Exception err) {
