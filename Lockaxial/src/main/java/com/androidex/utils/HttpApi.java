@@ -12,6 +12,7 @@ import java.util.Date;
 
 import jni.http.HttpManager;
 import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.FormBody;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -74,12 +75,31 @@ public class HttpApi {
         }
     }
 
+    public void loadHttpforPost(String u, JSONObject j, String t, Callback callback) throws Exception{
+        try {
+            RequestBody body = RequestBody.create(JSON, j.toString());
+            client.newCall(BuildRequest(body, u, t)).enqueue(callback);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+
+
     public String loadHttpforGet(String u,String t){
         try {
             Call call = client.newCall(BuildRequest(null, u, t));
             return call.execute().body().string();
         }catch(Exception e){
             return null;
+        }
+    }
+
+    public void loadHttpforGet(String u,String t,Callback callback){
+        try {
+            client.newCall(BuildRequest(null, u, t)).enqueue(callback);
+        }catch (Exception e){
+            e.printStackTrace();
         }
     }
 
