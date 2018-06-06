@@ -12,6 +12,7 @@ public class FaceBean {
     public String imageUrl;
     public String dataUrl;
     public String faceName;
+    public String phone;
     public int communityId;
     public String creDate;
     public String loadName;

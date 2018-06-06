@@ -2543,7 +2543,7 @@ public class MainService extends Service {
         } else if (DeviceConfig.IS_ASSEMBLE_AVAILABLE) {
             openAssembleLock();
         } else if (DeviceConfig.IS_AEX_AVAILABLE) {
-            openAexLock();
+            //openAexLock();
             int status = 2;
             Intent ds_intent = new Intent();
             ds_intent.setAction(DoorLock.DoorLockOpenDoor);

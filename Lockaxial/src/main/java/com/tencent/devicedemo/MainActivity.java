@@ -1462,12 +1462,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     if(currentStatus == INPUT_MODE){
                         delInputKey();
                     }
-                    String str = tv_input_text.getText().toString(); //输入框无内容，跳转到登录界面
-                    if (str == null || str.equals("")) {
-                        //跳转到登录界面
-                        Intent intent = new Intent(this, InputCardInfoActivity.class);
-                        startActivityForResult(intent, INPUT_CARDINFO_REQUESTCODE);
-                    }
+//                    String str = tv_input_text.getText().toString(); //输入框无内容，跳转到登录界面
+//                    if (str == null || str.equals("")) {
+//                        //跳转到登录界面
+//                        Intent intent = new Intent(this, InputCardInfoActivity.class);
+//                        startActivityForResult(intent, INPUT_CARDINFO_REQUESTCODE);
+//                    }
                 }
             } else if (currentStatus == ERROR_MODE) {
 

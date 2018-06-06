@@ -180,6 +180,7 @@ public class DoorLock extends Service implements OnBackCall {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(mDoorSensorAction)) {
+                Log.i("xiao_","收到门状态改变广播");
                 String doorsensor = intent.getStringExtra("doorsensor");
                 UEventMap mds = new UEventMap(doorsensor);
                 Log.d(TAG, String.format("%s\t Door sensor=%s\n", mds.get("doorsensor"), mds.toString()));

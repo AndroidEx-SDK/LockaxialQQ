@@ -31,7 +31,7 @@ public class FaceHelper extends SQLiteOpenHelper {
     }
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        sqLiteDatabase.execSQL("CREATE TABLE "+TABLE+" (id INTEGER , byUserid INTEGER, roomid INTEGER, lockid INTEGER, imageUrl TEXT, dataUrl TEXT,faceName TEXT,communityId INTEGER,creDate TEXT,loadName TEXT,loading INTEGER);");
+        sqLiteDatabase.execSQL("CREATE TABLE "+TABLE+" (id INTEGER , byUserid INTEGER, roomid INTEGER, lockid INTEGER, imageUrl TEXT, dataUrl TEXT,faceName TEXT,phone TEXT,communityId INTEGER,creDate TEXT,loadName TEXT,loading INTEGER);");
     }
 
     @Override
@@ -49,7 +49,7 @@ public class FaceHelper extends SQLiteOpenHelper {
     }
 
     public FaceBean getFaceByid(int id){
-        String columns[] = {"id","byUserid","roomid","lockid","imageUrl","dataUrl","faceName","communityId","creDate"};
+        String columns[] = {"id","byUserid","roomid","lockid","imageUrl","dataUrl","faceName","phone","communityId","creDate"};
         String whereClause = "id=?";
         String[] whereArgs={""+id};
         Cursor c = getReadableDatabase().query(TABLE,columns,whereClause,whereArgs,null,null,null);
@@ -63,6 +63,7 @@ public class FaceHelper extends SQLiteOpenHelper {
             faceBean.imageUrl = c.getString(c.getColumnIndex("imageUrl"));
             faceBean.dataUrl = c.getString(c.getColumnIndex("dataUrl"));
             faceBean.faceName = c.getString(c.getColumnIndex("faceName"));
+            faceBean.phone = c.getString(c.getColumnIndex("phone"));
             faceBean.communityId = c.getInt(c.getColumnIndex("communityId"));
             faceBean.creDate = c.getString(c.getColumnIndex("creDate"));
             faceBean.loadName = c.getString(c.getColumnIndex("loadName"));
@@ -74,7 +75,7 @@ public class FaceHelper extends SQLiteOpenHelper {
     }
 
     public List<FaceBean> getAllFace(){
-        String columns[] = {"id","byUserid","roomid","lockid","imageUrl","dataUrl","faceName","communityId","creDate","loadName","loading"};
+        String columns[] = {"id","byUserid","roomid","lockid","imageUrl","dataUrl","faceName","phone","communityId","creDate","loadName","loading"};
         Cursor c = getReadableDatabase().query(TABLE,columns,null,null,null,null,null,null);
         if(c.getCount()>0){
             List<FaceBean> data = new ArrayList<>();
@@ -87,6 +88,7 @@ public class FaceHelper extends SQLiteOpenHelper {
                 faceBean.imageUrl = c.getString(c.getColumnIndex("imageUrl"));
                 faceBean.dataUrl = c.getString(c.getColumnIndex("dataUrl"));
                 faceBean.faceName = c.getString(c.getColumnIndex("faceName"));
+                faceBean.phone = c.getString(c.getColumnIndex("phone"));
                 faceBean.communityId = c.getInt(c.getColumnIndex("communityId"));
                 faceBean.creDate = c.getString(c.getColumnIndex("creDate"));
                 faceBean.loadName = c.getString(c.getColumnIndex("loadName"));
@@ -114,6 +116,7 @@ public class FaceHelper extends SQLiteOpenHelper {
         cv.put("imageUrl",bean.imageUrl);
         cv.put("dataUrl",bean.dataUrl);
         cv.put("faceName",bean.faceName);
+        cv.put("phone",bean.phone);
         cv.put("communityId",bean.communityId);
         cv.put("creDate",bean.creDate);
         cv.put("loading",0);
@@ -201,6 +204,7 @@ public class FaceHelper extends SQLiteOpenHelper {
                 bean.imageUrl = jsonArray.getJSONObject(i).getString("imageUrl");
                 bean.dataUrl = jsonArray.getJSONObject(i).getString("dataUrl");
                 bean.faceName = jsonArray.getJSONObject(i).getString("faceName");
+                bean.phone = jsonArray.getJSONObject(i).getString("phone");
                 bean.creDate = jsonArray.getJSONObject(i).getString("creDate");
                 array.add(bean);
             }
