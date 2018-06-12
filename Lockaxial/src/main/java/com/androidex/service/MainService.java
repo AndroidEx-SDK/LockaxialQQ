@@ -412,6 +412,31 @@ public class MainService extends Service {
                     startChangeCardComplete(cardListSuccess, cardListFailed);
                 } else if (msg.what == MSG_FACE_OPENLOCK) {
                     openLock();
+                    HttpApi.i("===========================");
+                    HttpApi.i("人脸识别开门");
+                    String loadName = (String) msg.obj;
+                    HttpApi.i("加载名字："+loadName);
+                    int userid = -1;
+                    String iu = "";
+                    if(loadName!=null && loadName.length()>0){
+                        FaceBean bean = faceHelper.getFaceByLoadName(loadName);
+                        if(bean!=null){
+                            userid = bean.byUserid;
+                            iu = bean.imageUrl;
+                            HttpApi.i("userid = "+userid);
+                            HttpApi.i("imageUrl = "+iu);
+                        }else{
+                            HttpApi.i("根据loadName加载对象为空");
+                        }
+                    }else{
+                        HttpApi.i("加载名字为空");
+                    }
+                    if(userid>0 && iu!=null && iu.length()>0){
+                        startCreateFaceAccessLog(userid,iu);
+                    }else{
+                        HttpApi.i("userid<=0 || iu == null || iu.length<=0,不提交");
+                    }
+                    HttpApi.i("===========================");
                 } else if (msg.what == MSG_FINGER_OPENLOCK) {
                     int index = (Integer) msg.obj;
                     // startFingerOpenLock(index);
@@ -462,7 +487,7 @@ public class MainService extends Service {
                     if(from!=null && from.length()>0){
                         new Thread() {
                             public void run() {
-                                createAccessLog(fileUrl,from);
+                                createAccessLog(fileUrl,from,"A"); //App开门标记为A
                             }
                         }.start();
                     }
@@ -1058,7 +1083,6 @@ public class MainService extends Service {
         String account = data.get("account");
         String uuid = data.get("uuid");
         if (!this.cardRecord.checkLastCard(account)) {
-            Log.v("MainService", "onCard====卡信息：" + account);
             if (checkCardAvailable(account)) {
                 openLock();
                 Log.e(TAG, "onCard====:" + account);
@@ -1149,7 +1173,7 @@ public class MainService extends Service {
      */
     private void checkGuestPassword() {
         try {
-            String url = DeviceConfig.SERVER_URL + "/app/device/openDoorByTempKey?from=";
+            String url = DeviceConfig.SERVER_URL + "/app/device/openDoorByTempKey?from="; //服务器创建开门记录
             url = url + this.key;
             url = url + "&communityId=" + this.communityId;
             url = url + "&blockId=" + this.blockId;
@@ -2538,6 +2562,7 @@ public class MainService extends Service {
     }
 
     protected void openLock() {
+        sendDialMessenger(MSG_LOCK_OPENED);
         if (DeviceConfig.IS_RFID_AVAILABLE) {
             // openLedLock();//开继电器门锁,开普通门锁
         } else if (DeviceConfig.IS_ASSEMBLE_AVAILABLE) {
@@ -2587,12 +2612,37 @@ public class MainService extends Service {
         this.messageFrom = from;
         new Thread() {
             public void run() {
-                createAccessLog(imageUrl,null);
+                createAccessLog(imageUrl,null,"M");
             }
         }.start();
     }
 
-    protected void createAccessLog(String imageUrl,String from) {
+    protected void startCreateFaceAccessLog(final int userId,final String imageUrl){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String url = DeviceConfig.SERVER_URL +"/app/device/createFaceAccessLog?userId="+userId;
+                url = url + "&communityId=" + communityId;
+                url = url + "&lockId=" + lockId;
+                url = url +"&openType="+"F";
+                if(imageUrl!=null){
+                    try {
+                        url = url + "&imageUrl=" + URLEncoder.encode(imageUrl, "UTF-8");
+                    } catch (Exception e) {
+                    }
+                }
+                try{
+                    String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+                    HttpApi.i("人脸识别开门提交结果："+result);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+
+            }
+        }).start();
+    }
+
+    protected void createAccessLog(String imageUrl,String from,String openType) {
         String url = DeviceConfig.SERVER_URL + "/app/device/createAccessLog?from=";
         if(from!=null){
             url = url + from;
@@ -2601,6 +2651,7 @@ public class MainService extends Service {
         }
         url = url + "&communityId=" + this.communityId;
         url = url + "&lockId=" + this.lockId;
+        url = url +"&openType="+openType;
         if (imageUrl != null) {
             try {
                 url = url + "&imageUrl=" + URLEncoder.encode(imageUrl, "UTF-8");

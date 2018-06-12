@@ -119,6 +119,7 @@ public class FaceDB {
             //load all regist name.
             if (version_saved != null) {
                 for (String name = bos.readString(); name != null; name = bos.readString()) {
+                    Log.i("xiao_","姓名："+name);
                     if (new File(mDBPath + "/" + name + ".data").exists()) {
                         mRegister.add(new FaceRegist(new String(name)));
                     }
@@ -233,7 +234,7 @@ public class FaceDB {
             boolean add = true;
             for (FaceRegist frface : mRegister) { //循环
                 if (frface.mName.equals(name)) {
-                    if (name.length() > 11) {
+                    if (name.length() < 36) {
                         frface.mIDFaceList.add(face);
                     } else {
                         frface.mFaceList.add(face);
@@ -244,7 +245,7 @@ public class FaceDB {
             }
             if (add) { // not registered.
                 FaceRegist frface = new FaceRegist(name);
-                if (name.length() > 11) {
+                if (name.length() < 36) {
                     frface.mIDFaceList.add(face);
                 } else {
                     frface.mFaceList.add(face);

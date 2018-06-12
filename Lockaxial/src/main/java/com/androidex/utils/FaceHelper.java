@@ -48,8 +48,34 @@ public class FaceHelper extends SQLiteOpenHelper {
         getWritableDatabase().update(TABLE,cv,whereClause,whereArgs);
     }
 
+    public FaceBean getFaceByLoadName(String loadName){
+        String columns[] = {"id","byUserid","roomid","lockid","imageUrl","dataUrl","faceName","phone","communityId","creDate","loadName","loading"};
+        String whereClause = "loadName=?";
+        String[] whereArgs={loadName};
+        Cursor c = getReadableDatabase().query(TABLE,columns,whereClause,whereArgs,null,null,null);
+        if(c.moveToFirst()){
+            c.move(0);
+            FaceBean faceBean = new FaceBean();
+            faceBean.id = c.getInt(c.getColumnIndex("id"));
+            faceBean.byUserid = c.getInt(c.getColumnIndex("byUserid"));
+            faceBean.roomid = c.getInt(c.getColumnIndex("roomid"));
+            faceBean.lockid = c.getInt(c.getColumnIndex("lockid"));
+            faceBean.imageUrl = c.getString(c.getColumnIndex("imageUrl"));
+            faceBean.dataUrl = c.getString(c.getColumnIndex("dataUrl"));
+            faceBean.faceName = c.getString(c.getColumnIndex("faceName"));
+            faceBean.phone = c.getString(c.getColumnIndex("phone"));
+            faceBean.communityId = c.getInt(c.getColumnIndex("communityId"));
+            faceBean.creDate = c.getString(c.getColumnIndex("creDate"));
+            faceBean.loadName = c.getString(c.getColumnIndex("loadName"));
+            faceBean.loading = c.getInt(c.getColumnIndex("loading"));
+            return faceBean;
+        }else{
+            return null;
+        }
+    }
+
     public FaceBean getFaceByid(int id){
-        String columns[] = {"id","byUserid","roomid","lockid","imageUrl","dataUrl","faceName","phone","communityId","creDate"};
+        String columns[] = {"id","byUserid","roomid","lockid","imageUrl","dataUrl","faceName","phone","communityId","creDate","loadName","loading"};
         String whereClause = "id=?";
         String[] whereArgs={""+id};
         Cursor c = getReadableDatabase().query(TABLE,columns,whereClause,whereArgs,null,null,null);
