@@ -2996,7 +2996,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     private Camera.Size getBestSize(int width,int height,List<Camera.Size> list){
         Camera.Size size = null;
-        double targetRatio = width*1.0/height*1.0;
+        double targetRatio = height*1.0/width*1.0;
         double minDiff = targetRatio;
         for(Camera.Size cSize : list){
             if(cSize.width == width && cSize.height == height){
