@@ -1462,12 +1462,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     if(currentStatus == INPUT_MODE){
                         delInputKey();
                     }
-                    String str = tv_input_text.getText().toString(); //输入框无内容，跳转到登录界面
-                    if (str == null || str.equals("")) {
-                        //跳转到登录界面
-                        Intent intent = new Intent(this, InputCardInfoActivity.class);
-                        startActivityForResult(intent, INPUT_CARDINFO_REQUESTCODE);
-                    }
+//                    String str = tv_input_text.getText().toString(); //输入框无内容，跳转到登录界面
+//                    if (str == null || str.equals("")) {
+//                        //跳转到登录界面
+//                        Intent intent = new Intent(this, InputCardInfoActivity.class);
+//                        startActivityForResult(intent, INPUT_CARDINFO_REQUESTCODE);
+//                    }
                 }
             } else if (currentStatus == ERROR_MODE) {
 
@@ -2069,7 +2069,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 //                        Camera.Size size = getBestSize(800,600,parameters.getSupportedPreviewSizes());
 //                        parameters.setPreviewSize(size.width, size.height);
 //                        HttpApi.i("doTakePicture设置预览的宽高：width = "+size.width+",height = "+size.height);
-                        parameters.setPreviewSize(800, 500);
+                        parameters.setPreviewSize(640, 480);
+                        parameters.setPictureSize(1280, 720);
                         try {
                             camera.setParameters(parameters);
                         } catch (Exception err) {
@@ -2937,15 +2938,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     public void run() {
 //                        //在子线程给handler发送数据
 //                        faceHandler.sendEmptyMessage(2);
-                        Log.v(FACE_TAG, "initFaceDetect-->" + 222);
 //                        mProgressDialog.cancel();
                         if (ArcsoftManager.getInstance().mFaceDB.mRegister.isEmpty()) {
-                            Log.v(FACE_TAG, "initFaceDetect-->" + 333);
-                            Utils.DisplayToast(MainActivity.this, "没有注册人脸，请先注册");
                             return;
                         }
                         identification = true;
-                        Utils.DisplayToast(MainActivity.this, "人脸数据加载完成");
                     }
                 });
             }
@@ -2999,7 +2996,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     private Camera.Size getBestSize(int width,int height,List<Camera.Size> list){
         Camera.Size size = null;
-        double targetRatio = width*1.0/height*1.0;
+        double targetRatio = height*1.0/width*1.0;
         double minDiff = targetRatio;
         for(Camera.Size cSize : list){
             if(cSize.width == width && cSize.height == height){
@@ -3249,6 +3246,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             while (pause) {
                 onPause();
             }
+            try{
+                Thread.sleep(200);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
             if (mImageNV21 != null && identification) {
                 long time = System.currentTimeMillis();
                 AFR_FSDKError error = engine.AFR_FSDK_ExtractFRFeature(mImageNV21, mWidth, mHeight, AFR_FSDKEngine.CP_PAF_NV21, mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree(), result);
@@ -3256,7 +3258,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 float max = 0.0f;
                 String name = null;
                 for (FaceDB.FaceRegist fr : mResgist) {
-                    if (fr.mName.length() > 11) {
+                    if (fr.mName.length() < 36) {
                         continue;
                     }
                     for (AFR_FSDKFace face : fr.mFaceList) {
@@ -3270,33 +3272,16 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         }
                     }
                 }
-
-//                //age & gender
-//                face1.clear();
-//                face2.clear();
-//                face1.add(new ASAE_FSDKFace(mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree()));
-//                face2.add(new ASGE_FSDKFace(mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree()));
-//                ASAE_FSDKError error1 = mAgeEngine.ASAE_FSDK_AgeEstimation_Image(mImageNV21, mWidth, mHeight, AFT_FSDKEngine.CP_PAF_NV21, face1, ages);
-//                ASGE_FSDKError error2 = mGenderEngine.ASGE_FSDK_GenderEstimation_Image(mImageNV21, mWidth, mHeight, AFT_FSDKEngine.CP_PAF_NV21, face2, genders);
-//                Log.d(TAG, "ASAE_FSDK_AgeEstimation_Image:" + error1.getCode() + ",ASGE_FSDK_GenderEstimation_Image:" + error2.getCode());
-//                Log.d(TAG, "age:" + ages.get(0).getAge() + ",gender:" + genders.get(0).getGender());
-//                final String age = ages.get(0).getAge() == 0 ? "年龄未知" : ages.get(0).getAge() + "岁";
-//                final String gender = genders.get(0).getGender() == -1 ? "性别未知" : (genders.get(0).getGender() == 0 ? "男" : "女");
-//
-//                //crop
-//                byte[] data = mImageNV21;
-//                YuvImage yuv = new YuvImage(data, ImageFormat.NV21, mWidth, mHeight, null);
-//                ExtByteArrayOutputStream ops = new ExtByteArrayOutputStream();
-//                yuv.compressToJpeg(mAFT_FSDKFace.getRect(), 80, ops);
-//                final Bitmap bmp = BitmapFactory.decodeByteArray(ops.getByteArray(), 0, ops.getByteArray().length);
-//                try {
-//                    ops.close();
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
                 if (max > 0.70f) {
-                    handler.removeCallbacks(openLockRunable);
-                    handler.postDelayed(openLockRunable,200);
+                    final float max_score = max;
+                    Message message = Message.obtain();
+                    message.what = MainService.MSG_FACE_OPENLOCK;
+                    message.obj = name;
+                    try {
+                        serviceMessenger.send(message);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
                 }
                 mImageNV21 = null;
             }
@@ -3307,19 +3292,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             AFR_FSDKError error = engine.AFR_FSDK_UninitialEngine();
         }
     }
-
-    private Runnable openLockRunable = new Runnable() {
-        @Override
-        public void run() {
-            Message message = Message.obtain();
-            message.what = MainService.MSG_FACE_OPENLOCK;
-            try {
-                serviceMessenger.send(message);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
-    };
 
     private boolean fileOperation(String name) {
         boolean bool = false;

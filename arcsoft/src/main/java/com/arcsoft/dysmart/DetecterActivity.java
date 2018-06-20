@@ -121,7 +121,7 @@ public class DetecterActivity extends AppCompatActivity implements CameraSurface
                 float max = 0.0f;
                 String name = null;
                 for (FaceDB.FaceRegist fr : mResgist) {
-                    if (fr.mName.length() > 11) {
+                    if (fr.mName.length() < 36) {
                         for (AFR_FSDKFace face : fr.mIDFaceList) {
                             error = engine.AFR_FSDK_FacePairMatching(result, face, score);
                             Log.d(TAG, "Score:" + score.getScore() + ", AFR_FSDK_FacePairMatching=" + error.getCode());

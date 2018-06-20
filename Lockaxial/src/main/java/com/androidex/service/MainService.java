@@ -3,6 +3,7 @@ package com.androidex.service;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.DownloadManager;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
@@ -24,14 +25,17 @@ import android.view.KeyEvent;
 import com.androidex.DoorLock;
 import com.androidex.SoundPoolUtil;
 import com.androidex.aexlibs.hwService;
+import com.androidex.bean.FaceBean;
 import com.androidex.config.DeviceConfig;
 import com.androidex.utils.AexUtil;
 import com.androidex.utils.Ajax;
 import com.androidex.utils.AssembleUtil;
+import com.androidex.utils.FaceHelper;
 import com.androidex.utils.HttpApi;
 import com.androidex.utils.HttpUtils;
 import com.androidex.utils.SqlUtil;
 import com.androidex.utils.WifiAdmin;
+import com.arcsoft.dysmart.ArcsoftManager;
 import com.tencent.device.barrage.ToastUtils;
 import com.tencent.devicedemo.InitActivity;
 import com.tencent.devicedemo.MainActivity;
@@ -86,11 +90,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import jni.http.HttpManager;
 import jni.http.HttpResult;
 import jni.http.RtcHttpClient;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
 import rtc.sdk.clt.RtcClientImpl;
 import rtc.sdk.common.RtcConst;
 import rtc.sdk.common.SdkSettings;
@@ -105,6 +113,7 @@ import rtc.sdk.iface.RtcClient;
 import static com.util.Constant.APP_OPENDOOR;
 import static com.util.Constant.APP_OPENDOOR_ACCESS;
 import static com.util.Constant.CARD_OPENDOOR_ACCESS;
+import static com.util.Constant.INIT_FACE_MESSAGE;
 import static com.util.Constant.MSG_ADVERTISE_REFRESH;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_COMPLETE;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_DIALING;
@@ -275,6 +284,7 @@ public class MainService extends Service {
     private AudioManager audioManager;
 
     //xiaozd add
+    private FaceHelper faceHelper;
     private ActivityManager activityManager;
     private boolean isPullTime = false;
     private Timer activityTimer = null;
@@ -297,6 +307,7 @@ public class MainService extends Service {
         hwservice = new hwService(MainService.this);
         wifiAdmin = new WifiAdmin(this);
         audioManager = (AudioManager) getSystemService(Service.AUDIO_SERVICE);
+        faceHelper = new FaceHelper(this);
         initHandler();
         initUpdateHandler();//开启版本检测更新，一个小时监测一次
     }
@@ -322,6 +333,7 @@ public class MainService extends Service {
                     HttpApi.i("初始化广告");
                     initAdvertisement(); //初始化广告
                     initConnectReport();
+                    initFaceData();                    //初始化人脸数据
                     dialMessenger = msg.replyTo;
                     startUpdateThread(); //更新程序线程
                 } else if (msg.what == MSG_GETTOKEN) {
@@ -400,6 +412,31 @@ public class MainService extends Service {
                     startChangeCardComplete(cardListSuccess, cardListFailed);
                 } else if (msg.what == MSG_FACE_OPENLOCK) {
                     openLock();
+                    HttpApi.i("===========================");
+                    HttpApi.i("人脸识别开门");
+                    String loadName = (String) msg.obj;
+                    HttpApi.i("加载名字："+loadName);
+                    int userid = -1;
+                    String iu = "";
+                    if(loadName!=null && loadName.length()>0){
+                        FaceBean bean = faceHelper.getFaceByLoadName(loadName);
+                        if(bean!=null){
+                            userid = bean.byUserid;
+                            iu = bean.imageUrl;
+                            HttpApi.i("userid = "+userid);
+                            HttpApi.i("imageUrl = "+iu);
+                        }else{
+                            HttpApi.i("根据loadName加载对象为空");
+                        }
+                    }else{
+                        HttpApi.i("加载名字为空");
+                    }
+                    if(userid>0 && iu!=null && iu.length()>0){
+                        startCreateFaceAccessLog(userid,iu);
+                    }else{
+                        HttpApi.i("userid<=0 || iu == null || iu.length<=0,不提交");
+                    }
+                    HttpApi.i("===========================");
                 } else if (msg.what == MSG_FINGER_OPENLOCK) {
                     int index = (Integer) msg.obj;
                     // startFingerOpenLock(index);
@@ -450,7 +487,7 @@ public class MainService extends Service {
                     if(from!=null && from.length()>0){
                         new Thread() {
                             public void run() {
-                                createAccessLog(fileUrl,from);
+                                createAccessLog(fileUrl,from,"A"); //App开门标记为A
                             }
                         }.start();
                     }
@@ -463,6 +500,13 @@ public class MainService extends Service {
                             cardAppendImage(imgUrl,uuid);
                         }
                     }.start();
+                }else if(msg.what == INIT_FACE_MESSAGE){
+                    if(isRegisterFace){
+                        handler.sendEmptyMessageDelayed(INIT_FACE_MESSAGE,500);
+                    }else{
+                        handler.removeMessages(INIT_FACE_MESSAGE);
+                        initFaceData();
+                    }
                 }
             }
         };
@@ -1039,7 +1083,6 @@ public class MainService extends Service {
         String account = data.get("account");
         String uuid = data.get("uuid");
         if (!this.cardRecord.checkLastCard(account)) {
-            Log.v("MainService", "onCard====卡信息：" + account);
             if (checkCardAvailable(account)) {
                 openLock();
                 Log.e(TAG, "onCard====:" + account);
@@ -1130,7 +1173,7 @@ public class MainService extends Service {
      */
     private void checkGuestPassword() {
         try {
-            String url = DeviceConfig.SERVER_URL + "/app/device/openDoorByTempKey?from=";
+            String url = DeviceConfig.SERVER_URL + "/app/device/openDoorByTempKey?from="; //服务器创建开门记录
             url = url + this.key;
             url = url + "&communityId=" + this.communityId;
             url = url + "&blockId=" + this.blockId;
@@ -2480,6 +2523,13 @@ public class MainService extends Service {
             resetCallMode();
             sendDialMessenger(MSG_CALLMEMBER_TIMEOUT); //通知界面目前已经超时，并进入初始状态
             stopTimeoutCheckThread();
+        }else if(content.equals("refresh face info")){
+            if(isRegisterFace){
+                handler.sendEmptyMessageDelayed(INIT_FACE_MESSAGE,500);
+            }else{
+                handler.removeMessages(INIT_FACE_MESSAGE);
+                initFaceData();
+            }
         }
     }
 
@@ -2512,12 +2562,13 @@ public class MainService extends Service {
     }
 
     protected void openLock() {
+        sendDialMessenger(MSG_LOCK_OPENED);
         if (DeviceConfig.IS_RFID_AVAILABLE) {
             // openLedLock();//开继电器门锁,开普通门锁
         } else if (DeviceConfig.IS_ASSEMBLE_AVAILABLE) {
             openAssembleLock();
         } else if (DeviceConfig.IS_AEX_AVAILABLE) {
-            openAexLock();
+            //openAexLock();
             int status = 2;
             Intent ds_intent = new Intent();
             ds_intent.setAction(DoorLock.DoorLockOpenDoor);
@@ -2561,12 +2612,37 @@ public class MainService extends Service {
         this.messageFrom = from;
         new Thread() {
             public void run() {
-                createAccessLog(imageUrl,null);
+                createAccessLog(imageUrl,null,"M");
             }
         }.start();
     }
 
-    protected void createAccessLog(String imageUrl,String from) {
+    protected void startCreateFaceAccessLog(final int userId,final String imageUrl){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String url = DeviceConfig.SERVER_URL +"/app/device/createFaceAccessLog?userId="+userId;
+                url = url + "&communityId=" + communityId;
+                url = url + "&lockId=" + lockId;
+                url = url +"&openType="+"F";
+                if(imageUrl!=null){
+                    try {
+                        url = url + "&imageUrl=" + URLEncoder.encode(imageUrl, "UTF-8");
+                    } catch (Exception e) {
+                    }
+                }
+                try{
+                    String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
+                    HttpApi.i("人脸识别开门提交结果："+result);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+
+            }
+        }).start();
+    }
+
+    protected void createAccessLog(String imageUrl,String from,String openType) {
         String url = DeviceConfig.SERVER_URL + "/app/device/createAccessLog?from=";
         if(from!=null){
             url = url + from;
@@ -2575,6 +2651,7 @@ public class MainService extends Service {
         }
         url = url + "&communityId=" + this.communityId;
         url = url + "&lockId=" + this.lockId;
+        url = url +"&openType="+openType;
         if (imageUrl != null) {
             try {
                 url = url + "&imageUrl=" + URLEncoder.encode(imageUrl, "UTF-8");
@@ -2768,6 +2845,65 @@ public class MainService extends Service {
         advertisementThread.start();
     }
 
+
+    private boolean isRegisterFace = false;
+    private void initFaceData(){
+        if(isRegisterFace){
+            return;
+        }
+        isRegisterFace = true;
+        String url = DeviceConfig.SERVER_URL + "/app/rfid/getFaceDataByLockid?lockid=" + this.lockId;
+        HttpApi.getInstance().loadHttpforGet(url, httpServerToken, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+            }
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if(response.isSuccessful()){
+                    String result = response.body().string();
+                    HttpApi.i("人脸请求结果："+result);
+                    faceHelper.registerFace(result);
+                    registerFace();
+                }
+            }
+        });
+    }
+    private void  registerFace(){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    List<FaceBean> data = faceHelper.getAllFace();
+                    if(data!=null && data.size()>0){
+                        for(int i=0;i<data.size();i++){
+                            HttpApi.i("开始加载："+data.get(i).faceName);
+                            if(data.get(i).loadName == null
+                                    || data.get(i).loadName.length()<=0
+                                    || data.get(i).loading == 0){
+                                String url = DeviceConfig.SERVER_URL+data.get(i).dataUrl;
+                                String fileName = UUID.randomUUID().toString();
+                                try {
+                                    String filePath = HttpUtils.downloadFile(MainService.this, url, fileName+".data");
+                                    if(filePath!=null){
+                                        data.get(i).loadName = fileName;
+                                        boolean result = ArcsoftManager.getInstance().mFaceDB.addFace(fileName);
+                                        data.get(i).loading = result?1:0;
+                                        HttpApi.i("("+ data.get(i).faceName +")加载结果："+result);
+                                        faceHelper.updateLoading(data.get(i).id,data.get(i).loadName,data.get(i).loading);
+                                    }else{
+                                        data.get(i).loadName = null;
+                                    }
+                                }catch (Exception e){
+                                    e.printStackTrace();
+                                }
+                            }else{
+                                HttpApi.i(data.get(i).faceName+"已经加载过!");
+                            }
+                        }
+                    }
+                    isRegisterFace = false;
+                }
+            }).start();
+        }
 
     protected void retrieveCardList() {
         String url = DeviceConfig.SERVER_URL + "/app/device/retrieveCardList?communityId=" + this.communityId

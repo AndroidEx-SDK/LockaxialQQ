@@ -74,10 +74,8 @@ public class FaceDB {
         mFREngine = new AFR_FSDKEngine();
         AFR_FSDKError error = mFREngine.AFR_FSDK_InitialEngine(FaceDB.appid, FaceDB.fr_key);
         if (error.getCode() != AFR_FSDKError.MOK) {
-            Log.e(TAG, "AFR_FSDK_InitialEngine fail! error code :" + error.getCode());
         } else {
             mFREngine.AFR_FSDK_GetVersion(mFRVersion);
-            Log.d(TAG, "AFR_FSDK_GetVersion=" + mFRVersion.toString());
         }
     }
 
@@ -121,8 +119,8 @@ public class FaceDB {
             //load all regist name.
             if (version_saved != null) {
                 for (String name = bos.readString(); name != null; name = bos.readString()) {
+                    Log.i("xiao_","姓名："+name);
                     if (new File(mDBPath + "/" + name + ".data").exists()) {
-                        Log.v(FACE_TAG, "loadInfo-->" + name);
                         mRegister.add(new FaceRegist(new String(name)));
                     }
                 }
@@ -132,10 +130,8 @@ public class FaceDB {
             return true;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-            Log.v(FACE_TAG, "loadInfo/FileNotFoundException-->" + e.getMessage());
         } catch (IOException e) {
             e.printStackTrace();
-            Log.v(FACE_TAG, "loadInfo/IOException-->" + e.getMessage());
         }
         return false;
     }
@@ -143,7 +139,6 @@ public class FaceDB {
     public boolean saveBitmap(String name, Bitmap bitmap) {
         boolean bool = false;
         File file = new File(mDBPath + "/" + name + ".png");
-        Log.v(FACE_TAG, "saveBitmap1-->" + file.getPath());
         if (file.exists()) {
             file.delete();
         }
@@ -154,14 +149,11 @@ public class FaceDB {
             out.flush();
             out.close();
             bool = true;
-            Log.v(FACE_TAG, "saveBitmap2-->" + file.getPath());
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-            Log.v(FACE_TAG, "saveBitmap3-->" + e.getMessage());
             bool = false;
         } catch (IOException e) {
             e.printStackTrace();
-            Log.v(FACE_TAG, "saveBitmap4-->" + e.getMessage());
             bool = false;
         }
         return bool;
@@ -184,7 +176,6 @@ public class FaceDB {
         if (loadInfo()) {
             try {
                 for (FaceRegist face : mRegister) {
-                    Log.v(FACE_TAG, "load name:" + face.mName + "'s face feature data.");
                     FileInputStream fs = new FileInputStream(mDBPath + "/" + face.mName + ".data");
                     ExtInputStream bos = new ExtInputStream(fs);
                     AFR_FSDKFace afr = null;
@@ -193,9 +184,9 @@ public class FaceDB {
                             if (mUpgrade) {
                                 //upgrade data.
                             }
-                            if (face.mName.length() > 11) {
+                            if (face.mName.length() < 32) { //身份证
                                 face.mIDFaceList.add(afr);
-                            } else {
+                            } else { //手机录取人脸
                                 face.mFaceList.add(afr);
                             }
                         }
@@ -207,11 +198,31 @@ public class FaceDB {
                 return true;
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
-                Log.v(FACE_TAG, "loadFaces/FileNotFoundException-->" + e.getMessage());
             } catch (IOException e) {
                 e.printStackTrace();
-                Log.v(FACE_TAG, "loadFaces/IOException-->" + e.getMessage());
             }
+        }
+        return false;
+    }
+
+    public boolean addFace(String name){
+        boolean isadd = false;
+        try{
+            if(saveInfo()){
+                FileOutputStream fs = new FileOutputStream(mDBPath + "/face.txt", true);
+                ExtOutputStream bos = new ExtOutputStream(fs);
+                for (FaceRegist frface : mRegister) {
+                    bos.writeString(frface.mName);
+                }
+                bos.writeString(name);
+                bos.close();
+                fs.close();
+            }
+            mRegister.clear();
+            loadFaces();
+            return true;
+        }catch (Exception e){
+            e.printStackTrace();
         }
         return false;
     }
@@ -221,9 +232,9 @@ public class FaceDB {
         try {
             //check if already registered.
             boolean add = true;
-            for (FaceRegist frface : mRegister) {
+            for (FaceRegist frface : mRegister) { //循环
                 if (frface.mName.equals(name)) {
-                    if (name.length() > 11) {
+                    if (name.length() < 36) {
                         frface.mIDFaceList.add(face);
                     } else {
                         frface.mFaceList.add(face);
@@ -234,16 +245,13 @@ public class FaceDB {
             }
             if (add) { // not registered.
                 FaceRegist frface = new FaceRegist(name);
-                if (name.length() > 11) {
+                if (name.length() < 36) {
                     frface.mIDFaceList.add(face);
                 } else {
                     frface.mFaceList.add(face);
                 }
                 mRegister.add(frface);
-                Log.v(FACE_TAG, "addFace-->" + 333333);
             }
-
-            Log.v(FACE_TAG, "addFace-->" + 111);
             bool = saveInfo();
             if (bool) {
                 //update all names
@@ -263,7 +271,6 @@ public class FaceDB {
                 fs.close();
 
                 bool = true;
-                Log.v(FACE_TAG, "addFace-->" + 222);
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
