@@ -1,10 +1,14 @@
 apply plugin: 'com.android.application'
 
+def buildLockaxialVersion(){
+    return 22
+}
+
 android {
     android.applicationVariants.all {
         variant ->
             variant.outputs.each {
-                output -> output.outputFile = new File(output.outputFile.parent, "LockaxialQQ.a.19.apk");
+                output -> output.outputFile = new File(output.outputFile.parent, "LockaxialQQ.a.${buildLockaxialVersion()}.apk");
             }
     }
 
@@ -17,8 +21,9 @@ android {
         applicationId "com.tencent.devicedemo"
         minSdkVersion 19
         targetSdkVersion 23
-        versionCode 19
-        versionName "V.T.0.0.19"
+        versionCode buildLockaxialVersion()
+        buildConfigField 'int','BUILD_VERSION',"Integer.parseInt(\"${buildLockaxialVersion()}\")"
+        versionName "V.T.0.0.${buildLockaxialVersion()}"
         ndk {
             moduleName "qqlib"
             ldLibs "log", "z", "m"

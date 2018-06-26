@@ -928,6 +928,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         keyVoiceIndex = soundPool.load(this, R.raw.key, 1); //把你的声音素材放到res/raw里，第2个参数即为资源文件，第3个为音乐的优先级
     }
 
+    private Dialog weituoDialog = null;
+
     private void initHandler() {
         handler = new Handler() {
             @Override
@@ -945,19 +947,18 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     onPasswordCheck((Integer) msg.obj);
                 } else if (msg.what == MSG_LOCK_OPENED) {//门开了
                     onLockOpened();
-                    final Dialog weituoDialog = DialogUtil.showBottomDialog(MainActivity.this);
-                    final TimerTask task = new TimerTask() {
-                        @Override
-                        public void run() {
-                            runOnUiThread(new Runnable() {      // UI thread
-                                @Override
-                                public void run() {
-                                    weituoDialog.dismiss();
-                                }
-                            });
-                        }
-                    };
-                    timer.schedule(task, 500, 5000);
+                    if(weituoDialog == null){
+                        weituoDialog = DialogUtil.showBottomDialog(MainActivity.this);
+                    }
+                    if(!weituoDialog.isShowing()){
+                        weituoDialog.show();
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                weituoDialog.dismiss();
+                            }
+                        },1000);
+                    }
                 } else if (msg.what == MSG_CALLMEMBER_ERROR) {
                     onCallMemberError(msg.what);
                 } else if (msg.what == MSG_CALLMEMBER_SERVER_ERROR) {
@@ -2808,7 +2809,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 //    ASAE_FSDKEngine mAgeEngine = new ASAE_FSDKEngine();
 //    ASGE_FSDKVersion mGenderVersion = new ASGE_FSDKVersion();
 //    ASGE_FSDKEngine mGenderEngine = new ASGE_FSDKEngine();
-    List<AFT_FSDKFace> result = new ArrayList<>();
+    List<AFT_FSDKFace> FSDKFaceList = new ArrayList<>();
 //    List<ASAE_FSDKAge> ages = new ArrayList<>();
 //    List<ASGE_FSDKGender> genders = new ArrayList<>();
 
@@ -3025,27 +3026,20 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     @Override
     public Object onPreview(byte[] data, int width, int height, int format, long timestamp) {
-        AFT_FSDKError err = engine.AFT_FSDK_FaceFeatureDetect(data, width, height, AFT_FSDKEngine.CP_PAF_NV21, result);
-        //Log.d(TAG, "AFT_FSDK_FaceFeatureDetect =" + err.getCode());
-        //Log.d(TAG, "Face=" + result.size());
-        for (AFT_FSDKFace face : result) {
-            //Log.d(TAG, "Face:" + face.toString());
-        }
+        AFT_FSDKError err = engine.AFT_FSDK_FaceFeatureDetect(data, width, height, AFT_FSDKEngine.CP_PAF_NV21, FSDKFaceList);
         if (mImageNV21 == null) {
-            if (!result.isEmpty()) {
-                mAFT_FSDKFace = result.get(0).clone();
+            if (!FSDKFaceList.isEmpty()) {
+                mAFT_FSDKFace = FSDKFaceList.get(0).clone();
                 mImageNV21 = data.clone();
-            } else {
-//                mHandler.postDelayed(hide, 3000);
             }
         }
         //copy rects
-        Rect[] rects = new Rect[result.size()];
-        for (int i = 0; i < result.size(); i++) {
-            rects[i] = new Rect(result.get(i).getRect());
+        Rect[] rects = new Rect[FSDKFaceList.size()];
+        for (int i = 0; i < FSDKFaceList.size(); i++) {
+            rects[i] = new Rect(FSDKFaceList.get(i).getRect());
         }
         //clear result.
-        result.clear();
+        FSDKFaceList.clear();
         //return the rects for render.
         return rects;
     }
@@ -3191,10 +3185,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     class FRAbsLoop extends AbsLoop {
-
         AFR_FSDKVersion version = new AFR_FSDKVersion();
         AFR_FSDKEngine engine = new AFR_FSDKEngine();
-        AFR_FSDKFace result = new AFR_FSDKFace();
+        AFR_FSDKFace resultLoop = new AFR_FSDKFace();
         List<FaceDB.FaceRegist> mResgist = ArcsoftManager.getInstance().mFaceDB.mRegister;
 //        List<ASAE_FSDKFace> face1 = new ArrayList<>();
 //        List<ASGE_FSDKFace> face2 = new ArrayList<>();
@@ -3246,43 +3239,47 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             while (pause) {
                 onPause();
             }
-            try{
-                Thread.sleep(200);
-            }catch (Exception e){
-                e.printStackTrace();
-            }
             if (mImageNV21 != null && identification) {
                 long time = System.currentTimeMillis();
-                AFR_FSDKError error = engine.AFR_FSDK_ExtractFRFeature(mImageNV21, mWidth, mHeight, AFR_FSDKEngine.CP_PAF_NV21, mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree(), result);
+                AFR_FSDKError error = engine.AFR_FSDK_ExtractFRFeature(mImageNV21, mWidth, mHeight, AFR_FSDKEngine.CP_PAF_NV21, mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree(), resultLoop); //抽帧提取特征
                 AFR_FSDKMatching score = new AFR_FSDKMatching();
                 float max = 0.0f;
                 String name = null;
-                for (FaceDB.FaceRegist fr : mResgist) {
-                    if (fr.mName.length() < 36) {
+                for (FaceDB.FaceRegist fr : mResgist) { //注册人员列表
+                    if (fr.mName.length() < 36) { //小于36为身份证注册的人脸数据，大于等于36为通过手机端注册
                         continue;
                     }
-                    for (AFR_FSDKFace face : fr.mFaceList) {
-                        error = engine.AFR_FSDK_FacePairMatching(result, face, score);
+                    for (AFR_FSDKFace face : fr.mFaceList) { //每个人注册的人脸列表，正脸、侧脸...
+                        error = engine.AFR_FSDK_FacePairMatching(resultLoop, face, score);
                         if (max < score.getScore()) {
                             max = score.getScore();
                             name = fr.mName;
-                            if (max > 0.70f) {
+                            if (max > DeviceConfig.FACE_MAX) {
                                 break;
                             }
                         }
                     }
                 }
-                if (max > 0.70f) {
-                    final float max_score = max;
+                if (max > DeviceConfig.FACE_MAX) {
                     Message message = Message.obtain();
                     message.what = MainService.MSG_FACE_OPENLOCK;
                     message.obj = name;
                     try {
+                        HttpApi.i("人脸，发送开门指令"+name);
                         serviceMessenger.send(message);
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     }
+                    //识别完成后暂停毫秒数
+                    try{
+                        Thread.sleep(5000);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
                 }
+                resultLoop = null;
+                resultLoop = new AFR_FSDKFace();
+                mAFT_FSDKFace = null;
                 mImageNV21 = null;
             }
         }

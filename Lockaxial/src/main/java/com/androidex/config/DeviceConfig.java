@@ -1,5 +1,7 @@
 package com.androidex.config;
 
+import com.tencent.devicedemo.BuildConfig;
+
 /**
  * Created by simon on 2016/7/23.
  */
@@ -9,7 +11,7 @@ public class DeviceConfig {
 	public static final String UPDATE_SERVER_URL="http://www.lockaxial.com";
     public static final String UPDATE_RELEASE_FOLDER="/release/doorAccessMachine/v1/";
     public static final String UPDATE_RELEASE_PACKAGE="package.json";
-    public static final int RELEASE_VERSION=19;
+    public static final int RELEASE_VERSION= BuildConfig.BUILD_VERSION;
     //public static final String USER_ID = "A000001";//北京马总
     //public static final String USER_ID = "A000002";//维拓智能（背景不一致）
     public static final String USER_ID = "A000000";//通用
@@ -68,5 +70,7 @@ public class DeviceConfig {
 	
 	public static int VIDEO_STATUS=0; //0：标清；1：流畅；2：高清；3：720P；4：1080P 5：hd_land
     public static int VIDEO_ADAPT=1;  //0:关闭，1:开启
+
+    public static final float FACE_MAX = 0.7f;
     /*******************************/
 }

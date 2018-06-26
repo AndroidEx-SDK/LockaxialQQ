@@ -2562,9 +2562,10 @@ public class MainService extends Service {
     }
 
     protected void openLock() {
+        HttpApi.i("收到开门指令");
         sendDialMessenger(MSG_LOCK_OPENED);
         if (DeviceConfig.IS_RFID_AVAILABLE) {
-            // openLedLock();//开继电器门锁,开普通门锁
+            //openLedLock();//开继电器门锁,开普通门锁
         } else if (DeviceConfig.IS_ASSEMBLE_AVAILABLE) {
             openAssembleLock();
         } else if (DeviceConfig.IS_AEX_AVAILABLE) {
