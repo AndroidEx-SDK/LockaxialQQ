@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 def buildLockaxialVersion(){
-    return 22
+    return 23
 }
 
 android {

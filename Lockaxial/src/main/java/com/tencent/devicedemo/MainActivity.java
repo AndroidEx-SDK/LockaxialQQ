@@ -1311,34 +1311,54 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private int convertKeyCode(int keyCode) {
         int value = -1;
         if ((keyCode == KeyEvent.KEYCODE_0)) {
-            SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 0);
+            if(DeviceConfig.KEY_VOL){
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 0);
+            }
             value = 0;
         } else if ((keyCode == KeyEvent.KEYCODE_1)) {
-            SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 1);
+            if(DeviceConfig.KEY_VOL){
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 1);
+            }
             value = 1;
         } else if ((keyCode == KeyEvent.KEYCODE_2)) {
-            SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 2);
+            if(DeviceConfig.KEY_VOL){
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 2);
+            }
             value = 2;
         } else if ((keyCode == KeyEvent.KEYCODE_3)) {
-            SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 3);
+            if(DeviceConfig.KEY_VOL){
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 3);
+            }
             value = 3;
         } else if ((keyCode == KeyEvent.KEYCODE_4)) {
-            SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 4);
+            if(DeviceConfig.KEY_VOL){
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 4);
+            }
             value = 4;
         } else if ((keyCode == KeyEvent.KEYCODE_5)) {
-            SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 5);
+            if(DeviceConfig.KEY_VOL){
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 5);
+            }
             value = 5;
         } else if ((keyCode == KeyEvent.KEYCODE_6)) {
-            SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 6);
+            if(DeviceConfig.KEY_VOL){
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 6);
+            }
             value = 6;
         } else if ((keyCode == KeyEvent.KEYCODE_7)) {
-            SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 7);
+            if(DeviceConfig.KEY_VOL){
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 7);
+            }
             value = 7;
         } else if ((keyCode == KeyEvent.KEYCODE_8)) {
-            SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 8);
+            if(DeviceConfig.KEY_VOL){
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 8);
+            }
             value = 8;
         } else if ((keyCode == KeyEvent.KEYCODE_9)) {
-            SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 9);
+            if(DeviceConfig.KEY_VOL){
+                SoundPoolUtil.getSoundPoolUtil().loadVoice(MainActivity.this, 9);
+            }
             value = 9;
         }
         return value;

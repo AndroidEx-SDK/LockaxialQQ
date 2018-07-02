@@ -72,5 +72,7 @@ public class DeviceConfig {
     public static int VIDEO_ADAPT=1;  //0:关闭，1:开启
 
     public static final float FACE_MAX = 0.7f;
+
+    public static final boolean KEY_VOL = false;
     /*******************************/
 }
