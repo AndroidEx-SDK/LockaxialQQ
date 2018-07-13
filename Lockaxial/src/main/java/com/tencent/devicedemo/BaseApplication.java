@@ -35,6 +35,8 @@ public class BaseApplication extends Application implements Thread.UncaughtExcep
 
         application = this;
 
+        Thread.setDefaultUncaughtExceptionHandler(this);
+
         initHttp();
 
         initImageLoader();
@@ -138,7 +140,7 @@ public class BaseApplication extends Application implements Thread.UncaughtExcep
 
         PendingIntent restartIntent = PendingIntent.getActivity(
                 getApplicationContext(),
-                0, intent, Intent.FLAG_ACTIVITY_NEW_TASK);
+                0, intent, PendingIntent.FLAG_ONE_SHOT);
 
         // 退出程序
         AlarmManager mgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);

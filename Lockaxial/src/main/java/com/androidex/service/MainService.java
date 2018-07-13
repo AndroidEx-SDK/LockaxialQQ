@@ -3531,7 +3531,22 @@ public class MainService extends Service {
 
     //版本更新
     protected void checkNewVersion() {
-        String url = DeviceConfig.UPDATE_SERVER_URL + DeviceConfig.UPDATE_RELEASE_FOLDER + DeviceConfig.UPDATE_RELEASE_PACKAGE;
+
+        String folder;
+        if(DeviceConfig.USER_ID.equals(DeviceConfig.USER_A0000000)){
+            folder = DeviceConfig.UPDATE_RELEASE_FOLDER_1;
+        }else if(DeviceConfig.USER_ID.equals(DeviceConfig.USER_A0000001)){
+            folder = DeviceConfig.UPDATE_RELEASE_FOLDER_2;
+        }else if(DeviceConfig.USER_ID.equals(DeviceConfig.USER_A0000002)){
+            folder = DeviceConfig.UPDATE_RELEASE_FOLDER_3;
+        }else{
+            folder = DeviceConfig.UPDATE_RELEASE_FOLDER_1;
+        }
+
+        String url = DeviceConfig.UPDATE_SERVER_URL
+                + folder
+                + DeviceConfig.UPDATE_RELEASE_PACKAGE;
+        HttpApi.i("版本更新路径："+url);
         try {
             String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
             if (result != null) {
@@ -3592,7 +3607,18 @@ public class MainService extends Service {
      * 下载新版本apk
      */
     protected void startDownloadThread() {
-        final String url = DeviceConfig.UPDATE_SERVER_URL + DeviceConfig.UPDATE_RELEASE_FOLDER + lastVersionFile;
+        String folder;
+        if(DeviceConfig.USER_ID.equals(DeviceConfig.USER_A0000000)){
+            folder = DeviceConfig.UPDATE_RELEASE_FOLDER_1;
+        }else if(DeviceConfig.USER_ID.equals(DeviceConfig.USER_A0000001)){
+            folder = DeviceConfig.UPDATE_RELEASE_FOLDER_2;
+        }else if(DeviceConfig.USER_ID.equals(DeviceConfig.USER_A0000002)){
+            folder = DeviceConfig.UPDATE_RELEASE_FOLDER_3;
+        }else{
+            folder = DeviceConfig.UPDATE_RELEASE_FOLDER_1;
+        }
+        final String url = DeviceConfig.UPDATE_SERVER_URL + folder + lastVersionFile;
+        HttpApi.i("文件下载路径："+url);
         final String fileName = lastVersionFile;
         if (lastVersionStatus.equals("N")) {
             lastVersionStatus = "D";

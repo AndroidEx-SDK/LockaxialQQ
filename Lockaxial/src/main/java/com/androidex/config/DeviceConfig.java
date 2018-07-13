@@ -9,12 +9,15 @@ public class DeviceConfig {
     /********residential*****/
     public static final String SERVER_URL="http://www.lockaxial.com";
 	public static final String UPDATE_SERVER_URL="http://www.lockaxial.com";
-    public static final String UPDATE_RELEASE_FOLDER="/release/doorAccessMachine/v1/";
+    public static final String UPDATE_RELEASE_FOLDER_1="/release/doorAccessMachine/v1/"; //A000000类用户目录
+    public static final String UPDATE_RELEASE_FOLDER_2="/release/doorAccessMachine/v2/"; //A000001类用户目录
+    public static final String UPDATE_RELEASE_FOLDER_3="/release/doorAccessMachine/v3/"; //A000002类用户目录
     public static final String UPDATE_RELEASE_PACKAGE="package.json";
     public static final int RELEASE_VERSION= BuildConfig.BUILD_VERSION;
-    //public static final String USER_ID = "A000001";//北京马总
-    //public static final String USER_ID = "A000002";//维拓智能（背景不一致）
-    public static final String USER_ID = "A000000";//通用
+    public static final String USER_A0000000 = "A000000";//通用
+    public static final String USER_A0000001 = "A000001";//北京马总
+    public static final String USER_A0000002 = "A000002";//维拓智能（背景不一致）
+    public static final String USER_ID = USER_A0000000;
     public static int RELEASE_VERSION_WAIT_TIME=1000*60*1;
     public static int RELEASE_VERSION_UPDATE_TIME=3;
     public static final String TARGET_PACKAGE_NAME="com.tencent.devicedemo";

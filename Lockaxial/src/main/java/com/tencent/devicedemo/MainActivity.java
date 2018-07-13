@@ -356,7 +356,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initAdvertiseHandler();//初始化广告
         initAutoCamera();//
         startClockRefresh();//
-        //initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
+        if(DeviceConfig.USER_ID.equals(DeviceConfig.USER_A0000001)){
+            initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
+        }
         getRssi();//使用定时器,每隔5秒获得一次信号强度值
         setNetWork();
         setAutioVolume();//获取系统相关音量
@@ -2994,12 +2996,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
         try {
             if(mCamera!=null){
-                Camera.Parameters parameters = mCamera.getParameters();
-                int cWidht = 640;
-                int cHeight = 480;
-                parameters.setPreviewSize(cWidht, cHeight);
-                parameters.setPreviewFormat(ImageFormat.NV21);
-                mCamera.setParameters(parameters);
+                setPreviewSizes();
+                setPreviewFormat();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -3009,10 +3007,38 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             mWidth = mCamera.getParameters().getPreviewSize().width;
             mHeight = mCamera.getParameters().getPreviewSize().height;
             HttpApi.i("xiao_","默认宽："+mWidth+",默认高："+mHeight);
-            //mCamera.autoFocus(null);
-            //Log.v(FACE_TAG, "SIZE:" + mWidth + "x" + mHeight);
         }
         return mCamera;
+    }
+
+    private void setPreviewSizes(){
+        int pWidht = 640;
+        int pHeight = 480;
+        try {
+            Camera.Parameters parameters = mCamera.getParameters();
+            if(parameters!=null){
+                parameters.setPreviewSize(pWidht, pHeight);
+                mCamera.setParameters(parameters);
+                HttpApi.i("设置预览宽高完成");
+            }
+        }catch (Exception e){
+            HttpApi.i("设置预览宽高失败");
+            e.printStackTrace();
+        }
+    }
+
+    private void setPreviewFormat(){
+        try {
+            Camera.Parameters parameters = mCamera.getParameters();
+            if(parameters!=null){
+                parameters.setPreviewFormat(ImageFormat.NV21);
+                mCamera.setParameters(parameters);
+                HttpApi.i("设置NV21完成");
+            }
+        }catch (Exception e){
+            HttpApi.i("设置NV21失败");
+            e.printStackTrace();
+        }
     }
 
     private Camera.Size getBestSize(int width,int height,List<Camera.Size> list){
