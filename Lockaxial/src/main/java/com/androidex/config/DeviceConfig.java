@@ -77,5 +77,10 @@ public class DeviceConfig {
     public static final float FACE_MAX = 0.7f;
 
     public static final boolean KEY_VOL = false;
+
+    public static final String Lockaxial_Monitor_PackageName = "com.androidex.lockaxial.monitor";
+    public static final String Lockaxial_Monitor_SERVICE = "com.androidex.lockaxial.monitor.MonitorService";
+
+    public static final String SD_PATH = "LockaxialQQ/Monitor";
     /*******************************/
 }

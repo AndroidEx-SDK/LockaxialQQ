@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.StrictMode;
 
+import com.androidex.utils.HttpApi;
 import com.arcsoft.dysmart.ArcsoftManager;
 import com.lidroid.xutils.HttpUtils;
 import com.nostra13.universalimageloader.cache.disc.impl.UnlimitedDiskCache;
@@ -134,6 +135,8 @@ public class BaseApplication extends Application implements Thread.UncaughtExcep
     @Override
     public void uncaughtException(Thread thread, Throwable ex) {
         // System.exit(0);
+        HttpApi.i("捕获到异常，重启程序");
+        ex.printStackTrace();
 
         Intent intent = getBaseContext().getPackageManager()
                 .getLaunchIntentForPackage(getBaseContext().getPackageName());

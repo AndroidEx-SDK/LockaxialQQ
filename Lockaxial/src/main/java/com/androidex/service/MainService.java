@@ -9,6 +9,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.media.AudioManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
@@ -31,12 +32,15 @@ import com.androidex.utils.AexUtil;
 import com.androidex.utils.Ajax;
 import com.androidex.utils.AssembleUtil;
 import com.androidex.utils.FaceHelper;
+import com.androidex.utils.FileUtils;
 import com.androidex.utils.HttpApi;
 import com.androidex.utils.HttpUtils;
 import com.androidex.utils.SqlUtil;
+import com.androidex.utils.SystemUtils;
 import com.androidex.utils.WifiAdmin;
 import com.arcsoft.dysmart.ArcsoftManager;
 import com.tencent.device.barrage.ToastUtils;
+import com.tencent.devicedemo.BaseApplication;
 import com.tencent.devicedemo.InitActivity;
 import com.tencent.devicedemo.MainActivity;
 import com.util.Constant;
@@ -296,6 +300,7 @@ public class MainService extends Service {
             MainService.this.startActivity(i);
         }
     };
+
 
     public MainService() {
     }
@@ -628,7 +633,8 @@ public class MainService extends Service {
         initSqlUtil();
         Log.i("MainService", "init SQL");
         //xiaozd add
-        initCheckTopActivity();
+        //initCheckTopActivity();
+        initMonitor();
         sendDialMessenger(START_FACE_CHECK,null);
         /**if (isNetworkConnectedWithTimeout()) {//不做网络判断
          Log.i("MainService", "Test Connected");
@@ -639,7 +645,6 @@ public class MainService extends Service {
          //xiaozd add
          initWhenOffline();
          }*/
-
         //xiaozd add
         if (netWorkstate) {
             initWhenConnected(); //开始在线版本
@@ -647,6 +652,96 @@ public class MainService extends Service {
             initWhenOffline(); //开始离线版本
         }
     }
+
+    /**
+     * 初始化监控程序
+     *
+     * */
+    private void initMonitor(){
+        String apkName = "";
+        try {
+            String fileNames[] = getAssets().list("apk");
+            for(String name:fileNames){
+                if(name.indexOf("monitor")!=-1 && name.indexOf(".apk")!=-1){
+                    apkName = name;
+                    HttpApi.i("找到目标文件："+apkName);
+                    break;
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        if(apkName == null || apkName.length()<=0){ //如果assets内没有监控程序则卸载
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    String cmd = "pm uninstall "+DeviceConfig.Lockaxial_Monitor_PackageName;
+                    HttpApi.i("卸载命令："+cmd);
+                    ShellUtils.CommandResult result = InstallUtil.executeCmd(cmd);
+                    HttpApi.i("卸载结果："+result.toString());
+                }
+            }).start();
+            return;
+        }
+        final File apkFile = new File(Environment.getExternalStorageDirectory(),DeviceConfig.SD_PATH+"/"+apkName);
+        if(!apkFile.exists()){
+            HttpApi.i("目标文件不存在："+apkFile.toString()+",需要从assets拷贝");
+            //文件不存在，需要拷贝
+            FileUtils.getInstance(this).copyAssetsToSD("apk",DeviceConfig.SD_PATH).setFileOperateCallback(new FileUtils.FileOperateCallback() {
+                @Override
+                public void onSuccess() {
+                    //拷贝完成，检测版本信息
+                    HttpApi.i("文件拷贝完成，开始对比版本");
+                    checkMonitorVersion(apkFile);
+                }
+
+                @Override
+                public void onFailed(String error) {
+
+                }
+            });
+        }else{
+            //文件已经存在，检测版本信息
+            checkMonitorVersion(apkFile);
+        }
+    }
+
+    private void checkMonitorVersion(final File apkFile){
+        if(!apkFile.exists()){
+            return ;
+        }
+        PackageInfo android_info = SystemUtils.isApplicationAvilible(this,DeviceConfig.Lockaxial_Monitor_PackageName); //获取系统安装的Monitor应用信息
+        PackageInfo sd_info = SystemUtils.getApkInfo(apkFile.toString(),this); //获取最新版本
+        if(android_info!=null){
+            HttpApi.i("已经安装了监控程序，版本号："+android_info.versionCode);
+        }
+        if(sd_info!=null){
+            HttpApi.i("本地版本号："+sd_info.versionCode);
+        }
+        if(android_info == null || (android_info.versionCode < sd_info.versionCode)){
+            //未安装或已安装版本小于最新版本，需要安装，安装后通过安装广播启动服务
+            HttpApi.i("未安装或有版本更新，执行安装命令");
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    String cmd = "pm install -r "+ apkFile.toString();
+                    HttpApi.i("安装命令："+cmd);
+                    ShellUtils.CommandResult result = InstallUtil.executeCmd(cmd);
+                    HttpApi.i("安装结果："+result.toString());
+                }
+            }).start();
+        }else{
+            //启动服务,并开始监听
+            HttpApi.i("监控程序已经是最新版本，启动监控服务");
+            Intent i = new Intent();
+            ComponentName cn = new ComponentName(DeviceConfig.Lockaxial_Monitor_PackageName,DeviceConfig.Lockaxial_Monitor_SERVICE);
+            i.setComponent(cn);
+            i.setPackage(BaseApplication.getApplication().getPackageName());
+            startService(i);
+        }
+    }
+
+
 
     /**
      * 检查最上层界面
