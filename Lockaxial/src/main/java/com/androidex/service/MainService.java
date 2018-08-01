@@ -416,7 +416,7 @@ public class MainService extends Service {
                     JSONArray cardListFailed = lists[1];
                     startChangeCardComplete(cardListSuccess, cardListFailed);
                 } else if (msg.what == MSG_FACE_OPENLOCK) {
-                    openLock();
+                    openLock(0);
                     HttpApi.i("===========================");
                     HttpApi.i("人脸识别开门");
                     String loadName = (String) msg.obj;
@@ -1179,7 +1179,7 @@ public class MainService extends Service {
         String uuid = data.get("uuid");
         if (!this.cardRecord.checkLastCard(account)) {
             if (checkCardAvailable(account)) {
-                openLock();
+                openLock(0);
                 Log.e(TAG, "onCard====:" + account);
                 startCardAccessLog(account,uuid);
             } else {
@@ -1372,7 +1372,7 @@ public class MainService extends Service {
             if (result != null) {
                 code = result.getInt("code");
                 if (code == 0) {
-                    openLock();
+                    openLock(0);
                 }
             } else {
                 code = -1;
@@ -1800,7 +1800,7 @@ public class MainService extends Service {
                 public void onDtmfReceived(String s, char c) {
                     if (c == '#') {
                         HttpApi.i("收到云端开锁消息->");
-                        openLock();
+                        openLock(0);
                     }
                 }
 
@@ -2587,10 +2587,16 @@ public class MainService extends Service {
                 rejectUserList.add(from);
             }
         } else if (content.startsWith("open the door")) {
+            String[] arrayMessage = content.split("-");
+            int index = -1;
+            if(arrayMessage.length == 3){
+                index = Integer.valueOf(arrayMessage[2]);
+            }
             String imageUrl = null;
             int thisIndex = content.indexOf("-");
             if (thisIndex > 0) {
                 imageUrl = content.substring(thisIndex + 1);
+                imageUrl = imageUrl.replace("-","");
                 if(isInteger(imageUrl)){ //直接通过app->小区门禁->开门
                     sendDialMessenger(APP_OPENDOOR,from);
                 }else{
@@ -2598,7 +2604,7 @@ public class MainService extends Service {
                     checkStateCreateAccessLog(from,null);
                     sendDialMessenger(START_FACE_CHECK, null);
                 }
-            } else {
+            } else {  // 拨号开门且图片未抓拍成功
                 imageUrl = null;
                 //startCreateAccessLog(from, imageUrl);
                 checkStateCreateAccessLog(from,null);
@@ -2607,7 +2613,19 @@ public class MainService extends Service {
             cancelOtherMembers(from);
             resetCallMode();
             stopTimeoutCheckThread();
-            openLock();
+            if(index == -1){
+                index = 0;
+            }
+            if(index == 0){
+                HttpApi.i("打开主门");
+            }
+            if(index == 1){
+                HttpApi.i("打开副门");
+            }
+            if(index == 2){
+                HttpApi.i("打开主门和副门");
+            }
+            openLock(index);
         } else if (content.startsWith("refuse call")) { //拒绝接听
             if (!rejectUserList.contains(from)) {
                 rejectUserList.add(from);
@@ -2656,7 +2674,7 @@ public class MainService extends Service {
         }
     }
 
-    protected void openLock() {
+    protected void openLock(int index) {
         HttpApi.i("收到开门指令");
         sendDialMessenger(MSG_LOCK_OPENED);
         if (DeviceConfig.IS_RFID_AVAILABLE) {
@@ -2668,7 +2686,7 @@ public class MainService extends Service {
             int status = 2;
             Intent ds_intent = new Intent();
             ds_intent.setAction(DoorLock.DoorLockOpenDoor);
-            ds_intent.putExtra("index", 0);
+            ds_intent.putExtra("index", index);
             ds_intent.putExtra("status", status);
             sendBroadcast(ds_intent);
 

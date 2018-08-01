@@ -78,6 +78,7 @@ import com.androidex.config.DeviceConfig;
 import com.androidex.service.MainService;
 import com.androidex.utils.AdvertiseHandler;
 import com.androidex.utils.Ajax;
+import com.androidex.utils.CameraHelperDex;
 import com.androidex.utils.HttpApi;
 import com.androidex.utils.HttpUtils;
 import com.androidex.utils.NfcReader;
@@ -215,7 +216,7 @@ import static com.util.Constant.PASSWORD_MODE;
 import static com.util.Constant.RE_SYNC_SYSTEMTIME;
 import static com.util.Constant.START_FACE_CHECK;
 
-public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener, CameraSurfaceView.OnCameraListener, IdCardUtil.BitmapCallBack {
+public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener, IdCardUtil.BitmapCallBack,CameraHelperDex.CallBack {
     private static final String TAG = "MainActivity";
     public static final int INPUT_CARDINFO_RESULTCODE = 0X01;
     public static final int INPUT_CARDINFO_REQUESTCODE = 0X02;
@@ -374,10 +375,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 10000, pendingIntent);
         }
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
-
         //初始化人脸相关与身份证识别
         initFaceDetectAndIDCard();
     }
+
 
     /**
      * 初始化view
@@ -1077,7 +1078,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     setCommunityName(MainService.communityName);
                     setLockName(MainService.lockName);
                 }else if(msg.what == START_FACE_CHECK){
-                    if (faceHandler != null && mCamerarelease && mGLSurfaceView!=null && mSurfaceView!=null) {
+                    if (faceHandler != null && mCamerarelease && faceView!=null) {
                         HttpApi.e("ppp","相机释放完成，启动人脸");
                         handler.removeMessages(START_FACE_CHECK);
                         faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
@@ -2330,8 +2331,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             e.printStackTrace();
         }
 
-        mSurfaceView.setVisibility(View.GONE);
-        mGLSurfaceView.setVisibility(View.GONE);
+        //mSurfaceView.setVisibility(View.GONE);
+        //mGLSurfaceView.setVisibility(View.GONE);
         identification = false;
         if (mFRAbsLoop != null) {
             mFRAbsLoop.shutdown();
@@ -2800,6 +2801,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     }
 
+
+
     public class Receive extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -2819,138 +2822,97 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     //人脸识别
+    private SurfaceView faceView;
+    private CameraHelperDex cameraHelperDex;
     AFT_FSDKFace mAFT_FSDKFace = null;
-    private int mWidth, mHeight;
-    private CameraSurfaceView mSurfaceView;
-    private CameraGLSurfaceView mGLSurfaceView;
-    private Camera mCamera;
-
     AFT_FSDKVersion version = new AFT_FSDKVersion();
     AFT_FSDKEngine engine = new AFT_FSDKEngine();
-    //    ASAE_FSDKVersion mAgeVersion = new ASAE_FSDKVersion();
-//    ASAE_FSDKEngine mAgeEngine = new ASAE_FSDKEngine();
-//    ASGE_FSDKVersion mGenderVersion = new ASGE_FSDKVersion();
-//    ASGE_FSDKEngine mGenderEngine = new ASGE_FSDKEngine();
     List<AFT_FSDKFace> FSDKFaceList = new ArrayList<>();
-//    List<ASAE_FSDKAge> ages = new ArrayList<>();
-//    List<ASGE_FSDKGender> genders = new ArrayList<>();
 
     byte[] mImageNV21 = null;
     FRAbsLoop mFRAbsLoop = null;
 
     private boolean identification = false;
 
-    //    private HandlerThread faceThread;
-    private Handler faceHandler;
+    //  private HandlerThread faceThread;
+    private Handler faceHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            switch (msg.what) {
+                case -1:
+                    idOperation = identification = true;
+                    break;
+                case MSG_FACE_DETECT_INPUT:
+                    faceDetectInput();
+                    break;
+                case MSG_FACE_DETECT_CONTRAST:
+                    identification = true;
+                    if (mFRAbsLoop != null) {
+                        mFRAbsLoop.resumeThread();
+                    }
+
+                    if (faceView.getVisibility() != View.VISIBLE) {
+                        faceView.setVisibility(View.VISIBLE);
+                    }
+                    break;
+                case MSG_FACE_DETECT_PAUSE:
+                    faceHandler.removeMessages(MSG_FACE_DETECT_CONTRAST);
+                    handler.removeMessages(START_FACE_CHECK);
+                    identification = false;
+                    if (mFRAbsLoop != null) {
+                        mFRAbsLoop.pauseThread();
+                    }
+                    if (faceView.getVisibility() != View.GONE) {
+                        faceView.setVisibility(View.GONE);
+                    }
+                    break;
+                case MSG_ID_CARD_DETECT_RESTART:
+                    idOperation = true;
+                    if (mIdCardUtil != null) {
+                        mIdCardUtil.setReading(true);
+                    }
+                    break;
+                case MSG_ID_CARD_DETECT_PAUSE:
+                    idOperation = false;
+                    if (mIdCardUtil != null) {
+                        mIdCardUtil.setReading(false);
+                    }
+                    break;
+                case MSG_ID_CARD_DETECT_INPUT:
+                    inputIDCard((IDCard) msg.obj);
+                    break;
+            }
+            return false;
+        }
+    });
+
+    @Override
+    public void onPreviewFrame(byte[] bytes) {
+        if (mImageNV21 == null) {
+            engine.AFT_FSDK_FaceFeatureDetect(bytes, cameraHelperDex.getPrivWidth(), cameraHelperDex.getPrivHeight(), AFT_FSDKEngine.CP_PAF_NV21, FSDKFaceList);
+            if (!FSDKFaceList.isEmpty()) {
+                mAFT_FSDKFace = FSDKFaceList.get(0).clone();
+                mImageNV21 = bytes.clone();
+                FSDKFaceList.clear();
+            }
+        }
+    }
+
+    @Override
+    public void onTakePic(byte[] bytes) {
+
+    }
 
     private void initFaceDetectAndIDCard() {
-        Resources resources = this.getResources();
-        DisplayMetrics dm = resources.getDisplayMetrics();
-        float density = dm.density;
-        mWidth = dm.widthPixels; //1280
-        mHeight = dm.heightPixels; //752
-        Log.v(FACE_TAG, "initFaceDetect-->" + mWidth + "/" + mHeight + "/" + density);
-        mGLSurfaceView = (CameraGLSurfaceView) findViewById(R.id.glsurfaceView);
-        mSurfaceView = (CameraSurfaceView) findViewById(R.id.surfaceView);
-        mSurfaceView.setOnCameraListener(this);
-        mSurfaceView.setupGLSurafceView(mGLSurfaceView, true, true, 0);
-        //mSurfaceView.setupGLSurafceView(mGLSurfaceView, true, true, 0);
-        mSurfaceView.debug_print_fps(true, false);
-
+        faceView = (SurfaceView) findViewById(R.id.camera_faceview);
+        cameraHelperDex = new CameraHelperDex(this,faceView);
+        cameraHelperDex.addCallBack(this);
         AFT_FSDKError err = engine.AFT_FSDK_InitialFaceEngine(FaceDB.appid, FaceDB.ft_key, AFT_FSDKEngine.AFT_OPF_0_HIGHER_EXT, 16, 5);
-        Log.d(TAG, "AFT_FSDK_InitialFaceEngine =" + err.getCode());
         err = engine.AFT_FSDK_GetVersion(version);
-        Log.d(TAG, "AFT_FSDK_GetVersion:" + version.toString() + "," + err.getCode());
-
-//        ASAE_FSDKError error = mAgeEngine.ASAE_FSDK_InitAgeEngine(FaceDB.appid, FaceDB.age_key);
-//        Log.d(TAG, "ASAE_FSDK_InitAgeEngine =" + error.getCode());
-//        error = mAgeEngine.ASAE_FSDK_GetVersion(mAgeVersion);
-//        Log.d(TAG, "ASAE_FSDK_GetVersion:" + mAgeVersion.toString() + "," + error.getCode());
-//
-//        ASGE_FSDKError error1 = mGenderEngine.ASGE_FSDK_InitgGenderEngine(FaceDB.appid, FaceDB.gender_key);
-//        Log.d(TAG, "ASGE_FSDK_InitgGenderEngine =" + error1.getCode());
-//        error1 = mGenderEngine.ASGE_FSDK_GetVersion(mGenderVersion);
-//        Log.d(TAG, "ASGE_FSDK_GetVersion:" + mGenderVersion.toString() + "," + error1.getCode());
-
-//        //创建一个线程,线程名字：faceHandlerThread
-//        faceThread = new HandlerThread("faceHandlerThread");
-//        //开启一个线程
-//        faceThread.start();
-//        //在这个线程中创建一个handler对象
-//        faceHandler = new Handler(faceThread.getLooper()) {
-//            @Override
-//            public void handleMessage(Message msg) {
-//                super.handleMessage(msg);
-//                Log.v(FACE_TAG, "handleMessage-->" + msg.what + "/" + Thread.currentThread().getName());
-//            }
-//        };
-
         initIDCard();
-
-        faceHandler = new Handler(new Handler.Callback() {
-            @Override
-            public boolean handleMessage(Message msg) {
-                Log.v(FACE_TAG, "handleMessage-->" + msg.what + "/" + Thread.currentThread().getName());
-                switch (msg.what) {
-                    case -1:
-                        idOperation = identification = true;
-                        break;
-                    case MSG_FACE_DETECT_INPUT:
-                        faceDetectInput();
-                        break;
-                    case MSG_FACE_DETECT_CONTRAST:
-                        identification = true;
-                        if (mFRAbsLoop != null) {
-                            mFRAbsLoop.resumeThread();
-                        }
-                        if (mSurfaceView.getVisibility() != View.VISIBLE) {
-                            mGLSurfaceView.setVisibility(View.VISIBLE);
-                            mSurfaceView.setVisibility(View.VISIBLE);
-                        }
-                        break;
-                    case MSG_FACE_DETECT_PAUSE:
-                        faceHandler.removeMessages(MSG_FACE_DETECT_CONTRAST);
-                        handler.removeMessages(START_FACE_CHECK);
-                        identification = false;
-                        if (mFRAbsLoop != null) {
-                            mFRAbsLoop.pauseThread();
-                        }
-                        if (mSurfaceView.getVisibility() != View.GONE) {
-                            mGLSurfaceView.setVisibility(View.GONE);
-                            mSurfaceView.setVisibility(View.GONE);
-                        }
-                        break;
-                    case MSG_ID_CARD_DETECT_RESTART:
-                        idOperation = true;
-                        if (mIdCardUtil != null) {
-                            mIdCardUtil.setReading(true);
-                        }
-                        break;
-                    case MSG_ID_CARD_DETECT_PAUSE:
-                        idOperation = false;
-                        if (mIdCardUtil != null) {
-                            mIdCardUtil.setReading(false);
-                        }
-                        break;
-                    case MSG_ID_CARD_DETECT_INPUT:
-                        inputIDCard((IDCard) msg.obj);
-                        break;
-                }
-                return false;
-            }
-        });
-
         mFRAbsLoop = new FRAbsLoop();
         mFRAbsLoop.start();
 
-//        //在主线程给handler发送消息
-//        faceHandler.sendEmptyMessage(1);
-
-//        final ProgressDialog mProgressDialog = new ProgressDialog(this);
-//        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-//        mProgressDialog.setTitle("loading face data...");
-//        mProgressDialog.setCancelable(false);
-//        mProgressDialog.show();
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -2959,9 +2921,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 MainActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-//                        //在子线程给handler发送数据
-//                        faceHandler.sendEmptyMessage(2);
-//                        mProgressDialog.cancel();
                         if (ArcsoftManager.getInstance().mFaceDB.mRegister.isEmpty()) {
                             return;
                         }
@@ -2972,144 +2931,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }).start();
     }
 
-    @Override
-    public Camera setupCamera() {
-        // TODO Auto-generated method stub
-        try{
-            mCamera = Camera.open(defCameradirection);
-            HttpApi.i("打开后置成功");
-        }catch (Exception e){
-            e.printStackTrace();
-            mCamera = null;
-            HttpApi.i("打开后置失败");
-        }
-
-        if(mCamera == null){
-            try{
-                defCameradirection = defCameradirection == 0?1:0;
-                mCamera = Camera.open(defCameradirection);
-                HttpApi.i("打开前置成功");
-            }catch (Exception e){
-                e.printStackTrace();
-                HttpApi.i("打开前置失败");
-            }
-        }
-        try {
-            if(mCamera!=null){
-                setPreviewSizes();
-                setPreviewFormat();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            //Log.v(FACE_TAG, "setupCamera-->" + e.getMessage());
-        }
-        if (mCamera != null) {
-            mWidth = mCamera.getParameters().getPreviewSize().width;
-            mHeight = mCamera.getParameters().getPreviewSize().height;
-            HttpApi.i("xiao_","默认宽："+mWidth+",默认高："+mHeight);
-        }
-        return mCamera;
-    }
-
-    private void setPreviewSizes(){
-        int pWidht = 640;
-        int pHeight = 480;
-        try {
-            Camera.Parameters parameters = mCamera.getParameters();
-            if(parameters!=null){
-                parameters.setPreviewSize(pWidht, pHeight);
-                mCamera.setParameters(parameters);
-                HttpApi.i("设置预览宽高完成");
-            }
-        }catch (Exception e){
-            HttpApi.i("设置预览宽高失败");
-            e.printStackTrace();
-        }
-    }
-
-    private void setPreviewFormat(){
-        try {
-            Camera.Parameters parameters = mCamera.getParameters();
-            if(parameters!=null){
-                parameters.setPreviewFormat(ImageFormat.NV21);
-                mCamera.setParameters(parameters);
-                HttpApi.i("设置NV21完成");
-            }
-        }catch (Exception e){
-            HttpApi.i("设置NV21失败");
-            e.printStackTrace();
-        }
-    }
-
-    private Camera.Size getBestSize(int width,int height,List<Camera.Size> list){
-        Camera.Size size = null;
-        double targetRatio = height*1.0/width*1.0;
-        double minDiff = targetRatio;
-        for(Camera.Size cSize : list){
-            if(cSize.width == width && cSize.height == height){
-                size = cSize;
-                break;
-            }
-            double ratio = (cSize.width*1.0)/cSize.height;
-            if(Math.abs(ratio - targetRatio) < minDiff){
-                minDiff = Math.abs(ratio - targetRatio);
-                size = cSize;
-            }
-        }
-        return size;
-    }
-
-    @Override
-    public void setupChanged(int format, int width, int height) {
-        //Log.v(FACE_TAG, "setupChanged-->" + width + "/" + height);
-    }
-
-    @Override
-    public boolean startPreviewLater() {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
-    public Object onPreview(byte[] data, int width, int height, int format, long timestamp) {
-        AFT_FSDKError err = engine.AFT_FSDK_FaceFeatureDetect(data, width, height, AFT_FSDKEngine.CP_PAF_NV21, FSDKFaceList);
-        if (mImageNV21 == null) {
-            if (!FSDKFaceList.isEmpty()) {
-                mAFT_FSDKFace = FSDKFaceList.get(0).clone();
-                mImageNV21 = data.clone();
-            }
-        }
-        //copy rects
-        Rect[] rects = new Rect[FSDKFaceList.size()];
-        for (int i = 0; i < FSDKFaceList.size(); i++) {
-            rects[i] = new Rect(FSDKFaceList.get(i).getRect());
-        }
-        //clear result.
-        FSDKFaceList.clear();
-        //return the rects for render.
-        return rects;
-    }
-
-    @Override
-    public void onBeforeRender(CameraFrameData data) {
-
-    }
-
-    @Override
-    public void onAfterRender(CameraFrameData data) {
-        mGLSurfaceView.getGLES2Render().draw_rect((Rect[]) data.getParams(), Color.GREEN, 2);
-    }
-
     private void faceDetectInput() {
-//        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
-//        ContentValues values = new ContentValues(1);
-//        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-//        Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-//        Log.v(FACE_TAG, "faceDetectInput:" + uri.toString());
-//        ArcsoftManager.getInstance().setCaptureImage(uri);
-//        intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
-//        startActivityForResult(intent, REQUEST_CODE_IMAGE_CAMERA);
-
         startActivity(new Intent(this, PhotographActivity2.class));
     }
 
@@ -3120,7 +2942,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private String getFacePath(Uri uri) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             if (DocumentsContract.isDocumentUri(this, uri)) {
-                // ExternalStorageProvider
                 if (isExternalStorageDocument(uri)) {
                     final String docId = DocumentsContract.getDocumentId(uri);
                     final String[] split = docId.split(":");
@@ -3287,7 +3108,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             }
             if (mImageNV21 != null && identification) {
                 long time = System.currentTimeMillis();
-                AFR_FSDKError error = engine.AFR_FSDK_ExtractFRFeature(mImageNV21, mWidth, mHeight, AFR_FSDKEngine.CP_PAF_NV21, mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree(), resultLoop); //抽帧提取特征
+                engine.AFR_FSDK_ExtractFRFeature(mImageNV21, cameraHelperDex.getPrivWidth(), cameraHelperDex.getPrivHeight(), AFR_FSDKEngine.CP_PAF_NV21, mAFT_FSDKFace.getRect(), mAFT_FSDKFace.getDegree(), resultLoop); //抽帧提取特征
                 AFR_FSDKMatching score = new AFR_FSDKMatching();
                 float max = 0.0f;
                 String name = null;
@@ -3296,7 +3117,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         continue;
                     }
                     for (AFR_FSDKFace face : fr.mFaceList) { //每个人注册的人脸列表，正脸、侧脸...
-                        error = engine.AFR_FSDK_FacePairMatching(resultLoop, face, score);
+                        engine.AFR_FSDK_FacePairMatching(resultLoop, face, score);
                         if (max < score.getScore()) {
                             max = score.getScore();
                             name = fr.mName;
@@ -3323,9 +3144,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         e.printStackTrace();
                     }
                 }
-                resultLoop = null;
-                resultLoop = new AFR_FSDKFace();
-                mAFT_FSDKFace = null;
                 mImageNV21 = null;
             }
         }

@@ -451,26 +451,15 @@
                android:layout_centerInParent="true" />
        </RelativeLayout>-->
 
-    <LinearLayout
-        android:id="@+id/face_container_rel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|right"
-        android:layout_marginBottom="10dp"
-        android:layout_marginRight="5dp">
 
-        <com.guo.android_extend.widget.CameraSurfaceView
-            android:id="@+id/surfaceView"
+        <SurfaceView
+            android:id="@+id/camera_faceview"
+            android:layout_gravity="bottom|right"
             android:visibility="gone"
-            android:layout_width="1dp"
-            android:layout_height="1dp" />
-
-        <com.guo.android_extend.widget.CameraGLSurfaceView
-            android:id="@+id/glsurfaceView"
-            android:visibility="gone"
+            android:layout_marginBottom="10dp"
+            android:layout_marginRight="5dp"
             android:layout_width="320dp"
             android:layout_height="240dp" />
-    </LinearLayout>
 
     <TextView
         android:id="@+id/show_mac"

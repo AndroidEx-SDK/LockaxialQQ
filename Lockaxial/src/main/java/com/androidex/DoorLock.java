@@ -192,7 +192,13 @@ public class DoorLock extends Service implements OnBackCall {
                 int index = intent.getIntExtra("index", 0);
                 int status = intent.getIntExtra("status", 0);
                 if (status != 0) {
-                    mDoorLock.openDoor(0xF0, 0x40);
+                    if(index == 0){
+                        mDoorLock.openDoor(0, 0x40);
+                    }else if(index == 1){
+                        mDoorLock.openDoor(1, 0x40);
+                    }else if(index == 2){
+                        mDoorLock.openDoor(0xF0, 0x40);
+                    }
                     //mDoorLock.openDoor(1, 0x20);
                 } else {
                     int result = mDoorLock.closeDoor(index);

@@ -1,0 +1,69 @@
+apply plugin: 'com.android.application'
+
+def buildVersionCode(){
+    return 3;
+}
+
+def buildVersionName(){
+    return "${buildVersionCode()}.1.0";
+}
+
+android {
+    android.applicationVariants.all {
+        variant ->
+            variant.outputs.each {
+                output -> output.outputFile = new File(output.outputFile.parent, "monitor.${buildVersionName()}.apk");
+            }
+    }
+
+
+    compileSdkVersion 26
+    buildToolsVersion "27.0.3"
+
+
+    defaultConfig {
+        applicationId "com.androidex.lockaxialqq.monitor"
+        minSdkVersion 16
+        targetSdkVersion 26
+        versionCode buildVersionCode()
+        versionName "${buildVersionName()}"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("../signapk/androidex.jks")
+            storePassword '123456'
+            keyAlias 'androidex'
+            keyPassword '123456'
+        }
+
+        debug {
+            storeFile file("../signapk/androidex.jks")
+            storePassword '123456'
+            keyAlias 'androidex'
+            keyPassword '123456'
+        }
+    }
+
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:26.1.0'
+    compile 'com.android.support.constraint:constraint-layout:1.1.2'
+    testCompile 'junit:junit:4.12'
+    androidTestCompile('com.android.support.test.espresso:espresso-core:3.0.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+
+}

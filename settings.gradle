@@ -1,1 +1,1 @@
-include ':Lockaxial', ':arcsoft', ':synjones'
+include ':Lockaxial', ':arcsoft', ':synjones', ':LockaxialQQMonitor'
