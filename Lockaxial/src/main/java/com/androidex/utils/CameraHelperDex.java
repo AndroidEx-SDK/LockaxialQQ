@@ -37,6 +37,10 @@ public class CameraHelperDex implements Camera.PreviewCallback{
 
     @Override
     public void onPreviewFrame(byte[] bytes, Camera camera) {
+        if (bytes == null) {
+            bytes = new byte[((privWidth * privHeight) * ImageFormat.getBitsPerPixel(ImageFormat.NV21)) / 8];
+        }
+        mCamera.addCallbackBuffer(bytes);
         if(this.mCallBack!=null){
             this.mCallBack.onPreviewFrame(bytes);
         }
@@ -89,7 +93,9 @@ public class CameraHelperDex implements Camera.PreviewCallback{
             try{
                 mCamera = Camera.open(cameraFacing);
                 initParameters(mCamera);
-                mCamera.setPreviewCallback(this);
+                mCamera.addCallbackBuffer(new byte[((privWidth * privHeight) * ImageFormat.getBitsPerPixel(ImageFormat.NV21)) / 8]);
+                mCamera.setPreviewCallbackWithBuffer(this);
+                //mCamera.setPreviewCallback(this);
             }catch (Exception e){
                 e.printStackTrace();
                 toast("打开相机失败!");
