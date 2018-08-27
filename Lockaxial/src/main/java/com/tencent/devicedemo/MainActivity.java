@@ -82,12 +82,14 @@ import com.androidex.utils.CameraHelperDex;
 import com.androidex.utils.HttpApi;
 import com.androidex.utils.HttpUtils;
 import com.androidex.utils.NfcReader;
+import com.androidex.utils.ShareUtils;
 import com.androidex.utils.UploadUtil;
 import com.arcsoft.dysmart.ArcsoftManager;
 import com.arcsoft.dysmart.DetecterActivity;
 import com.arcsoft.dysmart.FaceDB;
 import com.arcsoft.dysmart.FaceRegisterActivity;
 import com.arcsoft.dysmart.PhotographActivity2;
+import com.arcsoft.dysmart.SharedPreferencesUtil;
 import com.arcsoft.facerecognition.AFR_FSDKEngine;
 import com.arcsoft.facerecognition.AFR_FSDKError;
 import com.arcsoft.facerecognition.AFR_FSDKFace;
@@ -358,7 +360,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initAutoCamera();//
         startClockRefresh();//
         if(DeviceConfig.USER_ID.equals(DeviceConfig.USER_A0000001)){
-            initBLE();//初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
+            //初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
+            initBLE();
         }
         getRssi();//使用定时器,每隔5秒获得一次信号强度值
         setNetWork();
@@ -422,7 +425,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 }
             }
         });
-
     }
 
     private void initTXD(){

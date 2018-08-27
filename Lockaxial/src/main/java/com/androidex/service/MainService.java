@@ -41,6 +41,7 @@ import com.androidex.utils.WifiAdmin;
 import com.arcsoft.dysmart.ArcsoftManager;
 import com.tencent.device.barrage.ToastUtils;
 import com.tencent.devicedemo.BaseApplication;
+import com.tencent.devicedemo.BuildConfig;
 import com.tencent.devicedemo.InitActivity;
 import com.tencent.devicedemo.MainActivity;
 import com.util.Constant;
@@ -2643,6 +2644,15 @@ public class MainService extends Service {
                 handler.removeMessages(INIT_FACE_MESSAGE);
                 initFaceData();
             }
+        }else if(content.equals("device reboot")){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    String cmd = "reboot";
+                    HttpApi.i("設備即將重啟...");
+                    ShellUtils.CommandResult result = InstallUtil.executeCmd(cmd);
+                }
+            }).start();
         }
     }
 
@@ -3658,7 +3668,9 @@ public class MainService extends Service {
 
         String url = DeviceConfig.UPDATE_SERVER_URL
                 + folder
-                + DeviceConfig.UPDATE_RELEASE_PACKAGE;
+                + DeviceConfig.UPDATE_RELEASE_PACKAGE
+                + "?version="+BuildConfig.VERSION_NAME;
+                //+ BuildConfig.VERSION_NAME;
         HttpApi.i("版本更新路径："+url);
         try {
             String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
