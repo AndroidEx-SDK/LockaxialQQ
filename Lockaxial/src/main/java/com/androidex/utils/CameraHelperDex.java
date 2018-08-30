@@ -65,6 +65,10 @@ public class CameraHelperDex implements Camera.PreviewCallback{
         return mCameraFacing;
     }
 
+    public int getDisplayOrientation(){
+        return mDisplayOrientation;
+    }
+
     private void init(){
         mSurfaceHolder.addCallback(new SurfaceHolder.Callback() {
             @Override
@@ -251,6 +255,7 @@ public class CameraHelperDex implements Camera.PreviewCallback{
         }else{
             mDisplayOrientation = (info.orientation - screenDegree + 360) % 360;
         }
+        HttpApi.i("mDisplayOrientation = "+mDisplayOrientation);
         mCamera.setDisplayOrientation(mDisplayOrientation);
     }
 

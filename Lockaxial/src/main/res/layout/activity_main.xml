@@ -451,15 +451,26 @@
                android:layout_centerInParent="true" />
        </RelativeLayout>-->
 
-
+    <FrameLayout
+        android:layout_gravity="bottom|right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
         <SurfaceView
-            android:id="@+id/camera_faceview"
-            android:layout_gravity="bottom|right"
+            android:id="@+id/face_faceview"
             android:visibility="gone"
             android:layout_marginBottom="10dp"
             android:layout_marginRight="5dp"
             android:layout_width="320dp"
             android:layout_height="240dp" />
+
+        <SurfaceView
+            android:id="@+id/camera_faceview"
+            android:visibility="gone"
+            android:layout_marginBottom="10dp"
+            android:layout_marginRight="5dp"
+            android:layout_width="320dp"
+            android:layout_height="240dp" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/show_mac"

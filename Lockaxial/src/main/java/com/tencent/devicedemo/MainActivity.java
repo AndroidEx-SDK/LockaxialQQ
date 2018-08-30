@@ -22,8 +22,11 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
+import android.graphics.PixelFormat;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.hardware.Camera;
@@ -120,6 +123,8 @@ import com.tencent.device.TXDeviceService;
 import com.tencent.devicedemo.interfac.NetworkCallBack;
 import com.tencent.devicedemo.interfac.TakePictureCallback;
 import com.util.DialogUtil;
+import com.util.DrawUtils;
+import com.util.ImageUtils;
 import com.util.InstallUtil;
 import com.util.Intenet;
 import com.util.ShellUtils;
@@ -218,7 +223,7 @@ import static com.util.Constant.PASSWORD_MODE;
 import static com.util.Constant.RE_SYNC_SYSTEMTIME;
 import static com.util.Constant.START_FACE_CHECK;
 
-public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener, IdCardUtil.BitmapCallBack,CameraHelperDex.CallBack {
+public class MainActivity extends AndroidExActivityBase implements NfcReader.AccountCallback, NfcAdapter.ReaderCallback, TakePictureCallback, NotifyReceiverQQ.CallBack, View.OnClickListener, IdCardUtil.BitmapCallBack,CameraHelperDex.CallBack,SurfaceHolder.Callback{
     private static final String TAG = "MainActivity";
     public static final int INPUT_CARDINFO_RESULTCODE = 0X01;
     public static final int INPUT_CARDINFO_REQUESTCODE = 0X02;
@@ -1080,7 +1085,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     setCommunityName(MainService.communityName);
                     setLockName(MainService.lockName);
                 }else if(msg.what == START_FACE_CHECK){
-                    if (faceHandler != null && mCamerarelease && faceView!=null) {
+                    if (faceHandler != null && mCamerarelease && previewView!=null) {
                         HttpApi.e("ppp","相机释放完成，启动人脸");
                         handler.removeMessages(START_FACE_CHECK);
                         faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
@@ -2803,8 +2808,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     }
 
-
-
     public class Receive extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -2824,7 +2827,39 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     //人脸识别
-    private SurfaceView faceView;
+    private SurfaceView previewView;
+    private SurfaceView drawfaceView;
+    private Handler drawfaceHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            if(msg.what == 0x01){
+                //绘画人脸
+                List<AFT_FSDKFace> data = (List<AFT_FSDKFace>) msg.obj;
+                //int maxIndex = ImageUtils.findFTMaxAreaFace(data);
+                Canvas canvas = drawfaceHolder.lockCanvas();
+                canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+                for(AFT_FSDKFace af : data){
+                    Rect rect = af.getRect();
+                    if(rect !=null ){
+                        Rect adjustedRect = DrawUtils.adjustRect(rect,
+                                cameraHelperDex.getPrivWidth() ,
+                                cameraHelperDex.getPrivHeight(),
+                                canvas.getWidth(),
+                                canvas.getHeight(),
+                                cameraHelperDex.getDisplayOrientation(),
+                                cameraHelperDex.getCameradirection());
+                        DrawUtils.drawFaceRect(canvas, adjustedRect, Color.GREEN, 3);
+                    }
+                }
+                drawfaceHolder.unlockCanvasAndPost(canvas);
+            }else if(msg.what == 0x02){
+                //清屏
+                Canvas canvas = drawfaceHolder.lockCanvas();
+                canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+                drawfaceHolder.unlockCanvasAndPost(canvas);
+            }
+        }
+    };
     private CameraHelperDex cameraHelperDex;
     AFT_FSDKFace mAFT_FSDKFace = null;
     AFT_FSDKVersion version = new AFT_FSDKVersion();
@@ -2853,8 +2888,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         mFRAbsLoop.resumeThread();
                     }
 
-                    if (faceView.getVisibility() != View.VISIBLE) {
-                        faceView.setVisibility(View.VISIBLE);
+                    if (previewView.getVisibility() != View.VISIBLE) {
+                        previewView.setVisibility(View.VISIBLE);
+                        drawfaceView.setVisibility(View.VISIBLE);
                     }
                     break;
                 case MSG_FACE_DETECT_PAUSE:
@@ -2864,8 +2900,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     if (mFRAbsLoop != null) {
                         mFRAbsLoop.pauseThread();
                     }
-                    if (faceView.getVisibility() != View.GONE) {
-                        faceView.setVisibility(View.GONE);
+                    if (previewView.getVisibility() != View.GONE) {
+                        previewView.setVisibility(View.GONE);
+                        drawfaceView.setVisibility(View.GONE);
                     }
                     break;
                 case MSG_ID_CARD_DETECT_RESTART:
@@ -2890,14 +2927,34 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     @Override
     public void onPreviewFrame(byte[] bytes) {
+
+        engine.AFT_FSDK_FaceFeatureDetect(bytes,
+                cameraHelperDex.getPrivWidth(),
+                cameraHelperDex.getPrivHeight(),
+                AFT_FSDKEngine.CP_PAF_NV21,
+                FSDKFaceList);
+
         if (mImageNV21 == null) {
-            engine.AFT_FSDK_FaceFeatureDetect(bytes, cameraHelperDex.getPrivWidth(), cameraHelperDex.getPrivHeight(), AFT_FSDKEngine.CP_PAF_NV21, FSDKFaceList);
             if (!FSDKFaceList.isEmpty()) {
                 mAFT_FSDKFace = FSDKFaceList.get(0).clone();
                 mImageNV21 = bytes.clone();
-                FSDKFaceList.clear();
             }
         }
+
+        if(faceViewavailable){
+            if(FSDKFaceList!=null && FSDKFaceList.size()>0){
+                drawfaceHandler.removeMessages(0x02);
+                List<AFT_FSDKFace> data = new ArrayList<>();
+                data.addAll(FSDKFaceList);
+                Message message = Message.obtain();
+                message.what = 0x01;
+                message.obj = data;
+                drawfaceHandler.sendMessage(message);
+            }else{
+                drawfaceHandler.sendEmptyMessageDelayed(0x02,500);
+            }
+        }
+        FSDKFaceList.clear();
     }
 
     @Override
@@ -2905,10 +2962,34 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     }
 
+    @Override
+    public void surfaceCreated(SurfaceHolder surfaceHolder) {
+        faceViewavailable = true;
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
+
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
+        faceViewavailable = false;
+    }
+
+    private SurfaceHolder drawfaceHolder;
+    private boolean faceViewavailable = false;
     private void initFaceDetectAndIDCard() {
-        faceView = (SurfaceView) findViewById(R.id.camera_faceview);
-        cameraHelperDex = new CameraHelperDex(this,faceView);
+        previewView = (SurfaceView) findViewById(R.id.camera_faceview);
+        cameraHelperDex = new CameraHelperDex(this,previewView);
         cameraHelperDex.addCallBack(this);
+
+        drawfaceView = (SurfaceView) findViewById(R.id.face_faceview);
+        drawfaceView.setZOrderMediaOverlay(true);
+        drawfaceHolder = drawfaceView.getHolder();
+        drawfaceHolder.setFormat(PixelFormat.TRANSLUCENT);
+        drawfaceHolder.addCallback(this);
+
         AFT_FSDKError err = engine.AFT_FSDK_InitialFaceEngine(FaceDB.appid, FaceDB.ft_key, AFT_FSDKEngine.AFT_OPF_0_HIGHER_EXT, 16, 5);
         err = engine.AFT_FSDK_GetVersion(version);
         initIDCard();
