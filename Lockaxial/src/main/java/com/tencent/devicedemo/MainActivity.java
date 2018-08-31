@@ -2832,6 +2832,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private Handler drawfaceHandler = new Handler(){
         @Override
         public void handleMessage(Message msg) {
+            if(drawfaceView.getVisibility() != View.VISIBLE){
+                return;
+            }
             if(msg.what == 0x01){
                 //绘画人脸
                 List<AFT_FSDKFace> data = (List<AFT_FSDKFace>) msg.obj;
