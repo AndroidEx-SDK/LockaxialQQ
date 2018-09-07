@@ -2588,6 +2588,7 @@ public class MainService extends Service {
                 rejectUserList.add(from);
             }
         } else if (content.startsWith("open the door")) {
+            //open the door-0502-0
             String[] arrayMessage = content.split("-");
             int index = -1;
             if(arrayMessage.length == 3){

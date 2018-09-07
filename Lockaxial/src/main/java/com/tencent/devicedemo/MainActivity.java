@@ -102,6 +102,10 @@ import com.arcsoft.facetracking.AFT_FSDKEngine;
 import com.arcsoft.facetracking.AFT_FSDKError;
 import com.arcsoft.facetracking.AFT_FSDKFace;
 import com.arcsoft.facetracking.AFT_FSDKVersion;
+import com.arcsoft.liveness.ErrorInfo;
+import com.arcsoft.liveness.FaceInfo;
+import com.arcsoft.liveness.LivenessEngine;
+import com.arcsoft.liveness.LivenessInfo;
 import com.ble.BTTempDevice;
 import com.brocast.NotifyReceiverQQ;
 import com.entity.Banner;
@@ -335,6 +339,24 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             }
         }
     };
+
+
+    private SurfaceHolder drawfaceHolder;
+    private boolean faceViewavailable = false;
+    private LivenessEngine mLivenessEngine = new LivenessEngine();
+    private LiveLoop liveLoop;
+    private CameraHelperDex cameraHelperDex;
+    private AFT_FSDKFace mAFT_FSDKFace = null;
+    private AFT_FSDKVersion version = new AFT_FSDKVersion();
+    private AFT_FSDKEngine engine = new AFT_FSDKEngine();
+    private List<AFT_FSDKFace> FSDKFaceList = new ArrayList<>();
+    private List<AFT_FSDKFace> listResult;
+    private boolean cleanCanvas = false;
+
+    byte[] mImageNV21 = null;
+    FRAbsLoop mFRAbsLoop = null;
+
+    private boolean identification = false;
 
     private int defCameradirection = Camera.CameraInfo.CAMERA_FACING_BACK;
 
@@ -2837,42 +2859,40 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             }
             if(msg.what == 0x01){
                 //绘画人脸
-                List<AFT_FSDKFace> data = (List<AFT_FSDKFace>) msg.obj;
-                //int maxIndex = ImageUtils.findFTMaxAreaFace(data);
-                Canvas canvas = drawfaceHolder.lockCanvas();
-                canvas.drawColor(0, PorterDuff.Mode.CLEAR);
-                for(AFT_FSDKFace af : data){
-                    Rect rect = af.getRect();
-                    if(rect !=null ){
-                        Rect adjustedRect = DrawUtils.adjustRect(rect,
-                                cameraHelperDex.getPrivWidth() ,
-                                cameraHelperDex.getPrivHeight(),
-                                canvas.getWidth(),
-                                canvas.getHeight(),
-                                cameraHelperDex.getDisplayOrientation(),
-                                cameraHelperDex.getCameradirection());
-                        DrawUtils.drawFaceRect(canvas, adjustedRect, Color.GREEN, 3);
+                try {
+                    List<AFT_FSDKFace> data = (List<AFT_FSDKFace>) msg.obj;
+                    //int maxIndex = ImageUtils.findFTMaxAreaFace(data);
+                    Canvas canvas = drawfaceHolder.lockCanvas();
+                    canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+                    for (AFT_FSDKFace af : data) {
+                        Rect rect = af.getRect();
+                        if (rect != null) {
+                            Rect adjustedRect = DrawUtils.adjustRect(rect,
+                                    cameraHelperDex.getPrivWidth(),
+                                    cameraHelperDex.getPrivHeight(),
+                                    canvas.getWidth(),
+                                    canvas.getHeight(),
+                                    cameraHelperDex.getDisplayOrientation(),
+                                    cameraHelperDex.getCameradirection());
+                            DrawUtils.drawFaceRect(canvas, adjustedRect, Color.GREEN, 3);
+                        }
                     }
+                    drawfaceHolder.unlockCanvasAndPost(canvas);
+                }catch (Exception e){
+                    e.printStackTrace();
                 }
-                drawfaceHolder.unlockCanvasAndPost(canvas);
             }else if(msg.what == 0x02){
                 //清屏
-                Canvas canvas = drawfaceHolder.lockCanvas();
-                canvas.drawColor(0, PorterDuff.Mode.CLEAR);
-                drawfaceHolder.unlockCanvasAndPost(canvas);
+                try {
+                    Canvas canvas = drawfaceHolder.lockCanvas();
+                    canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+                    drawfaceHolder.unlockCanvasAndPost(canvas);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
             }
         }
     };
-    private CameraHelperDex cameraHelperDex;
-    AFT_FSDKFace mAFT_FSDKFace = null;
-    AFT_FSDKVersion version = new AFT_FSDKVersion();
-    AFT_FSDKEngine engine = new AFT_FSDKEngine();
-    List<AFT_FSDKFace> FSDKFaceList = new ArrayList<>();
-
-    byte[] mImageNV21 = null;
-    FRAbsLoop mFRAbsLoop = null;
-
-    private boolean identification = false;
 
     //  private HandlerThread faceThread;
     private Handler faceHandler = new Handler(new Handler.Callback() {
@@ -2887,6 +2907,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     break;
                 case MSG_FACE_DETECT_CONTRAST:
                     identification = true;
+                    if (liveLoop != null) {
+                        liveLoop.resumeThread();
+                    }
                     if (mFRAbsLoop != null) {
                         mFRAbsLoop.resumeThread();
                     }
@@ -2900,6 +2923,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     faceHandler.removeMessages(MSG_FACE_DETECT_CONTRAST);
                     handler.removeMessages(START_FACE_CHECK);
                     identification = false;
+                    if (liveLoop != null) {
+                        liveLoop.pauseThread();
+                    }
                     if (mFRAbsLoop != null) {
                         mFRAbsLoop.pauseThread();
                     }
@@ -2937,16 +2963,22 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 AFT_FSDKEngine.CP_PAF_NV21,
                 FSDKFaceList);
 
-        if (mImageNV21 == null) {
-            if (!FSDKFaceList.isEmpty()) {
-                mAFT_FSDKFace = FSDKFaceList.get(0).clone();
-                mImageNV21 = bytes.clone();
-            }
+//        if (mImageNV21 == null) {
+//            if (!FSDKFaceList.isEmpty()) {
+//                mAFT_FSDKFace = FSDKFaceList.get(0).clone();
+//                mImageNV21 = bytes.clone();
+//            }
+//        }
+        if(liveLoop!=null && FSDKFaceList!=null && FSDKFaceList.size()>0){
+            listResult = new ArrayList<>();
+            listResult.addAll(FSDKFaceList);
+            liveLoop.putData(bytes,listResult);
         }
 
         if(faceViewavailable){
             if(FSDKFaceList!=null && FSDKFaceList.size()>0){
                 drawfaceHandler.removeMessages(0x02);
+                cleanCanvas = true;
                 List<AFT_FSDKFace> data = new ArrayList<>();
                 data.addAll(FSDKFaceList);
                 Message message = Message.obtain();
@@ -2954,7 +2986,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 message.obj = data;
                 drawfaceHandler.sendMessage(message);
             }else{
-                drawfaceHandler.sendEmptyMessageDelayed(0x02,500);
+                if(cleanCanvas){
+                    cleanCanvas = false;
+                    drawfaceHandler.sendEmptyMessageDelayed(0x02,500);
+                }
             }
         }
         FSDKFaceList.clear();
@@ -2980,8 +3015,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         faceViewavailable = false;
     }
 
-    private SurfaceHolder drawfaceHolder;
-    private boolean faceViewavailable = false;
+    @Override
+    public void onBackPressed() {
+        //super.onBackPressed();
+    }
+
+
     private void initFaceDetectAndIDCard() {
         previewView = (SurfaceView) findViewById(R.id.camera_faceview);
         cameraHelperDex = new CameraHelperDex(this,previewView);
@@ -2996,8 +3035,29 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         AFT_FSDKError err = engine.AFT_FSDK_InitialFaceEngine(FaceDB.appid, FaceDB.ft_key, AFT_FSDKEngine.AFT_OPF_0_HIGHER_EXT, 16, 5);
         err = engine.AFT_FSDK_GetVersion(version);
         initIDCard();
-        mFRAbsLoop = new FRAbsLoop();
-        mFRAbsLoop.start();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpApi.i("开始初始化活体检测");
+                long activeCode = mLivenessEngine.activeEngine(FaceDB.appid,
+                        FaceDB.live_key).getCode();
+                if(activeCode == ErrorInfo.MOK || activeCode == ErrorInfo.MERR_AL_BASE_ALREADY_ACTIVATED){
+                    HttpApi.i("活体检测初始化完成！");
+                    ErrorInfo error = mLivenessEngine.initEngine(LivenessEngine.AL_DETECT_MODE_IMAGE);
+                    if(error.getCode() == ErrorInfo.MOK){
+                        HttpApi.i("活体引擎initEngine成功，开启FRAbsLoop线程");
+                        liveLoop = new LiveLoop();
+                        liveLoop.start();
+                        mFRAbsLoop = new FRAbsLoop();
+                        mFRAbsLoop.start();
+                    }else{
+                        HttpApi.i("活体引擎initEngine错误，code = "+error.getCode());
+                    }
+                }else{
+                    HttpApi.i("活体检测初始化失败！code = "+activeCode);
+                }
+            }
+        }).start();
 
         new Thread(new Runnable() {
             @Override
@@ -3137,6 +3197,98 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         return null;
     }
 
+    class LiveLoop extends AbsLoop{
+        private final Object lock = new Object();
+        private boolean pause = false;
+        private List<AFT_FSDKFace> afdData;
+        private byte [] byteData;
+
+        public void putData(byte[] bdata,List<AFT_FSDKFace> adata){
+            afdData = adata;
+            byteData = bdata;
+        }
+
+        void pauseThread() {
+            pause = true;
+        }
+
+        void resumeThread() {
+            pause = false;
+            synchronized (lock) {
+                lock.notifyAll();
+            }
+        }
+
+
+        void onPause() {
+            synchronized (lock) {
+                try {
+                    lock.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+
+        @Override
+        public void setup() {
+
+        }
+
+        @Override
+        public void loop() {
+            while (pause) {
+                onPause();
+            }
+            if(afdData!=null && byteData!=null){
+                int maxIndex = ImageUtils.findFTMaxAreaFace(afdData); //选脸大的？
+                //Log.i("live_xiao_","人脸个数："+afdData.size()+"最终选取的下标："+maxIndex);
+                final List<FaceInfo> faceInfos = new ArrayList<>();
+                if(maxIndex != -1) {
+                    AFT_FSDKFace face = afdData.get(maxIndex);
+                    FaceInfo faceInfo = new FaceInfo(face.getRect(), face.getDegree());
+                    faceInfos.add(faceInfo);
+                }
+
+                List<LivenessInfo> livenessInfos = new ArrayList<>();
+                ErrorInfo livenessError = mLivenessEngine.startLivenessDetect(byteData,cameraHelperDex.getPrivWidth(), cameraHelperDex.getPrivHeight(),
+                        LivenessEngine.CP_PAF_NV21, faceInfos, livenessInfos);
+
+                if(livenessError.getCode() == ErrorInfo.MOK){
+                    if(livenessInfos.size() == 0){
+                        //没有人脸数据
+                    }else{
+                        final int liveness = livenessInfos.get(0).getLiveness();
+                        if(liveness == LivenessInfo.NOT_LIVE) {
+                            HttpApi.i("非活体");
+                        } else if(liveness == LivenessInfo.LIVE) {
+                            HttpApi.i("活体");
+                            if (mImageNV21 == null) {
+                                if (!afdData.isEmpty()) {
+                                    mAFT_FSDKFace = afdData.get(maxIndex).clone();
+                                    mImageNV21 = byteData.clone();
+                                }
+                            }
+                        } else if(liveness == LivenessInfo.MORE_THAN_ONE_FACE) {
+                            HttpApi.i("非单人脸信息");
+                        } else {
+                            HttpApi.i("未知");
+                        }
+                    }
+                }
+                afdData = null;
+                byteData = null;
+            }
+
+        }
+
+        @Override
+        public void over() {
+
+        }
+    }
+
     class FRAbsLoop extends AbsLoop {
         AFR_FSDKVersion version = new AFR_FSDKVersion();
         AFR_FSDKEngine engine = new AFR_FSDKEngine();
@@ -3240,38 +3392,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     }
 
-    private boolean fileOperation(String name) {
-        boolean bool = false;
-        String path = getExternalCacheDir().getPath();
-        Log.v(FACE_TAG, "fileOperation-->" + path);
-        File file = new File(path);
-        if (file != null && file.exists()) {
-            File[] files = file.listFiles();// 读取文件夹下文件
-            if (files != null) {
-                for (File file1 : files) {
-                    if (file1.isDirectory()) {//检查此路径名的文件是否是一个目录(文件夹)
-                        continue;
-                    }
-                    String fileName = file1.getName();
-                    Log.v(FACE_TAG, "fileOperation-->" + fileName + "/" + file1.getPath());
-                    if (fileName.endsWith(".data")) {
-                        bool = fileName.contains(name);
-                    }
-//                    String str = "";
-//                    if (fileName.endsWith(".png")) {
-//                        str = fileName.substring(0, fileName.lastIndexOf(".")).toString();
-//                        Log.v(FACE_TAG, "fileOperation1-->" + str);
-//                    }
-//                    if (fileName.endsWith(".data")) {
-//                        str = fileName.substring(0, fileName.lastIndexOf(".")).toString();
-//                        Log.v(FACE_TAG, "fileOperation2-->" + str);
-//                    }
-                }
-            }
-        }
-        return bool;
-    }
-
     private IdCardUtil mIdCardUtil;
 
     private void initIDCard() {
@@ -3335,17 +3455,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private boolean idOperation = true;
 
     private void inputIDCard(final IDCard idCard) {
-//        Log.v(FACE_TAG, "inputIDCard-->" + idCard.getName());
-//        Log.v(FACE_TAG, "inputIDCard-->" + idCard.getSex());
-//        Log.v(FACE_TAG, "inputIDCard-->" + idCard.getBirthday());
-//        Log.v(FACE_TAG, "inputIDCard-->" + idCard.getNation());
-//        Log.v(FACE_TAG, "inputIDCard-->" + idCard.getAddress());
         Log.v(FACE_TAG, "inputIDCard-->" + idCard.getIDCardNo());
-//        Log.v(FACE_TAG, "inputIDCard-->" + idCard.getPhoto());
         Log.v(FACE_TAG, "inputIDCard-->" + IdCardUtil.bmpPath);
         List<String> list = ArcsoftManager.getInstance().getIDCardData();
         if (list.contains(idCard.getIDCardNo())) {
-//            Toast.makeText(this, "身份证已录入", Toast.LENGTH_SHORT).show();
             Message message = Message.obtain();
             message.what = MainService.MSG_FACE_OPENLOCK;
             try {

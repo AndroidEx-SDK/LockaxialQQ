@@ -46,7 +46,7 @@ public class MonitorService extends Service {
             try {
                 Intent intent = getBaseContext().getPackageManager()
                         .getLaunchIntentForPackage(PACKAGE_NAME);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 MonitorService.this.startActivity(intent);
             }catch (Exception e){
                 e.printStackTrace();
