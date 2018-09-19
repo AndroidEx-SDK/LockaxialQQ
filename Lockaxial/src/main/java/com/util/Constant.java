@@ -65,4 +65,6 @@ public class Constant {
     public static final int APP_OPENDOOR_ACCESS = 3004;
     public static final int CARD_OPENDOOR_ACCESS = 3005;
     public static final int INIT_FACE_MESSAGE = 3006;
+    public static final int INIT_RTC_CLIENT = 3007;
+    public static final int RE_INIT_RTC_CLIENT = 3008;
 }

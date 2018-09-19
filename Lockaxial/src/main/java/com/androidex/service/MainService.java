@@ -119,6 +119,7 @@ import static com.util.Constant.APP_OPENDOOR;
 import static com.util.Constant.APP_OPENDOOR_ACCESS;
 import static com.util.Constant.CARD_OPENDOOR_ACCESS;
 import static com.util.Constant.INIT_FACE_MESSAGE;
+import static com.util.Constant.INIT_RTC_CLIENT;
 import static com.util.Constant.MSG_ADVERTISE_REFRESH;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_COMPLETE;
 import static com.util.Constant.MSG_CALLMEMBER_DIRECT_DIALING;
@@ -144,6 +145,7 @@ import static com.util.Constant.MSG_RTC_ONVIDEO;
 import static com.util.Constant.ON_YUNTONGXUN_INIT_ERROR;
 import static com.util.Constant.ON_YUNTONGXUN_LOGIN_FAIL;
 import static com.util.Constant.ON_YUNTONGXUN_LOGIN_SUCCESS;
+import static com.util.Constant.RE_INIT_RTC_CLIENT;
 import static com.util.Constant.START_FACE_CHECK;
 
 /**
@@ -236,7 +238,7 @@ public class MainService extends Service {
     Device device = null;
     public static Connection callConnection;
     private String token = null;
-    boolean isReconnectingRtc = false; //可视对讲服务注册状态
+    //boolean isReconnectingRtc = true; //可视对讲服务注册状态
     boolean incomingFlag = false;
 
     protected Messenger initMessenger = null;
@@ -302,6 +304,9 @@ public class MainService extends Service {
         }
     };
 
+    private boolean rtcFreed = true;
+    public static boolean RTC_AVAILABLE = false;
+
 
     public MainService() {
     }
@@ -318,11 +323,6 @@ public class MainService extends Service {
         initUpdateHandler();//开启版本检测更新，一个小时监测一次
     }
 
-    protected void initAdLoad() {
-//        if(DeviceConfig.IS_FINGER_AVAILABLE){
-//            adLoad=new AdLoad();
-//        }
-    }
 
     protected void initHandler() {
         handler = new Handler() {
@@ -336,7 +336,6 @@ public class MainService extends Service {
                 } else if (msg.what == REGISTER_ACTIVITY_DIAL) {  //MainActivity初始化入口
                     startRongyun(); //允许被多次调用
                     //retrieveCardList(); //注册门卡信息
-                    HttpApi.i("初始化广告");
                     initAdvertisement(); //初始化广告
                     initConnectReport();
                     initFaceData();                    //初始化人脸数据
@@ -513,6 +512,13 @@ public class MainService extends Service {
                         handler.removeMessages(INIT_FACE_MESSAGE);
                         initFaceData();
                     }
+                }else if(msg.what == INIT_RTC_CLIENT){
+                    if(!rtcFreed){
+                        handler.sendEmptyMessageDelayed(INIT_RTC_CLIENT,200);
+                    }else{
+                        handler.removeMessages(INIT_RTC_CLIENT);
+                        initRtcClient();
+                    }
                 }
             }
         };
@@ -632,20 +638,11 @@ public class MainService extends Service {
         Log.i("MainService", "init AEX");
         //initAdLoad();
         initSqlUtil();
-        Log.i("MainService", "init SQL");
+        //Log.i("MainService", "init SQL");
         //xiaozd add
         //initCheckTopActivity();
         initMonitor();
         sendDialMessenger(START_FACE_CHECK,null);
-        /**if (isNetworkConnectedWithTimeout()) {//不做网络判断
-         Log.i("MainService", "Test Connected");
-         initWhenConnected(); //开始在线版本
-         } else {
-         Log.i("MainService", "Test NoNetwork");
-         //sendInitMessenger(InitActivity.MSG_NO_NETWORK);//检测到没有网络发送消息让用户选择
-         //xiaozd add
-         initWhenOffline();
-         }*/
         //xiaozd add
         if (netWorkstate) {
             initWhenConnected(); //开始在线版本
@@ -782,8 +779,6 @@ public class MainService extends Service {
      */
     protected void initWhenConnected() {
         if (initMacAddress()) {
-            Log.i("MainService", "INIT MAC Address");
-            rtcLogout();
             initRtcClient();
             try {
                 initClientInfo();
@@ -798,6 +793,7 @@ public class MainService extends Service {
     * **/
     protected void initWhenOffline() {
         HttpApi.i("进入离线模式");
+        rtcLogout(); //退出RTC
         if (initMacAddress()) {
             HttpApi.i("通过MAC地址验证");
             try {
@@ -997,31 +993,20 @@ public class MainService extends Service {
     }
 
     private void initRtcClient() {
+        if(!rtcFreed){
+            handler.sendEmptyMessageDelayed(INIT_RTC_CLIENT,200);
+            return;
+        }
         rtcClient = new RtcClientImpl();
         rtcClient.initialize(this.getApplicationContext(), new ClientListener() {
             @Override   //初始化结果回调
             public void onInit(int result) {
-                Log.v("MainService", "onInit,result=" + result);//常见错误9003:网络异常或系统时间差的太多
-                HttpApi.i("视频清晰度："+DeviceConfig.VIDEO_STATUS+"");
                 if (result == 0) {
                     rtcClient.setAudioCodec(RtcConst.ACodec_OPUS);
                     rtcClient.setVideoCodec(RtcConst.VCodec_VP8);
                     rtcClient.setVideoAttr(100);
-//                    if (DeviceConfig.VIDEO_STATUS == 0) {
-//                        rtcClient.setVideoAttr(RtcConst.Video_SD);
-//                    } else if (DeviceConfig.VIDEO_STATUS == 1) {
-//                        rtcClient.setVideoAttr(RtcConst.Video_FL);
-//                    } else if (DeviceConfig.VIDEO_STATUS == 2) {
-//                        rtcClient.setVideoAttr(RtcConst.Video_HD);
-//                    } else if (DeviceConfig.VIDEO_STATUS == 3) {
-//                        rtcClient.setVideoAttr(RtcConst.Video_720P);
-//                    } else if (DeviceConfig.VIDEO_STATUS == 4) {
-//                        rtcClient.setVideoAttr(RtcConst.Video_1080P);
-//                    }
                     rtcClient.setVideoAdapt(DeviceConfig.VIDEO_ADAPT);
-                    if (isReconnectingRtc) {
-                        startGetToken();
-                    }
+                    startGetToken();
                 } else {
                     onInitRtcError(); //反复注册，直到注册成功
                 }
@@ -1268,6 +1253,8 @@ public class MainService extends Service {
      * 验证密码
      */
     private void checkGuestPassword() {
+        Message message = handler.obtainMessage();
+        message.what = MSG_GUEST_PASSWORD_CHECK;
         try {
             String url = DeviceConfig.SERVER_URL + "/app/device/openDoorByTempKey?from="; //服务器创建开门记录
             url = url + this.key;
@@ -1282,25 +1269,17 @@ public class MainService extends Service {
                 url = url + "&imageUrl=" + URLEncoder.encode(this.imageUrl, "UTF-8");
             }
             try {
-                HttpApi.i("密码验证地址："+url);
                 String result = HttpApi.getInstance().loadHttpforGet(url, httpServerToken);
                 if (result != null) {
-                    HttpApi.i("checkGuestPassword()->" + result);
-                    Message message = handler.obtainMessage();
-                    message.what = MSG_GUEST_PASSWORD_CHECK;
                     message.obj = Ajax.getJSONObject(result);
-                    handler.sendMessage(message);
-                } else {
-                    HttpApi.i("checkGuestPassword()->服务器异常");
                 }
             } catch (Exception e) {
-                Message message = handler.obtainMessage();
-                message.what = MSG_GUEST_PASSWORD_CHECK;
-                handler.sendMessage(message);
                 e.printStackTrace();
             }
         } catch (Exception e) {
+            e.printStackTrace();
         }
+        handler.sendMessage(message);
     }
 
     private void startCallMemberAppendImage() {
@@ -1392,27 +1371,13 @@ public class MainService extends Service {
 
     private void onResponseGetToken(Message msg) {
         HttpResult ret = (HttpResult) msg.obj;
-        Log.v("MainService", "handleMessage getCapabilityToken status:" + ret.getStatus());
         JSONObject jsonrsp = (JSONObject) ret.getObject();
         if (jsonrsp != null && jsonrsp.isNull("code") == false) {
             try {
                 String code = jsonrsp.getString(RtcConst.kcode);
                 String reason = jsonrsp.getString(RtcConst.kreason);
-                Log.v("MainService", "Response getCapabilityToken code:" + code + " reason:" + reason);
                 if (code.equals("0")) {
                     token = jsonrsp.getString(RtcConst.kcapabilityToken);
-                    Log.v("MainService", "handleMessage getCapabilityToken:" + token);
-                    if (!isReconnectingRtc) {
-                        HttpApi.i("onResponseGetToken - > InitActivity.MSG_GET_TOKEN");
-                        Message message = Message.obtain();
-                        message.what = InitActivity.MSG_GET_TOKEN;
-                        message.obj = token;
-                        try {
-                            initMessenger.send(message);
-                        } catch (RemoteException e) {
-                            e.printStackTrace();
-                        }
-                    }
                     rtcRegister();
                 } else {
                     onGetTokenError();
@@ -1515,7 +1480,6 @@ public class MainService extends Service {
     private void startGetToken() {
         new Thread() {
             public void run() {
-                HttpApi.i("startGetToken()");
                 getTokenFromServer();
             }
         }.start();
@@ -1525,7 +1489,6 @@ public class MainService extends Service {
      * 视频注册
      */
     private void rtcRegister() {
-        Log.v("MainService", "rtcRegister:" + key + "token:" + token);
         if (communityId > 0 && token != null) {
             try {
                 JSONObject jargs = SdkSettings.defaultDeviceSetting();
@@ -1536,16 +1499,6 @@ public class MainService extends Service {
                 jargs.put(RtcConst.kAccType, RtcConst.UEType_Current);//终端类型
                 jargs.put(RtcConst.kAccRetry, 5);//设置重连时间
                 device = rtcClient.createDevice(jargs.toString(), deviceListener); //注册
-                if (!isReconnectingRtc) {
-                    HttpApi.i("可视对讲服务注册成功");
-                    Message message = Message.obtain();
-                    message.what = InitActivity.MSG_RTC_REGISTER;
-                    try {
-                        initMessenger.send(message);
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                }
                 onRegisterCompleted();
             } catch (Exception e) {
                 Message message = Message.obtain();
@@ -1561,22 +1514,12 @@ public class MainService extends Service {
     }
 
     protected void onRegisterCompleted() {
-        if (isReconnectingRtc) {
-            HttpApi.i("onRegisterCompleted（）-> true");
-            isReconnectingRtc = false;
-            rtcConnectSuccess();
-        } else {
-            HttpApi.i("false 发送MSG_REGISTER_ACTIVITY_DIAL ->MainActivity");
-            //可视对讲服务注册成功 xiaozd add
-            //startDialActivity(true);
-            Message m = Message.obtain();
-            m.what = MainService.MSG_REGISTER_ACTIVITY_DIAL;
-            try {
-                initMessenger.send(m);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-
+        Message m = Message.obtain();
+        m.what = MainService.MSG_REGISTER_ACTIVITY_DIAL;
+        try {
+            initMessenger.send(m);
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
     }
 
@@ -2305,13 +2248,22 @@ public class MainService extends Service {
     }
 
     private void rtcLogout() {
-        if (rtcClient != null) {
-            rtcClient.release();
-            rtcClient = null;
-        }
-        if (device != null) {
-            device.release();
-            device = null;
+        if(rtcFreed){
+            rtcFreed = false;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    if (rtcClient != null) {
+                        rtcClient.release();
+                        rtcClient = null;
+                    }
+                    if (device != null) {
+                        device.release();
+                        device = null;
+                    }
+                    rtcFreed = true;
+                }
+            }).start();
         }
     }
 
@@ -2322,33 +2274,42 @@ public class MainService extends Service {
         @Override
         public void onDeviceStateChanged(int result) {
             if (result == RtcConst.CallCode_Success) { //注销也存在此处
-                HttpApi.i("20180423","RTC注册完成");
-                onConnectSuccess();
+                HttpApi.i("RTC注册完成");
+                RTC_AVAILABLE = true;
+                //onConnectSuccess();
             } else if (result == RtcConst.NoNetwork || result == RtcConst.CallCode_Network) {
-                onNoNetWork();
-                HttpApi.i("20180423","网络断开，网络不可用或服务器错误，应限制呼叫");
+                //onNoNetWork();
+                RTC_AVAILABLE = false;
+                HttpApi.i("网络断开，网络不可用或服务器错误，应限制呼叫");
             } else if (result == RtcConst.CallCode_Timeout) {
+                RTC_AVAILABLE = false;
                 onConnectTimeout();
-                HttpApi.i("20180423","登录超时，应限制呼叫");
+                HttpApi.i("登录超时，应限制呼叫");
             } else if (result == RtcConst.ChangeNetwork) {
-                HttpApi.i("20180423","网络切换了，可以继续呼叫");
-                changeNetWork();
+                HttpApi.i("网络切换了，可以继续呼叫");
+                RTC_AVAILABLE = true;
+                //changeNetWork();
             } else if (result == RtcConst.PoorNetwork) {
-                HttpApi.i("20180423","网络闪断，可以忽略，不影响呼叫");
-                onPoorNetWork();
+                RTC_AVAILABLE = true;
+                HttpApi.i("网络闪断，可以忽略，不影响呼叫");
+                //onPoorNetWork();
             } else if (result == RtcConst.ReLoginNetwork) {
-                HttpApi.i("20180423","重连失败应用可以选择重新登录，应限制呼叫");
+                RTC_AVAILABLE = false;
+                HttpApi.i("重连失败应用可以选择重新登录，应限制呼叫");
                 // 网络原因导致多次登陆不成功，由用户选择是否继续，如想继续尝试，可以重建device
-                onConnectError();
+                //onConnectError();
             } else if (result == RtcConst.DeviceEvt_KickedOff) {
-                HttpApi.i("20180423","同一账号在另一同类型终端登录，应限制呼叫");
+                RTC_AVAILABLE = false;
+                HttpApi.i("同一账号在另一同类型终端登录，应限制呼叫");
                 // 被另外一个终端踢下线，由用户选择是否继续，如果再次登录，需要重新获取token，重建device
-                onConnectError();
+                //onConnectError();
             } else if (result == RtcConst.DeviceEvt_MultiLogin) {
-                HttpApi.i("20180423","同一账号在不同类型终端登录，不影响呼叫");
+                RTC_AVAILABLE = true;
+                HttpApi.i("同一账号在不同类型终端登录，不影响呼叫");
             } else {
                 //  CommFunc.DisplayToast(MyApplication.this, "注册失败:"+result);
-                HttpApi.i("20180423","未匹配到任何结果");
+                RTC_AVAILABLE = false;
+                HttpApi.i("未匹配到任何结果");
             }
         }
 
@@ -2373,7 +2334,6 @@ public class MainService extends Service {
         }
 
         private void onNoNetWork() {
-            Log.v("MainService", "onNoNetWork");
             //断网销毁
             if (callConnection != null) {
                 callConnection.disconnect();
@@ -2384,7 +2344,7 @@ public class MainService extends Service {
         }
 
         private void onConnectTimeout() {
-            onConnectError();
+            //onConnectError();
             rtcLogout();
             rtcConnectTimeout();
         }
@@ -2392,6 +2352,7 @@ public class MainService extends Service {
         private void changeNetWork() {
             Log.v("MainService", "changeNetWork");
             //自动重连接
+            rtcConnectSuccess();
         }
 
         @Override
@@ -2458,7 +2419,6 @@ public class MainService extends Service {
     };
 
     private void rtcConnectTimeout() {
-        isReconnectingRtc = true;
         initRtcClient();
     }
 
@@ -2566,6 +2526,7 @@ public class MainService extends Service {
         }
     }
 
+    private long appLastTime = 0;
     protected void onMessage(String from, String mime, String content) {
         HttpApi.i("from = " + from + "    mime = " + mime + "     content = " + content);
         if(!content.startsWith("reject call") && !content.startsWith("open the door")){
@@ -2600,7 +2561,10 @@ public class MainService extends Service {
                 imageUrl = content.substring(thisIndex + 1);
                 imageUrl = imageUrl.replace("-","");
                 if(isInteger(imageUrl)){ //直接通过app->小区门禁->开门
-                    sendDialMessenger(APP_OPENDOOR,from);
+                    if(System.currentTimeMillis() - appLastTime >= 5*1000){
+                        appLastTime = System.currentTimeMillis();
+                        sendDialMessenger(APP_OPENDOOR,from);
+                    }
                 }else{
                     //startCreateAccessLog(from, imageUrl);
                     checkStateCreateAccessLog(from,null);
