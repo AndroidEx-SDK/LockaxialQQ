@@ -338,7 +338,8 @@ public class MainService extends Service {
                     //retrieveCardList(); //注册门卡信息
                     initAdvertisement(); //初始化广告
                     initConnectReport();
-                    initFaceData();                    //初始化人脸数据
+                    initFaceData();  //初始化人脸数据
+                    initPassword();
                     dialMessenger = msg.replyTo;
                     startUpdateThread(); //更新程序线程
                 } else if (msg.what == MSG_GETTOKEN) {
@@ -2933,6 +2934,12 @@ public class MainService extends Service {
         };
         advertisementThread.start();
     }
+
+    private void initPassword(){
+
+    }
+
+
 
 
     private boolean isRegisterFace = false;

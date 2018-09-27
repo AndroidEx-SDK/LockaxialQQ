@@ -102,10 +102,6 @@ import com.arcsoft.facetracking.AFT_FSDKEngine;
 import com.arcsoft.facetracking.AFT_FSDKError;
 import com.arcsoft.facetracking.AFT_FSDKFace;
 import com.arcsoft.facetracking.AFT_FSDKVersion;
-import com.arcsoft.liveness.ErrorInfo;
-import com.arcsoft.liveness.FaceInfo;
-import com.arcsoft.liveness.LivenessEngine;
-import com.arcsoft.liveness.LivenessInfo;
 import com.ble.BTTempDevice;
 import com.brocast.NotifyReceiverQQ;
 import com.entity.Banner;
@@ -343,8 +339,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
 
     private SurfaceHolder drawfaceHolder;
     private boolean faceViewavailable = false;
-    private LivenessEngine mLivenessEngine = new LivenessEngine();
-    private LiveLoop liveLoop;
     private CameraHelperDex cameraHelperDex;
     private AFT_FSDKFace mAFT_FSDKFace = null;
     private AFT_FSDKVersion version = new AFT_FSDKVersion();
@@ -362,6 +356,30 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private boolean identification = false;
 
     private int defCameradirection = Camera.CameraInfo.CAMERA_FACING_BACK;
+
+    public static final String FACE_ACTIONB_START_ACTION = "com.androidex.FACE_START_ACTION";
+    public static final String FACE_ACTIONB_WAIT_ACTION = "com.androidex.FACE_WAIT_ACTION";
+    private BroadcastReceiver timeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            HttpApi.i("收到时间更新");
+            setNewTime();
+        }
+    };
+
+    private BroadcastReceiver tdReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if(action.equals(FACE_ACTIONB_START_ACTION)){
+                handler.sendEmptyMessage(START_FACE_CHECK);
+            }else if(action.equals(FACE_ACTIONB_WAIT_ACTION)){
+                if (faceHandler != null) {
+                    faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_PAUSE, 0);
+                }
+            }
+        }
+    };
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -382,13 +400,13 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initHandler();
         initAexNfcReader();//初始化本地广播
         initServer();//初始化服务类
-        //initTXD();
+        initTXD();
         initQQReceiver();//初始化QQ物联广播
         initVoiceHandler();//
         //initVoiceVolume();//
         initAdvertiseHandler();//初始化广告
         initAutoCamera();//
-        startClockRefresh();//
+        initTimeReceiver();//
         if(DeviceConfig.USER_ID.equals(DeviceConfig.USER_A0000001)){
             //初始化蓝牙  //稍微退后初始化一点，防止蓝牙共享程序停止运行bug
             initBLE();
@@ -457,10 +475,15 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         });
     }
 
+
     private void initTXD(){
         getQR();//生成二维码
         Intent startIntent = new Intent(MainActivity.this, TXDeviceService.class);
         startService(startIntent);
+        IntentFilter tdFilter = new IntentFilter();
+        tdFilter.addAction(FACE_ACTIONB_START_ACTION);
+        tdFilter.addAction(FACE_ACTIONB_WAIT_ACTION);
+        registerReceiver(tdReceiver,tdFilter);
     }
 
     /**
@@ -709,6 +732,16 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     }
 
+
+    private void initTimeReceiver(){
+        setNewTime();
+        IntentFilter timeFilter = new IntentFilter();
+        timeFilter.addAction(Intent.ACTION_TIME_TICK);//每分钟变化
+        timeFilter.addAction(Intent.ACTION_TIMEZONE_CHANGED);//设置了系统时区
+        timeFilter.addAction(Intent.ACTION_TIME_CHANGED);//设置了系统时间
+        registerReceiver(timeReceiver,timeFilter);
+    }
+
     /**
      * 注册QQ物联回调
      */
@@ -894,28 +927,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         setTextView(R.id.tv_lock, MainService.lockName);
     }
 
-    /**
-     * 检测锁状态
-     */
-    private void startClockRefresh() {
-        clockRefreshThread = new Thread() {
-            public void run() {
-                try {
-                    setNewTime();
-                    while (true) {
-                        sleep(1000 * 60); //等待指定的一个等待时间
-                        if (!isInterrupted()) { //检查线程没有被停止
-                            setNewTime();
-                        }
-                    }
-                } catch (InterruptedException e) {
-                }
-                clockRefreshThread = null;
-            }
-        };
-        clockRefreshThread.start();
-    }
-
     private void setNewTime() {
         handler.post(new Runnable() {
             @Override
@@ -1086,6 +1097,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         try {
                             int code = result.getInt("code");
                             if (code == 0) {//登录成功
+                                hideMacaddress();
                                 //初始化token
                                 //sendMainMessager(MainService.MSG_REGISTER, null);
                                 //初始化社区信息
@@ -1109,6 +1121,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     setCommunityName(MainService.communityName);
                     setLockName(MainService.lockName);
                 }else if(msg.what == START_FACE_CHECK){
+                    if(TXDeviceService.userArray.size()>0){
+                        return;
+                    }
                     if (faceHandler != null && mCamerarelease && previewView!=null) {
                         HttpApi.e("ppp","相机释放完成，启动人脸");
                         handler.removeMessages(START_FACE_CHECK);
@@ -2014,6 +2029,12 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
     }
 
+    private void hideMacaddress(){
+        if(showMacText!=null && showMacText.getVisibility() == View.VISIBLE){
+            showMacText.setVisibility(View.GONE);
+        }
+    }
+
     /**
      * 通过ServiceMessenger将注册消息发送到Service中的Handler
      */
@@ -2358,6 +2379,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             unregisterReceiver(receive);
             unregisterReceiver(mNotifyReceiver);
             unregisterReceiver(dataUpdateRecevice);
+            unregisterReceiver(timeReceiver);
+            unregisterReceiver(tdReceiver);
             if (netTimer != null) {
                 netTimer.cancel();
                 netTimer = null;
@@ -2376,9 +2399,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         identification = false;
         if (mFRAbsLoop != null) {
             mFRAbsLoop.shutdown();
-        }
-        if (liveLoop != null) {
-            liveLoop.shutdown();
         }
         AFT_FSDKError err = engine.AFT_FSDK_UninitialFaceEngine();
         Log.d(TAG, "AFT_FSDK_UninitialFaceEngine =" + err.getCode());
@@ -2925,9 +2945,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     break;
                 case MSG_FACE_DETECT_CONTRAST:
                     identification = true;
-                    if (liveLoop != null) {
-                        liveLoop.resumeThread();
-                    }
                     if (mFRAbsLoop != null) {
                         mFRAbsLoop.resumeThread();
                     }
@@ -2941,9 +2958,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                     faceHandler.removeMessages(MSG_FACE_DETECT_CONTRAST);
                     handler.removeMessages(START_FACE_CHECK);
                     identification = false;
-                    if (liveLoop != null) {
-                        liveLoop.pauseThread();
-                    }
                     if (mFRAbsLoop != null) {
                         mFRAbsLoop.pauseThread();
                     }
@@ -2975,22 +2989,19 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     @Override
     public void onPreviewFrame(byte[] bytes) {
         FSDKFaceList.clear();
-        engine.AFT_FSDK_FaceFeatureDetect(bytes,
+        AFT_FSDKError error = engine.AFT_FSDK_FaceFeatureDetect(bytes,
                 cameraHelperDex.getPrivWidth(),
                 cameraHelperDex.getPrivHeight(),
                 AFT_FSDKEngine.CP_PAF_NV21,
                 FSDKFaceList);
+        if(error.getCode()!=0){
+            return;
+        }
         if (mImageNV21 == null) {
             if (!FSDKFaceList.isEmpty()) {
                 mAFT_FSDKFace = FSDKFaceList.get(0).clone();
                 mImageNV21 = bytes.clone();
             }
-        }
-
-         if(liveLoop!=null && FSDKFaceList!=null && FSDKFaceList.size()>0){
-            listResult.clear();
-            listResult.addAll(FSDKFaceList);
-            liveLoop.putData(bytes,listResult);
         }
 
         if(faceViewavailable){
@@ -3053,29 +3064,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         AFT_FSDKError err = engine.AFT_FSDK_InitialFaceEngine(FaceDB.appid, FaceDB.ft_key, AFT_FSDKEngine.AFT_OPF_0_HIGHER_EXT, 16, 5);
         err = engine.AFT_FSDK_GetVersion(version);
         initIDCard();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                HttpApi.i("开始初始化活体检测");
-                long activeCode = mLivenessEngine.activeEngine(FaceDB.appid,
-                        FaceDB.live_key).getCode();
-                if(activeCode == ErrorInfo.MOK || activeCode == ErrorInfo.MERR_AL_BASE_ALREADY_ACTIVATED){
-                    HttpApi.i("活体检测初始化完成！");
-                    ErrorInfo error = mLivenessEngine.initEngine(LivenessEngine.AL_DETECT_MODE_IMAGE);
-                    if(error.getCode() == ErrorInfo.MOK){
-                        HttpApi.i("活体引擎initEngine成功，开启FRAbsLoop线程");
-                        liveLoop = new LiveLoop();
-                        liveLoop.start();
-                        mFRAbsLoop = new FRAbsLoop();
-                        mFRAbsLoop.start();
-                    }else{
-                        HttpApi.i("活体引擎initEngine错误，code = "+error.getCode());
-                    }
-                }else{
-                    HttpApi.i("活体检测初始化失败！code = "+activeCode);
-                }
-            }
-        });//.start();
 
         new Thread(new Runnable() {
             @Override
@@ -3218,106 +3206,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         return null;
     }
 
-    class LiveLoop extends AbsLoop{
-        private final Object lock = new Object();
-        private boolean pause = false;
-        private List<AFT_FSDKFace> afdData;
-        private byte [] byteData;
-        List<FaceInfo> faceInfos = new ArrayList<>();
-        List<LivenessInfo> livenessInfos = new ArrayList<>();
-        int liveness = -1;
-        int maxIndex = -1;
-        SimpleDateFormat myFmt=new SimpleDateFormat("yyyy年MM月dd日 HH时mm分ss秒");
-
-        public void putData(byte[] bdata,List<AFT_FSDKFace> adata){
-            if(afdData == null && byteData == null){
-                afdData = adata;
-                byteData = bdata;
-            }
-        }
-
-        void pauseThread() {
-            pause = true;
-        }
-
-        void resumeThread() {
-            pause = false;
-            synchronized (lock) {
-                lock.notifyAll();
-            }
-        }
-
-
-        void onPause() {
-            synchronized (lock) {
-                try {
-                    lock.wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-
-        @Override
-        public void setup() {
-
-        }
-
-        @Override
-        public void loop() {
-            while (pause) {
-                onPause();
-            }
-            if(afdData!=null && afdData.size()>0 && byteData!=null){
-                HttpApi.i("活体检测开始处理数据时间："+myFmt.format(new Date()));
-                maxIndex = ImageUtils.findFTMaxAreaFace(afdData); //选脸大的？
-                faceInfos.clear();
-                if(maxIndex != -1) {
-                    AFT_FSDKFace face = afdData.get(maxIndex);
-                    FaceInfo faceInfo = new FaceInfo(face.getRect(), face.getDegree());
-                    faceInfos.add(faceInfo);
-                }
-
-                livenessInfos.clear();
-                ErrorInfo livenessError = mLivenessEngine.startLivenessDetect(byteData,cameraHelperDex.getPrivWidth(), cameraHelperDex.getPrivHeight(),
-                        LivenessEngine.CP_PAF_NV21, faceInfos, livenessInfos);
-                liveness = -1;
-                if(livenessError.getCode() == ErrorInfo.MOK){
-                    if(livenessInfos.size() == 0){
-                        //没有人脸数据
-                    }else{
-                        liveness = livenessInfos.get(0).getLiveness();
-                        if(liveness == LivenessInfo.NOT_LIVE) {
-                            HttpApi.i("非活体");
-                        } else if(liveness == LivenessInfo.LIVE) {
-                            HttpApi.i("活体");
-                            if (mImageNV21 == null) {
-                                //HttpApi.i("活体且FRAbsLoop已经处于等待状态，发送数据给FRAbsLoop进行匹配");
-                                if (afdData!=null && afdData.size()>0) {
-                                    mAFT_FSDKFace = afdData.get(maxIndex).clone();
-                                    mImageNV21 = byteData.clone();
-                                }
-                            }
-                        } else if(liveness == LivenessInfo.MORE_THAN_ONE_FACE) {
-                            HttpApi.i("非单人脸信息");
-                        } else {
-                            HttpApi.i("未知");
-                        }
-                    }
-                }
-                afdData = null;
-                byteData = null;
-                HttpApi.i("活体检测一组数据处理完成时间："+myFmt.format(new Date()));
-            }
-
-        }
-
-        @Override
-        public void over() {
-
-        }
-    }
 
     class FRAbsLoop extends AbsLoop {
         SimpleDateFormat sdf=new SimpleDateFormat("yyyy年MM月dd日 HH时mm分ss秒");
@@ -3379,7 +3267,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 onPause();
             }
             if (mImageNV21 != null && identification) {
-                //HttpApi.i("开始时间："+sdf.format(new Date()));
                 resultLoop = new AFR_FSDKFace();
                 AFR_FSDKError error = engine.AFR_FSDK_ExtractFRFeature(mImageNV21, cameraHelperDex.getPrivWidth()
                                                 , cameraHelperDex.getPrivHeight()

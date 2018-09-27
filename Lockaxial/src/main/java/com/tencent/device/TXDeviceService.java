@@ -18,7 +18,9 @@ import com.tencent.device.barrage.BarrageContext;
 import com.tencent.device.barrage.BarrageMsg;
 import com.tencent.device.barrage.BarrageMsg.GroupMsg;
 import com.tencent.device.barrage.IBarrageListener;
+import com.tencent.devicedemo.MainActivity;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -28,6 +30,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.androidex.GetUserInfo.get_authinfo;
 
@@ -36,6 +39,7 @@ import static com.androidex.GetUserInfo.get_authinfo;
  */
 public class TXDeviceService extends Service {
     static String TAG = "TXDeviceService";
+    public static Map<String,String> userArray = new HashMap<>();
 
     static {
         try {
@@ -521,17 +525,41 @@ public class TXDeviceService extends Service {
     //收到DataPoint
     private void onReceiveDataPoint(long from, TXDataPoint[] arrayDataPoint) throws Exception {
         if (null == arrayDataPoint) {
-            Log.i(TAG, "onReceiveDataPoint: arrayDataPoint is null ");
             return;
         }
-
-        Log.i(TAG, "onReceiveDataPoint: from = " + from);
         for (int i = 0; i < arrayDataPoint.length; ++i) {
-            Log.i(TAG, "onReceiveDataPoint: " + arrayDataPoint[i].property_id + " " + arrayDataPoint[i].property_val + " " +
-                    arrayDataPoint[i].sequence + " " + arrayDataPoint[i].ret_code);
+            String val = arrayDataPoint[i].property_val;
+            try{
+                JSONObject j = new JSONObject(val);
+                if(j.has("out_list")){
+                    JSONArray outArray = j.getJSONArray("out_list");
+                    for(int ou =0;ou<outArray.length();ou++){
+                        String din = outArray.getJSONObject(ou).getString("din");
+                        userArray.remove(din);
+                    }
+                }
+                if(j.has("in_list")){
+                    JSONArray inArray = j.getJSONArray("in_list");
+                    for(int in = 0;in<inArray.length();in++){
+                        String din = inArray.getJSONObject(in).getString("din");
+                        userArray.put(din,din);
+                    }
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }
 
-            String strText = "收到DataPoint Property ID：" + arrayDataPoint[i].property_id + "   Property Value：" + arrayDataPoint[i].property_val;
-            showToastMessage(strText);
+            //Log.i(TAG, "onReceiveDataPoint: " + arrayDataPoint[i].property_id + " " + arrayDataPoint[i].property_val + " " +
+             //       arrayDataPoint[i].sequence + " " + arrayDataPoint[i].ret_code);
+
+            //String strText = "收到DataPoint Property ID：" + arrayDataPoint[i].property_id + "   Property Value：" + arrayDataPoint[i].property_val;
+            //showToastMessage(strText);
+        }
+
+        if(userArray.size()<=0){
+            sendBroadcast(new Intent(MainActivity.FACE_ACTIONB_START_ACTION)); //开启人脸
+        }else{
+            sendBroadcast(new Intent(MainActivity.FACE_ACTIONB_WAIT_ACTION)); //关闭人脸
         }
 
         Intent intent = new Intent();
@@ -550,14 +578,14 @@ public class TXDeviceService extends Service {
     private void onAckDataPointResult(int cookie, long u64UIN, int err_code) {
         String strLog = "onAckDataPointResult: cookie = " + cookie + " u64Uin = " + u64UIN + " err_code = " + err_code;
         Log.i(TAG, strLog);
-        showToastMessage(strLog);
+        //showToastMessage(strLog);
     }
 
     //reportDataPoint发送结果通知
     private void onReportDataPointResult(int cookie, int err_code) {
         String strLog = "onReportDataPointResult: cookie = " + cookie + " err_code = " + err_code;
         Log.i(TAG, strLog);
-        showToastMessage(strLog);
+        //showToastMessage(strLog);
     }
 
     //文件传输回调：进度信息
@@ -570,7 +598,7 @@ public class TXDeviceService extends Service {
         String extra_buffer = new String(info.buffer_extra);
         Log.i(TAG, "onTransferComplete: cookie = " + transfer_cookie + " err_code = " + err_code + " business_name:" + info.business_name + " extra_buffer:" + extra_buffer + "   file_path" + info.file_path);
         String strText = "收到文件，business_name:" + info.business_name + " extra_buffer:" + extra_buffer + "   file_path" + info.file_path;
-        showToastMessage(strText);
+        //showToastMessage(strText);
 
         Intent intent = new Intent();
         intent.setAction(TXDeviceService.voicereceive);
@@ -695,6 +723,7 @@ public class TXDeviceService extends Service {
     }
 
     private void callbackVideoMsg(String action, byte[] msg) {
+        Log.i(TAG,"callbackVideoMsg");
         Intent intent = new Intent();
         intent.setAction(action);
         intent.putExtra("msg", msg);
@@ -702,6 +731,7 @@ public class TXDeviceService extends Service {
     }
 
     public void startVideoChatActivity(long peerId) {
+        Log.i(TAG,"startVideoChatActivity");
         Intent intent = new Intent();
         intent.setAction(TXDeviceService.StartVideoChatActivity);
         intent.putExtra("peerid", peerId);
@@ -711,6 +741,7 @@ public class TXDeviceService extends Service {
     List<Intent> mPendingIntent = new ArrayList<Intent>();
 
     private void invokeVideoMsg(Intent intent) {
+        Log.i(TAG,"invokeVideoMsg");
         if (this.isVideoServiceRunning()) {
             sendBroadcast(intent);
         } else {

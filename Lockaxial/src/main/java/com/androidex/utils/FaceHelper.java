@@ -157,34 +157,34 @@ public class FaceHelper extends SQLiteOpenHelper {
                 List<FaceBean> resultArray = j.has("data")?handResult(j.getJSONArray("data")):null;
                 if(resultArray!=null && resultArray.size()>0){
                     for(int i=0;i<resultArray.size();i++){
-                        HttpApi.i("xiao_","服务器数据："+resultArray.get(i).faceName);
+                        //HttpApi.i("xiao_","服务器数据："+resultArray.get(i).faceName);
                     }
                 }else{
-                    HttpApi.i("xiao_","服务器数据 = null");
+                    //HttpApi.i("xiao_","服务器数据 = null");
                 }
                 List<FaceBean> dbArray = getAllFace();
                 if(dbArray!=null && dbArray.size()>0){
                     for(int i=0;i<dbArray.size();i++){
-                        HttpApi.i("xiao_","本地数据库数据："+dbArray.get(i).faceName);
+                       //HttpApi.i("xiao_","本地数据库数据："+dbArray.get(i).faceName);
                     }
                 }else{
-                    HttpApi.i("xiao_","本地数据库数据 = null");
+                    //HttpApi.i("xiao_","本地数据库数据 = null");
                 }
                 List<FaceBean> deleteArray = checkDelete(dbArray,resultArray);
                 if(deleteArray!=null && deleteArray.size()>0){
                     for(int i=0;i<deleteArray.size();i++){
-                        HttpApi.i("xiao_","需要删除的数据："+deleteArray.get(i).faceName);
+                        //HttpApi.i("xiao_","需要删除的数据："+deleteArray.get(i).faceName);
                     }
                 }else{
-                    HttpApi.i("xiao_","需要删除的数据= null");
+                    //HttpApi.i("xiao_","需要删除的数据= null");
                 }
                 List<FaceBean> addArray = checkAdd(dbArray,resultArray);
                 if(addArray!=null && addArray.size()>0){
                     for(int i=0;i<addArray.size();i++){
-                        HttpApi.i("xiao_","需要增加的数据："+addArray.get(i).faceName);
+                        //HttpApi.i("xiao_","需要增加的数据："+addArray.get(i).faceName);
                     }
                 }else{
-                    HttpApi.i("xiao_","需要增加的数据= null");
+                    //HttpApi.i("xiao_","需要增加的数据= null");
                 }
 
                 //删除
@@ -193,14 +193,14 @@ public class FaceHelper extends SQLiteOpenHelper {
                         ArcsoftManager.getInstance().mFaceDB.delete(deleteArray.get(i).loadName);
                         deleteByID(deleteArray.get(i).id);
                     }
-                    HttpApi.i("删除条目数："+deleteArray.size());
+                    //HttpApi.i("删除条目数："+deleteArray.size());
                 }
                 //增加
                 if(addArray!=null){
                     for(int i=0;i<addArray.size();i++){
                         insertData(addArray.get(i));
                     }
-                    HttpApi.i("增加条目数："+addArray.size());
+                    //HttpApi.i("增加条目数："+addArray.size());
                 }
             }
         }catch (Exception e){

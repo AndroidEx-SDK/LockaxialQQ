@@ -29,20 +29,20 @@ public class FaceDB {
     private final String TAG = this.getClass().toString();
 
     //人脸追踪V1.1
-    /*public static String appid = "F8FoZsZXFJTrbG1xtRY8ghqYi8UFqpAq9F7Nbo2v6jK8";//APPID
+    public static String appid = "F8FoZsZXFJTrbG1xtRY8ghqYi8UFqpAq9F7Nbo2v6jK8";//APPID
     public static String ft_key = "79kKgHjTgz27bkMMkKA8G6TjzSKnRN46cS7ad5JnQNdc";//人脸追踪(FT) Key :
     public static String fd_key = "79kKgHjTgz27bkMMkKA8G6Ts9qaxt7NsLEmKwBBH84TF";//人脸检测(FD) Key :
     public static String fr_key = "79kKgHjTgz27bkMMkKA8G6TzKEr6TYfhDa6UAuqxKK5r";//人脸识别(FR) Key :
     public static String age_key = "79kKgHjTgz27bkMMkKA8G6Uc8F9xjy9bcFCL3o9w8k6m";//年龄识别(Age) Key :
-    public static String gender_key = "79kKgHjTgz27bkMMkKA8G6UjHeRAg5TZNJ4u8sPEKj9m";//性别识别(Gender) Key :*/
+    public static String gender_key = "79kKgHjTgz27bkMMkKA8G6UjHeRAg5TZNJ4u8sPEKj9m";//性别识别(Gender) Key :
     //活体&人脸追踪V1.2
-    public static String appid = "5tRwAHgfkYt591qCkKDaFBY9u3rGjpystbvtu5uCwNoX";//APPID
+    /*public static String appid = "5tRwAHgfkYt591qCkKDaFBY9u3rGjpystbvtu5uCwNoX";//APPID
     public static String ft_key = "54EhMLGWcoy9Sk8AWYGtBidCaVm1xzxMEKiRYdfYVkig";//人脸追踪(FT) Key :
     public static String fd_key = "54EhMLGWcoy9Sk8AWYGtBidKju29XSH8uUgX8JMLmBCP";//人脸检测(FD) Key :
     public static String fr_key = "54EhMLGWcoy9Sk8AWYGtBidpPW4u4uFCfXUhMBUyos5n";//人脸识别(FR) Key :
     public static String age_key = "54EhMLGWcoy9Sk8AWYGtBie4iJbBjMQT5JUmjcoBPVk1";//年龄识别(Age) Key :
     public static String gender_key = "54EhMLGWcoy9Sk8AWYGtBieBshrLd6qz13yeHRP4fnpp";//性别识别(Gender) Key :
-    public static String live_key = "54EhMLGWcoy9Sk8AWYGtBiyCqUVrqA2LRHnSJaj7LdbA"; //活体检测识别（Live）key:
+    public static String live_key = "54EhMLGWcoy9Sk8AWYGtBiyCqUVrqA2LRHnSJaj7LdbA"; //活体检测识别（Live）key:*/
 
     String mDBPath;
     public List<FaceRegist> mRegister;
