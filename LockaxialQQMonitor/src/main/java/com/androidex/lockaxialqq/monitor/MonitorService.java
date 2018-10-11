@@ -28,17 +28,7 @@ public class MonitorService extends Service {
     private static final String PACKAGE_NAME = "com.tencent.devicedemo";
     private boolean isPullTime = false;
     private Context mContext;
-
-    private String Monitor_Broadcard = "com.androidex.lockaxial.MONITOR_ACTION";
-    private Handler mHandler = new Handler(){
-        @Override
-        public void handleMessage(Message msg) {
-            if(msg.what == 0x01){
-                mContext.sendBroadcast(new Intent(Monitor_Broadcard));
-                mHandler.sendEmptyMessageDelayed(0x01,1*1000);
-            }
-        }
-    };
+    private Handler mHandler = new Handler();
 
     private Runnable startMain = new Runnable() {
         @Override
@@ -46,7 +36,7 @@ public class MonitorService extends Service {
             try {
                 Intent intent = getBaseContext().getPackageManager()
                         .getLaunchIntentForPackage(PACKAGE_NAME);
-                //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 MonitorService.this.startActivity(intent);
             }catch (Exception e){
                 e.printStackTrace();
@@ -68,7 +58,6 @@ public class MonitorService extends Service {
         Log.i("xiao_","监控服务初始化"+myFmt.format(new Date()));
         TAG = UUID.randomUUID().toString();
         mContext = this;
-        mHandler.sendEmptyMessage(0x01);
         initCheckTopActivity();
     }
 
@@ -110,7 +99,7 @@ public class MonitorService extends Service {
             activityTimer.cancel();
             activityTimer = null;
         }
-        mHandler.removeMessages(0x01);
+        mHandler.removeCallbacksAndMessages(null);
     }
 
     private void showMsg(String msg){

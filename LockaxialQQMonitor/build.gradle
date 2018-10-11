@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 def buildVersionCode(){
-    return 3;
+    return 4;
 }
 
 def buildVersionName(){

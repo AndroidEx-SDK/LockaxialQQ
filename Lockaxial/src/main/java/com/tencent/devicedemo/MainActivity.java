@@ -400,7 +400,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         initHandler();
         initAexNfcReader();//初始化本地广播
         initServer();//初始化服务类
-        initTXD();
+        //initTXD();
         initQQReceiver();//初始化QQ物联广播
         initVoiceHandler();//
         //initVoiceVolume();//

@@ -998,6 +998,10 @@ public class MainService extends Service {
             handler.sendEmptyMessageDelayed(INIT_RTC_CLIENT,200);
             return;
         }
+        if(this.getApplicationContext() == null){
+            onInitRtcError();
+            return;
+        }
         rtcClient = new RtcClientImpl();
         rtcClient.initialize(this.getApplicationContext(), new ClientListener() {
             @Override   //初始化结果回调
@@ -2254,13 +2258,13 @@ public class MainService extends Service {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    if (rtcClient != null) {
-                        rtcClient.release();
-                        rtcClient = null;
-                    }
                     if (device != null) {
                         device.release();
                         device = null;
+                    }
+                    if (rtcClient != null) {
+                        rtcClient.release();
+                        rtcClient = null;
                     }
                     rtcFreed = true;
                 }
@@ -2284,11 +2288,15 @@ public class MainService extends Service {
                 HttpApi.i("网络断开，网络不可用或服务器错误，应限制呼叫");
             } else if (result == RtcConst.CallCode_Timeout) {
                 RTC_AVAILABLE = false;
-                onConnectTimeout();
+                onReConnectRTC();
                 HttpApi.i("登录超时，应限制呼叫");
+            }else if(result == RtcConst.CallCode_Forbidden){
+                RTC_AVAILABLE = false;
+                onReConnectRTC();
+                HttpApi.i("密码错误 需重新获取token重新登录，应限制呼叫");
             } else if (result == RtcConst.ChangeNetwork) {
-                HttpApi.i("网络切换了，可以继续呼叫");
                 RTC_AVAILABLE = true;
+                HttpApi.i("网络切换了，可以继续呼叫");
                 //changeNetWork();
             } else if (result == RtcConst.PoorNetwork) {
                 RTC_AVAILABLE = true;
@@ -2297,20 +2305,18 @@ public class MainService extends Service {
             } else if (result == RtcConst.ReLoginNetwork) {
                 RTC_AVAILABLE = false;
                 HttpApi.i("重连失败应用可以选择重新登录，应限制呼叫");
-                // 网络原因导致多次登陆不成功，由用户选择是否继续，如想继续尝试，可以重建device
-                //onConnectError();
+                onReConnectRTC();
             } else if (result == RtcConst.DeviceEvt_KickedOff) {
                 RTC_AVAILABLE = false;
+                onReConnectRTC();
                 HttpApi.i("同一账号在另一同类型终端登录，应限制呼叫");
-                // 被另外一个终端踢下线，由用户选择是否继续，如果再次登录，需要重新获取token，重建device
-                //onConnectError();
             } else if (result == RtcConst.DeviceEvt_MultiLogin) {
                 RTC_AVAILABLE = true;
                 HttpApi.i("同一账号在不同类型终端登录，不影响呼叫");
             } else {
                 //  CommFunc.DisplayToast(MyApplication.this, "注册失败:"+result);
                 RTC_AVAILABLE = false;
-                HttpApi.i("未匹配到任何结果");
+                HttpApi.i("未匹配到任何结果"+result);
             }
         }
 
@@ -2344,10 +2350,10 @@ public class MainService extends Service {
             onConnectError();
         }
 
-        private void onConnectTimeout() {
+        private void onReConnectRTC() {
             //onConnectError();
             rtcLogout();
-            rtcConnectTimeout();
+            onConnectRTC();
         }
 
         private void changeNetWork() {
@@ -2419,7 +2425,7 @@ public class MainService extends Service {
         }
     };
 
-    private void rtcConnectTimeout() {
+    private void onConnectRTC() {
         initRtcClient();
     }
 
