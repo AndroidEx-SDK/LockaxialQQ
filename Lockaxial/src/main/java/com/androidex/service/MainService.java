@@ -418,10 +418,7 @@ public class MainService extends Service {
                     startChangeCardComplete(cardListSuccess, cardListFailed);
                 } else if (msg.what == MSG_FACE_OPENLOCK) {
                     openLock(0);
-                    HttpApi.i("===========================");
-                    HttpApi.i("人脸识别开门");
                     String loadName = (String) msg.obj;
-                    HttpApi.i("加载名字："+loadName);
                     int userid = -1;
                     String iu = "";
                     if(loadName!=null && loadName.length()>0){

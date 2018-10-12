@@ -864,7 +864,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         Bitmap bitmap = null;
         try {
             //生成一个可以绑定设备的二维码
-            Log.d("mainactivity", GetUserInfo.getSn(this));
+            //Log.d("mainactivity", GetUserInfo.getSn(this));
             bitmap = Zxing.createQRImage("http://iot.qq.com/add?pid=1700003316&sn=" + GetUserInfo.getSn(this), 200, 200, null);
             if (bitmap == null) {
                 options = new DisplayImageOptions.Builder()
@@ -875,13 +875,13 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         .build();
 
                 BaseApplication.getApplication().getImageLoader().displayImage("http://www.tyjdtzjc.cn/resource/kindeditor/attached/image/20150831/20150831021658_90595.png", imageView, options);
-                Log.i("xiao_", "未生成QQ二维码");
+                //Log.i("xiao_", "未生成QQ二维码");
             } else {
                 imageView.setImageBitmap(bitmap);
-                Log.i("xiao_", "生成二维码");
+                //Log.i("xiao_", "生成二维码");
             }
         } catch (Exception e) {
-            Log.i("xiao_", "生成QQ二维码出错");
+            //Log.i("xiao_", "生成QQ二维码出错");
             if (bitmap == null) {
                 options = new DisplayImageOptions.Builder()
                         .showImageOnFail(R.mipmap.fail)
@@ -914,15 +914,8 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     protected void initScreen() {
-        //callLayout=(LinearLayout) findViewById(R.id.call_pane);
-        //guestLayout=(LinearLayout) findViewById(R.id.guest_pane);
         headPaneTextView = (TextView) findViewById(R.id.header_pane);
         videoLayout = (LinearLayout) findViewById(R.id.ll_video);
-
-//        videoPane = (LinearLayout) findViewById(R.id.video_pane);
-//        imagePane = (LinearLayout) findViewById(R.id.image_pane);
-//        remoteLayout = (LinearLayout) findViewById(R.id.ll_remote);
-
         setTextView(R.id.tv_community, MainService.communityName);
         setTextView(R.id.tv_lock, MainService.lockName);
     }
@@ -938,7 +931,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 String dateStr = dateFormat.format(now);
                 dateFormat = new SimpleDateFormat("HH:mm");
                 String timeStr = dateFormat.format(now);
-
                 setTextView(R.id.tv_day, dayStr);
                 setTextView(R.id.tv_date, dateStr);
                 setTextView(R.id.tv_time, timeStr);
@@ -947,7 +939,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     protected void initAutoCamera() {
-        Log.v("MainActivity", "initAutoCamera-->");
         autoCameraSurfaceView = (SurfaceView) findViewById(R.id.autoCameraSurfaceview);
         autoCameraHolder = autoCameraSurfaceView.getHolder();
         autoCameraHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
@@ -959,7 +950,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
         videoView = (SurfaceView) findViewById(R.id.surface_view);
         imageView = (ImageView) findViewById(R.id.image_view);
-        Log.v("UpdateAdvertise", "------>start Update Advertise<------");
         advertiseHandler.init(videoView, imageView);
         adverErrorCallBack = new AdverErrorCallBack() {
             @Override
@@ -1125,11 +1115,11 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                         return;
                     }
                     if (faceHandler != null && mCamerarelease && previewView!=null) {
-                        HttpApi.e("ppp","相机释放完成，启动人脸");
+                        //HttpApi.e("ppp","相机释放完成，启动人脸");
                         handler.removeMessages(START_FACE_CHECK);
                         faceHandler.sendEmptyMessageDelayed(MSG_FACE_DETECT_CONTRAST, 1000);
                     }else{
-                        HttpApi.e("ppp","相机未释放，继续等待");
+                        //HttpApi.e("ppp","相机未释放，继续等待");
                         handler.sendEmptyMessageDelayed(START_FACE_CHECK,200);
                     }
                 }else if(msg.what == RE_SYNC_SYSTEMTIME){
@@ -1233,9 +1223,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                 Utils.DisplayToast(MainActivity.this, "密码验证不成功，请联系管理员");
             }
         }
-        //HttpApi.i("密码验证成功，启动人脸");
-        //开启人脸
-        //HttpApi.i("ppp","密码验证成功，启动人脸");
         handler.sendEmptyMessage(START_FACE_CHECK);
     }
 
@@ -2402,19 +2389,9 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         }
         AFT_FSDKError err = engine.AFT_FSDK_UninitialFaceEngine();
         Log.d(TAG, "AFT_FSDK_UninitialFaceEngine =" + err.getCode());
-
-//        ASAE_FSDKError err1 = mAgeEngine.ASAE_FSDK_UninitAgeEngine();
-//        Log.d(TAG, "ASAE_FSDK_UninitAgeEngine =" + err1.getCode());
-//
-//        ASGE_FSDKError err2 = mGenderEngine.ASGE_FSDK_UninitGenderEngine();
-//        Log.d(TAG, "ASGE_FSDK_UninitGenderEngine =" + err2.getCode());
         if (faceHandler != null) {
             faceHandler.removeCallbacksAndMessages(null);
         }
-//        if (faceThread != null) {
-//            faceThread.quit();
-//        }
-
         if (mSerialPort != null) {
             mSerialPort.onDestroy();
             mSerialPort.close();
@@ -3274,7 +3251,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                                                 , mAFT_FSDKFace.getRect()
                                                 , mAFT_FSDKFace.getDegree()
                                                 , resultLoop); //抽帧提取特征
-                //HttpApi.i("特征提取完成时间："+sdf.format(new Date()));
                 if(error.getCode() != 0){
                     mImageNV21 = null;
                     return;

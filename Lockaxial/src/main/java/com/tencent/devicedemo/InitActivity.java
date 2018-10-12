@@ -301,6 +301,8 @@ public class InitActivity extends AndroidExActivityBase {
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             onKeyDown(event);
+            //keyVoice();
+        }else if(event.getAction() == KeyEvent.ACTION_UP){
             keyVoice();
         }
         return false;
