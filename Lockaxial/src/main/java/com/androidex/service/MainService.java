@@ -3644,7 +3644,8 @@ public class MainService extends Service {
         String url = DeviceConfig.UPDATE_SERVER_URL
                 + folder
                 + DeviceConfig.UPDATE_RELEASE_PACKAGE
-                + "?version="+BuildConfig.VERSION_NAME;
+                + "?version="+BuildConfig.VERSION_NAME
+                + "&mac="+getMac();
                 //+ BuildConfig.VERSION_NAME;
         HttpApi.i("版本更新路径："+url);
         try {

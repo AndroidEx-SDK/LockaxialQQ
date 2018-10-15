@@ -17,7 +17,7 @@ public class DeviceConfig {
     public static final String USER_A0000000 = "A000000";//通用
     public static final String USER_A0000001 = "A000001";//北京马总
     public static final String USER_A0000002 = "A000002";//维拓智能（背景不一致）
-    public static final String USER_ID = USER_A0000000;
+    public static final String USER_ID = USER_A0000001;
     public static int RELEASE_VERSION_WAIT_TIME=1000*60*1;
     public static int RELEASE_VERSION_UPDATE_TIME=3;
     public static final String TARGET_PACKAGE_NAME="com.tencent.devicedemo";
