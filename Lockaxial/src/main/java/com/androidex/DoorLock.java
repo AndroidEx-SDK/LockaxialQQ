@@ -17,6 +17,7 @@ import com.androidex.plugins.kkfile;
 import com.tencent.device.TXDataPoint;
 import com.tencent.device.TXDeviceService;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -144,6 +145,14 @@ public class DoorLock extends Service implements OnBackCall {
         String rkeyDev = "/dev/rkey";
         int ident = 0;
 
+        public boolean FileExists(String plainFilePath){
+            File file=new File(plainFilePath);
+            if(!file.exists()) {
+                return false;
+            } else{
+                return true;
+            }
+        }
         /**
          * 开门指令
          *
@@ -152,12 +161,19 @@ public class DoorLock extends Service implements OnBackCall {
          * @return 大于0表示成功, 实际上等于9表示真正的成功, 因为返回值表示写入的数据, 开门指令长度为9.
          */
         public int openDoor(int index, int delay) {
+            int r = 0;
+
             kkfile rkey = new kkfile();
             if (index < 0 || index > 0xFE) index = 0;
             if (ident < 0 || ident > 0xFE) ident = 0;
             if (delay < 0 || delay > 0xFE) delay = 0;
-            String cmd = String.format("FB%02X2503%02X01%02X00FE", ident, index, delay);
-            int r = rkey.native_file_writeHex(rkeyDev, cmd);
+            if(FileExists("/dev/ttySV0")){
+                String cmd = String.format("FB%02X5003%02X01%02X00FE", ident, index, delay);
+                r = rkey.native_file_writeHex("/dev/ttySV0", cmd);
+            }else {
+                String cmd = String.format("FB%02X2503%02X01%02X00FE", ident, index, delay);
+                r = rkey.native_file_writeHex(rkeyDev, cmd);
+            }
 
             if (r > 0) {
                 SoundPoolUtil.getSoundPoolUtil().loadVoice(getBaseContext(), 011111);
