@@ -9,11 +9,10 @@ def buildVersionName(){
 }
 
 android {
-    android.applicationVariants.all {
-        variant ->
-            variant.outputs.each {
-                output -> output.outputFile = new File(output.outputFile.parent, "monitor.${buildVersionName()}.apk");
-            }
+    android.applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "monitor.${buildVersionName()}.apk"
+        }
     }
 
 
