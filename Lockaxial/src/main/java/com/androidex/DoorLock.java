@@ -168,16 +168,23 @@ public class DoorLock extends Service implements OnBackCall {
             if (ident < 0 || ident > 0xFE) ident = 0;
             if (delay < 0 || delay > 0xFE) delay = 0;
             if(FileExists("/dev/ttySV0")){
+                Log.i("zhs","test_r00" + r);
                 String cmd = String.format("FB%02X5003%02X01%02X00FE", ident, index, delay);
                 r = rkey.native_file_writeHex("/dev/ttySV0", cmd);
+                Log.i("zhs","test_r01" + r);
             }else {
+                Log.i("zhs","test_r10" + r);
                 String cmd = String.format("FB%02X2503%02X01%02X00FE", ident, index, delay);
                 r = rkey.native_file_writeHex(rkeyDev, cmd);
+                Log.i("zhs","test_r11" + r);
             }
 
             if (r > 0) {
                 SoundPoolUtil.getSoundPoolUtil().loadVoice(getBaseContext(), 011111);
             }
+
+            Log.i("zhs","test_r" + r);
+
             return r > 0 ? 1 : 0;
         }
 
