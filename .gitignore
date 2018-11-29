@@ -5,3 +5,4 @@ build
 *.propertie
 .gradle/
 local.properties
+qqDoorlock.jar
