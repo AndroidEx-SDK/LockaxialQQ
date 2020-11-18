@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Environment;
 
 import com.androidex.config.DeviceConfig;
+import com.androidex.service.MainService;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -98,7 +99,6 @@ public class HttpUtils {
         }
         return localFile;
     }
-
     public static String downloadFile(Context context,String url, String fileName)throws Exception {
         File file = null;
         OutputStream output=null;

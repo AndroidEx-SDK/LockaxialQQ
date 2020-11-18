@@ -3,11 +3,12 @@ package com.androidex.service;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.app.DownloadManager;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.media.AudioManager;
@@ -43,7 +44,9 @@ import com.tencent.device.barrage.ToastUtils;
 import com.tencent.devicedemo.BaseApplication;
 import com.tencent.devicedemo.BuildConfig;
 import com.tencent.devicedemo.InitActivity;
+import com.tencent.devicedemo.Logger;
 import com.tencent.devicedemo.MainActivity;
+import com.tencent.devicedemo.interfac.JPushMessage;
 import com.util.Constant;
 import com.util.InstallUtil;
 import com.util.ShellUtils;
@@ -76,7 +79,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -87,7 +89,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -98,6 +99,7 @@ import java.util.TimerTask;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import cn.jpush.android.api.JPushInterface;
 import jni.http.HttpManager;
 import jni.http.HttpResult;
 import jni.http.RtcHttpClient;
@@ -137,7 +139,6 @@ import static com.util.Constant.MSG_LOCK_OPENED;
 import static com.util.Constant.MSG_PASSWORD_CHECK;
 import static com.util.Constant.MSG_REFRESH_COMMUNITYNAME;
 import static com.util.Constant.MSG_REFRESH_DATA;
-import static com.util.Constant.MSG_RTC_MESSAGE;
 import static com.util.Constant.MSG_REFRESH_LOCKNAME;
 import static com.util.Constant.MSG_RTC_DISCONNECT;
 import static com.util.Constant.MSG_RTC_NEWCALL;
@@ -145,13 +146,12 @@ import static com.util.Constant.MSG_RTC_ONVIDEO;
 import static com.util.Constant.ON_YUNTONGXUN_INIT_ERROR;
 import static com.util.Constant.ON_YUNTONGXUN_LOGIN_FAIL;
 import static com.util.Constant.ON_YUNTONGXUN_LOGIN_SUCCESS;
-import static com.util.Constant.RE_INIT_RTC_CLIENT;
 import static com.util.Constant.START_FACE_CHECK;
 
 /**
  * 程序的主要后台服务
  */
-public class MainService extends Service {
+public class MainService extends Service implements JPushMessage {
     private static final String TAG = "MainService";
     public static final String ETH0_MAC_ADDR = "/sys/class/net/eth0/address";
     public static final int SZ_SECURITY_LEVEL = (3);
@@ -277,7 +277,7 @@ public class MainService extends Service {
     private int fingerDetectStatus = 0;
     private int fingerDetectSteps = 0;
     private boolean fingerDetectResult = false;
-
+    Receiver receiver;
     private int lastVersion = 0;
     private String lastVersionFile = "";
     private String lastVersionStatus = "L"; //L: last version N: find new version D：downloading P: pending to install I: installing
@@ -321,9 +321,14 @@ public class MainService extends Service {
         faceHelper = new FaceHelper(this);
         initHandler();
         initUpdateHandler();//开启版本检测更新，一个小时监测一次
+        resume();
     }
-
-
+    //动态注册广播
+    public void resume(){
+        receiver = new Receiver();
+        IntentFilter intentFilter = new IntentFilter("com.androidex.service");
+        registerReceiver(receiver,intentFilter);
+    }
     protected void initHandler() {
         handler = new Handler() {
             @Override
@@ -333,6 +338,7 @@ public class MainService extends Service {
                     initMessenger = msg.replyTo;
                     init();
                     HttpApi.i("MainServic开始初始化");
+                    //public static String getRegistrationID(Context context)
                 } else if (msg.what == REGISTER_ACTIVITY_DIAL) {  //MainActivity初始化入口
                     startRongyun(); //允许被多次调用
                     //retrieveCardList(); //注册门卡信息
@@ -392,7 +398,10 @@ public class MainService extends Service {
                 } else if (msg.what == MSG_CHECK_NETWORK) {
                     checkNetwork();
                 } else if (msg.what == MSG_START_INIT) {
+                    //进入在线版本
                     initWhenConnected();
+                    //进行极光初始化
+                   JPush();
                 } else if (msg.what == MSG_START_OFFLINE) {
                     initWhenOffline();
                 } else if (msg.what == MSG_CHECK_WIFI) {
@@ -480,6 +489,7 @@ public class MainService extends Service {
                     HttpApi.i("网络波动" + netWorkstate);
                     if (netWorkstate) {
                         initWhenConnected(); //开始在线版本
+                        JPush();
                     } else {
                         initWhenOffline(); //开始离线版本
                     }
@@ -770,6 +780,50 @@ public class MainService extends Service {
                 }
             }
         }, 500, 3000);
+    }
+    /**
+     * 声明管理对象
+     */
+    private WifiInfo wifiInfo;
+    /**
+     *
+     * 进行极光登录初始化,进行初始化请求，
+     */
+    public void JPush(){
+        JPushInterface.init(getApplicationContext());
+        String rid = JPushInterface.getRegistrationID(getApplicationContext());
+        //MAC获取
+        String Mac =  getWifiMac();
+        if (!Mac.isEmpty()) {
+            if (!rid.isEmpty()) {
+                Logger.i("RegId:", rid);
+                System.out.println("RegId1:      ---------------------------------      " + rid);
+                jpushRidMac(Mac, rid);
+            } else {
+                Logger.i("JPush", "Get registration fail, JPush init failed!");
+            }
+        }else {
+            Logger.e("Mac地址为空:", rid);
+        }
+    }
+    /**
+     * 进行接口请求传入极光rid和本机MAC地址
+     */
+    private void jpushRidMac(String Mac,String rid){
+        String url = DeviceConfig.SERVER_URL + "/updataRegistrationId?lockMac=" + Mac+"&registrationId="+rid;
+        System.out.println("极光地址："+url);
+        HttpApi.getInstance().loadHttpforGet(url, httpServerToken, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+            }
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if(response.isSuccessful()){
+                    String result = response.body().string();
+                    HttpApi.i("rid传入接口返回："+result);
+                }
+            }
+        });
     }
 
     /**
@@ -1439,6 +1493,8 @@ public class MainService extends Service {
     protected void onLogin(Message msg) {
         JSONObject result = (JSONObject) msg.obj;
         Log.i("xiao_","设备登录结果："+result);
+        //登陆成功调用极光接口
+        JPush();
         try {
             int code = result.getInt("code");
             JSONObject user = null;
@@ -2530,8 +2586,10 @@ public class MainService extends Service {
         }
     }
 
+
     private long appLastTime = 0;
-    protected void onMessage(String from, String mime, String content) {
+
+    public void onMessage(String from, String mime, String content) {
         HttpApi.i("from = " + from + "    mime = " + mime + "     content = " + content);
         if(!content.startsWith("reject call") && !content.startsWith("open the door")){
             sendDialMessenger(START_FACE_CHECK, null);
@@ -2613,6 +2671,7 @@ public class MainService extends Service {
                 handler.removeMessages(INIT_FACE_MESSAGE);
                 initFaceData();
             }
+            initFaceData();
         }else if(content.equals("device reboot")){
             new Thread(new Runnable() {
                 @Override
@@ -2780,6 +2839,7 @@ public class MainService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(receiver);
         Log.v("MainService", "onDestroy()");
         if (activityTimer != null) {
             activityTimer.cancel();
@@ -2815,6 +2875,7 @@ public class MainService extends Service {
         if (aexUtil != null) {
             aexUtil.close();
         }
+
     }
 
     protected void initConnectReport() {
@@ -2947,9 +3008,9 @@ public class MainService extends Service {
 
     private boolean isRegisterFace = false;
     private void initFaceData(){
-        if(isRegisterFace){
-            return;
-        }
+//        if(isRegisterFace){
+//            return;
+//        }
         isRegisterFace = true;
         String url = DeviceConfig.SERVER_URL + "/app/rfid/getFaceDataByLockid?lockid=" + this.lockId;
         HttpApi.getInstance().loadHttpforGet(url, httpServerToken, new Callback() {
@@ -3629,7 +3690,6 @@ public class MainService extends Service {
 
     //版本更新
     protected void checkNewVersion() {
-
         String folder;
         if(DeviceConfig.USER_ID.equals(DeviceConfig.USER_A0000000)){
             folder = DeviceConfig.UPDATE_RELEASE_FOLDER_1;
@@ -3640,7 +3700,6 @@ public class MainService extends Service {
         }else{
             folder = DeviceConfig.UPDATE_RELEASE_FOLDER_1;
         }
-
         String url = DeviceConfig.UPDATE_SERVER_URL
                 + folder
                 + DeviceConfig.UPDATE_RELEASE_PACKAGE
@@ -3947,9 +4006,19 @@ public class MainService extends Service {
     protected synchronized void setDownloadingFlag(int flag) {
         downloadingFlag = flag;
     }
-
     protected synchronized int getDownloadingFlag() {
         return downloadingFlag;
+    }
+    //创建接收器，转收极光消息
+    public class Receiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if(intent.getAction().equals("com.androidex.service")){
+                String messge = intent.getStringExtra("message");
+                System.out.println("内部消息接收！"+MainActivity.KEY_MESSAGE+" : "+messge+ "\n");
+                onMessage("","",messge);
+            }
+        }
     }
 }
 

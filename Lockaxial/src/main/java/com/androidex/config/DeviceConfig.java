@@ -7,7 +7,7 @@ import com.tencent.devicedemo.BuildConfig;
  */
 public class DeviceConfig {
     /********residential*****/
-    public static final String SERVER_URL="http://www.lockaxial.com";
+    public static final String SERVER_URL="http://www.lockaxial.com";//http://www.lockaxial.com
 	public static final String UPDATE_SERVER_URL="http://www.lockaxial.com";
     public static final String UPDATE_RELEASE_FOLDER_1="/release/doorAccessMachine/v1/"; //A000000类用户目录
     public static final String UPDATE_RELEASE_FOLDER_2="/release/doorAccessMachine/v2/"; //A000001类用户目录

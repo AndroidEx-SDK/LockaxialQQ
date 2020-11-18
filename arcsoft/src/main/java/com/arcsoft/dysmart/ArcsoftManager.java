@@ -37,7 +37,7 @@ public class ArcsoftManager {
     public FaceDB mFaceDB;
 //    public Uri mImage;
 
-    public void initArcsoft(Application application) {
+    public String initArcsoft(Application application) {
         //String path = application.getExternalCacheDir().getPath();
         String path = application.getFilesDir().getPath()+"/face";
         Log.v(FACE_TAG, "initArcsoft-->" + path);
@@ -45,6 +45,7 @@ public class ArcsoftManager {
 //        mImage = null;
 
         SharedPreferencesUtil.getInstance(application, "share_dysmart");
+        return path;
     }
 
 //    public void setCaptureImage(Uri uri) {

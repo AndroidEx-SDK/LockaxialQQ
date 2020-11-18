@@ -21,6 +21,8 @@ import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 
 import java.io.File;
 
+import cn.jpush.android.api.JPushInterface;
+
 /**
  * Created by xinshuhao on 16/7/24.
  */
@@ -29,7 +31,7 @@ public class BaseApplication extends Application implements Thread.UncaughtExcep
     private DisplayImageOptions options;
     private static BaseApplication application;
     private HttpUtils httpUtils;
-
+    public  static String path;
     @Override
     public void onCreate() {
         // setStrictMode();
@@ -42,7 +44,9 @@ public class BaseApplication extends Application implements Thread.UncaughtExcep
 
         initImageLoader();
 
-        ArcsoftManager.getInstance().initArcsoft(this);
+        initJPush();
+
+        path = ArcsoftManager.getInstance().initArcsoft(this);
 
         super.onCreate();
     }
@@ -51,6 +55,7 @@ public class BaseApplication extends Application implements Thread.UncaughtExcep
         return application;
     }
 
+
     public void initHttp() {
         httpUtils = new HttpUtils("utf-8");
         httpUtils.configRequestThreadPoolSize(5);
@@ -58,6 +63,18 @@ public class BaseApplication extends Application implements Thread.UncaughtExcep
         httpUtils.configResponseTextCharset("utf-8");
         httpUtils.configRequestRetryCount(3);
     }
+    //初始化极光
+    public  void initJPush(){
+       try{
+           JPushInterface.setDebugMode(true); 	// 设置开启日志,发布时请关闭日志
+           JPushInterface.init(this);     		// 初始化 JPush
+           System.out.println("极光注册成功");
+       }catch (Exception e){
+           Logger.e("极光注册失败！",e.getMessage());
+       }
+
+    }
+
 
     private void initImageLoader() {
         imageLoader = ImageLoader.getInstance();

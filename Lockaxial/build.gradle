@@ -107,4 +107,6 @@ dependencies {
     compile 'com.squareup.okhttp3:okhttp:3.8.1'
     compile project(':arcsoft')
     compile project(':synjones')
+    implementation files('libs/jcore-android-2.5.5.jar')
+    implementation files('libs/jpush-android-3.8.6.jar')
 }

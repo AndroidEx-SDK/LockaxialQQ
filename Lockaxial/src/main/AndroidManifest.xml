@@ -5,6 +5,21 @@
           android:sharedUserId="android.uid.system">
     <!-- android:sharedUserId="android.uid.system" -->
 
+    <!-- 极光配置文件 -->
+    <permission
+        android:name="com.tencent.devicedemo.permission.JPUSH_MESSAGE"
+        android:protectionLevel="signature" />
+    <!-- 极光所需的异同权限配置 -->
+    <uses-permission android:name="com.tencent.devicedemo.permission.JPUSH_MESSAGE" />
+    <uses-permission android:name="android.permission.RECEIVE_USER_PRESENT" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+
     <uses-permission
         android:name="android.permission.REBOOT"
         android:protectionLevel="signatureOrSystem" />
@@ -58,7 +73,7 @@
     <uses-permission android:name="android.permission.GET_TASKS" />
     <!--// 允许应用程序修改全局声音设置的权限&lt;!&ndash;&ndash;&gt;-->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    <!--// 允许使用PowerManager的WakeLocks保持进程在休眠时从屏幕消失&lt;!&ndash;-->-->
+    <!--// 允许使用PowerManager的WakeLocks保持进程在休眠时从屏幕消失&lt;!&ndash;-->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!--// 允许请求访问使用照相设备(如果使用视频通话则必选配置)-->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -100,6 +115,132 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme">
+
+
+        <!-- 极光 SDK 核心功能-->
+        <!-- 可配置 android:process 参数将 PushService 放在其他进程中 -->
+        <service
+            android:name="com.tencent.devicedemo.PushService"
+            android:enabled="true"
+            android:exported="false" >
+            <intent-filter>
+                <action android:name="cn.jpush.android.intent.REGISTER" />
+                <action android:name="cn.jpush.android.intent.REPORT" />
+                <action android:name="cn.jpush.android.intent.PushService" />
+                <action android:name="cn.jpush.android.intent.PUSH_TIME" />
+            </intent-filter>
+        </service>
+
+        <!-- since 3.0.9 Required SDK 核心功能-->
+        <provider
+            android:authorities="com.tencent.devicedemo.DataProvider"
+            android:name="cn.jpush.android.service.DataProvider"
+            android:exported="true"
+            />
+        <!-- since 3.1.0 Required SDK 核心功能-->
+        <provider
+            android:authorities="com.tencent.devicedemo.DownloadProvider"
+            android:name="cn.jpush.android.service.DownloadProvider"
+            android:exported="true"
+            />
+        <!-- Required SDK 核心功能-->
+        <receiver
+            android:name="cn.jpush.android.service.PushReceiver"
+            android:enabled="true" >
+            <intent-filter android:priority="1000">
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_RECEIVED_PROXY" />
+                <category android:name="com.tencent.devicedemo"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+            </intent-filter>
+            <!-- Optional -->
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_ADDED" />
+                <action android:name="android.intent.action.PACKAGE_REMOVED" />
+                <data android:scheme="package" />
+            </intent-filter>
+        </receiver>
+        <!-- Required SDK 核心功能-->
+        <activity
+            android:name="cn.jpush.android.ui.PushActivity"
+            android:configChanges="orientation|keyboardHidden"
+            android:theme="@android:style/Theme.NoTitleBar"
+            android:exported="false" >
+            <intent-filter>
+                <action android:name="cn.jpush.android.ui.PushActivity" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="com.tencent.devicedemo" />
+            </intent-filter>
+        </activity>
+        <!-- SDK 核心功能-->
+        <activity
+            android:name="cn.jpush.android.ui.PopWinActivity"
+            android:configChanges="orientation|keyboardHidden"
+            android:exported="false"
+            android:theme="@style/MyDialogStyle">
+            <intent-filter>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="com.tencent.devicedemo" />
+            </intent-filter>
+        </activity>
+
+        <!--since 3.3.0 Required SDK核心功能-->
+        <activity
+            android:name="cn.jpush.android.service.JNotifyActivity"
+            android:exported="false"
+            android:taskAffinity="jpush.custom"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="cn.jpush.android.intent.JNotifyActivity" />
+                <category android:name="com.tencent.devicedemo" />
+            </intent-filter>
+        </activity>
+         Required SDK 核心功能
+        <!--<service-->
+            <!--android:name="cn.jpush.android.service.DownloadService"-->
+            <!--android:enabled="true"-->
+            <!--android:exported="false" >-->
+        <!--</service>-->
+        <!-- Required SDK 核心功能-->
+        <receiver android:name="cn.jpush.android.service.AlarmReceiver" />
+        <!-- Required since 3.0.7 -->
+        <!-- 自定义 Receiver 组件，继承cn.jpush.android.service.WakedResultReceiver类,复写onWake(int wakeType)或 onWake(Context context, int wakeType)方法以监听被拉起 -->
+
+
+        <receiver android:name="com.tencent.devicedemo.PushMessageReceiver">
+            <intent-filter>
+                <action android:name="cn.jpush.android.intent.RECEIVE_MESSAGE" />
+                <category android:name="com.tencent.devicedemo"></category>
+            </intent-filter>
+        </receiver>
+        <!--<receiver android:name="com.tencent.devicedemo.MainActivity$MessageReceiver">-->
+            <!--<intent-filter>-->
+                <!--<action android:name="cn.jpush.android.intent.RECEIVE_MESSAGE" />-->
+                <!--<category android:name="com.tencent.devicedemo"></category>-->
+            <!--</intent-filter>-->
+        <!--</receiver>-->
+
+        <!-- Required. For publish channel feature -->
+        <!-- JPUSH_CHANNEL 是为了方便开发者统计 APK 分发渠道。-->
+        <!-- 发到其他市场的 APK 可以设置为 xxx-market。 -->
+        <meta-data android:name="JPUSH_CHANNEL" android:value="default_developer"/>
+        <!-- Required. AppKey copied from Portal -->
+        <meta-data android:name="JPUSH_APPKEY" android:value="40e338cc93db5ba22ab86e72"/>
+        <!-- User defined.  For test only  用户自定义的广播接收器-->
+        <receiver
+            android:name="com.tencent.devicedemo.MyReceiver"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="cn.jpush.android.intent.REGISTRATION" /> <!--Required  用户注册SDK的intent-->
+                <action android:name="cn.jpush.android.intent.MESSAGE_RECEIVED" /> <!--Required  用户接收SDK消息的intent-->
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_RECEIVED" /> <!--Required  用户接收SDK通知栏信息的intent-->
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_OPENED" /> <!--Required  用户打开自定义通知栏的intent-->
+                <action android:name="cn.jpush.android.intent.CONNECTION" /><!-- 接收网络变化 连接/断开 since 1.6.3 -->
+                <category android:name="com.tencent.devicedemo" />
+            </intent-filter>
+        </receiver>
 
         <meta-data
             android:name="SUPERID_APPKEY"
