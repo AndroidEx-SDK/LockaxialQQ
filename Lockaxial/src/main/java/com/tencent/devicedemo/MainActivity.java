@@ -130,6 +130,10 @@ import com.util.Intenet;
 import com.util.ShellUtils;
 import com.viewpager.AutoScrollViewPager;
 
+import cn.jpush.android.api.CustomMessage;
+import cn.jpush.android.api.InstrumentedActivity;
+import cn.jpush.android.api.JPushInterface;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -151,7 +155,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
+import cn.jpush.android.service.JPushMessageReceiver;
 import jni.util.Utils;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
 
 import static com.androidex.NetWork.NETWOKR_TYPE_ETHERNET;
 import static com.androidex.NetWork.NETWORK_TYPE_WIFI;
@@ -229,6 +237,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public static final int INPUT_CARDINFO_REQUESTCODE = 0X02;
     public static final int INPUT_SYSTEMSET_REQUESTCODE = 0X03;
     public static final int INPUT_FACE_REQUESTCODE = 0X04;
+
     public static final String address = "67:C2:B2:2F:72:FC";//马总
     //public static final String address = "1F:1C:32:AF:66:23";//寄出去的mac=== 1F:1C:32:AF:66:23
     private static final long SCAN_PERIOD = 12000;//扫描时间
@@ -238,6 +247,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     public static int currentStatus = INPUT_MODE;
     public static int READER_FLAGS = NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK;
     private View container;
+    private EditText msgText;
     private LinearLayout videoLayout;
     private RelativeLayout rl_nfc, rl;
     private GridView mGridView;
@@ -292,6 +302,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     private Timer timer_scanBle;// 扫描蓝牙时定时器
     private Runnable bleRunnable;//蓝牙
     private Handler bleHandler = new Handler();//蓝牙
+    public static boolean isForeground = false;
     Timer timer = new Timer();
     private Runnable runnable = new Runnable() {
         @Override
@@ -366,7 +377,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             setNewTime();
         }
     };
-
     private BroadcastReceiver tdReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -380,7 +390,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             }
         }
     };
-
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //全屏设置，隐藏窗口所有装饰
@@ -428,8 +437,23 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
         //初始化人脸相关与身份证识别
         initFaceDetectAndIDCard();
+        //初始化极光登录
+        initJPush();
+        registerMessageReceiver();
     }
 
+    // 初始化 JPush。如果已经初始化，但没有登录成功，则执行重新登录。
+    private void initJPush(){
+        JPushInterface.init(getApplicationContext());
+        String rid = JPushInterface.getRegistrationID(getApplicationContext());
+        //String Mac =  toolMac.getWifiMac();
+        if (!rid.isEmpty()) {
+            Logger.i("RegId:" , rid);
+            System.out.println("RegId1:======================"+rid);
+        } else {
+            Logger.i("JPush", "Get registration fail, JPush init failed!");
+        }
+    }
 
     /**
      * 初始化view
@@ -2301,6 +2325,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
     }
 
     protected void onResume() {
+        isForeground = true;
         super.onResume();
         Log.v(FACE_TAG, "MainActivity/onResume-->");
         if (faceHandler != null) {
@@ -2318,7 +2343,6 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
         if (dialog != null && dialog.isShowing()) {/*去掉呼叫中弹出框*/
             dialog.dismiss();
         }
-
         TXBinderInfo[] arrayBinder = TXDeviceService.getBinderList();
         if (arrayBinder != null) {
             List<TXBinderInfo> binderList = new ArrayList<TXBinderInfo>();
@@ -3220,6 +3244,7 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
          * 注意：这个方法只能在run方法里调用，不然会阻塞主线程，导致页面无响应
          */
         void onPause() {
+
             synchronized (lock) {
                 try {
                     lock.wait();
@@ -3276,10 +3301,10 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
                             }
                         }
                     }
-                    //HttpApi.i("对比："+fr.mName);
-                    //HttpApi.i("识别度："+max);
+                    HttpApi.i("对比："+fr.mName);
+                    HttpApi.i("识别度："+max);
                 }
-                //HttpApi.i("特征匹配结束时间："+sdf.format(new Date()));
+                HttpApi.i("特征匹配结束时间："+sdf.format(new Date()));
                 if (max > DeviceConfig.FACE_MAX) {
                     Message message = Message.obtain();
                     message.what = MainService.MSG_FACE_OPENLOCK;
@@ -3418,6 +3443,40 @@ public class MainActivity extends AndroidExActivityBase implements NfcReader.Acc
             e.printStackTrace();
         }
         return verName;
+    }
+
+    //for receive customer msg from jpush server
+    //极光接收器
+    Intent intent1 = new Intent();
+
+    //for receive customer msg from jpush server
+    private MessageReceiver mMessageReceiver;
+    public static final String MESSAGE_RECEIVED_ACTION = "com.example.jpushdemo.MESSAGE_RECEIVED_ACTION";
+    public static final String KEY_TITLE = "title";
+    public static final String KEY_MESSAGE = "message";
+    public static final String KEY_EXTRAS = "extras";
+
+    public void registerMessageReceiver() {
+        mMessageReceiver = new MessageReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY);
+        filter.addAction(MESSAGE_RECEIVED_ACTION);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, filter);
+    }
+    public class MessageReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                if (MESSAGE_RECEIVED_ACTION.equals(intent.getAction())) {
+                    String messge = intent.getStringExtra(KEY_MESSAGE);
+                    String extras = intent.getStringExtra(KEY_EXTRAS);
+                    StringBuilder showMsg = new StringBuilder();
+                    showMsg.append(KEY_MESSAGE + " : " + messge + "\n");
+                    System.out.println(KEY_MESSAGE+" : "+messge+ "\n");
+                }
+            } catch (Exception e){
+            }
+        }
     }
 }
 
